@@ -1,0 +1,125 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Variables: `var` vs `val`
+
+## Overview
+Kotlin has two keywords for declaring variables: `var` for mutable variables and `val` for immutable (read-only) variables.
+
+## `val` - Immutable Variables
+
+```kotlin
+val name = "John"
+val age = 25
+val pi = 3.14159
+
+// Compilation error - cannot reassign
+// name = "Jane"  // Error!
+```
+
+### Type Declaration
+```kotlin
+val name: String = "John"
+val age: Int = 25
+val height: Double = 5.9
+```
+
+### Late Initialization
+```kotlin
+val result: String
+if (condition) {
+    result = "Success"
+} else {
+    result = "Failure"
+}
+// result is now immutable
+```
+
+## `var` - Mutable Variables
+
+```kotlin
+var counter = 0
+var message = "Hello"
+var isActive = true
+
+// Can be reassigned
+counter = 10
+message = "Goodbye"
+isActive = false
+```
+
+### Type Declaration
+```kotlin
+var score: Int = 0
+var playerName: String = "Player1"
+var gameOver: Boolean = false
+```
+
+### Type Inference
+```kotlin
+var temperature = 23.5  // Double inferred
+var cities = mutableListOf("NYC", "LA")  // MutableList<String> inferred
+```
+
+## Key Differences
+
+| `val` | `var` |
+|-------|-------|
+| Immutable reference | Mutable reference |
+| Cannot be reassigned | Can be reassigned |
+| Similar to `final` in Java | Regular variable |
+| Preferred when possible | Use when mutation needed |
+
+## Best Practices
+
+### Prefer `val` over `var`
+```kotlin
+// Good
+val users = mutableListOf<String>()
+users.add("Alice")  // Content can change, reference cannot
+
+// Avoid if possible
+var users = mutableListOf<String>()
+users = mutableListOf()  // Reference can change
+```
+
+### Collections Example
+```kotlin
+val immutableList = listOf(1, 2, 3)
+// immutableList.add(4)  // Error - no add method
+
+val mutableList = mutableListOf(1, 2, 3)
+mutableList.add(4)  // OK - content changes, reference doesn't
+
+var changeableList = mutableListOf(1, 2, 3)
+changeableList = mutableListOf(4, 5, 6)  // OK - entire reference changes
+```
+
+## Common Patterns
+
+### Loop Counters
+```kotlin
+// Use var for counters that change
+for (i in 0..10) {
+    var doubled = i * 2  // val would work here too
+    println(doubled)
+}
+```
+
+### Conditional Assignment
+```kotlin
+val grade = if (score >= 90) "A"
+           else if (score >= 80) "B"
+           else "C"
+```
+
+### Property Access
+```kotlin
+class Person(val name: String, var age: Int)
+
+val person = Person("Alice", 30)
+// person.name = "Bob"  // Error - val property
+person.age = 31  // OK - var property
+```

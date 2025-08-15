@@ -1,0 +1,296 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Nullable Types and Null Safety
+
+## Overview
+Kotlin's type system distinguishes between nullable and non-nullable types to eliminate null pointer exceptions at compile time.
+
+## Non-Nullable Types (Default)
+```kotlin
+val name: String = "John"
+val age: Int = 25
+val isActive: Boolean = true
+
+// Compilation error - cannot assign null
+// val message: String = null  // Error!
+```
+
+## Nullable Types
+```kotlin
+val nullableName: String? = null
+val nullableAge: Int? = null
+val nullableFlag: Boolean? = null
+
+// Can hold actual values or null
+val validName: String? = "Alice"
+val validAge: Int? = 30
+```
+
+## Safe Call Operator (`?.`)
+```kotlin
+val text: String? = "Hello"
+val nullText: String? = null
+
+// Safe access to properties/methods
+val length1 = text?.length        // 5
+val length2 = nullText?.length    // null
+
+// Chain safe calls
+val upperLength = text?.uppercase()?.length  // 5
+val nullChain = nullText?.uppercase()?.length // null
+```
+
+### Safe Calls with Methods
+```kotlin
+val numbers: List<Int>? = listOf(1, 2, 3, 4, 5)
+val emptyList: List<Int>? = null
+
+val firstEven = numbers?.find { it % 2 == 0 }    // 2
+val nullResult = emptyList?.find { it % 2 == 0 } // null
+
+// Safe method chaining
+val result = numbers?.filter { it > 2 }?.map { it * 2 }?.sum()  // 18
+```
+
+## Elvis Operator (`?:`)
+```kotlin
+val name: String? = null
+val defaultName = name ?: "Unknown"  // "Unknown"
+
+val validName: String? = "Alice"
+val finalName = validName ?: "Unknown"  // "Alice"
+
+// With expressions
+fun getDisplayName(name: String?): String {
+    return name?.trim()?.takeIf { it.isNotEmpty() } ?: "Anonymous"
+}
+```
+
+### Elvis with Return/Throw
+```kotlin
+fun processUser(user: User?) {
+    val validUser = user ?: return  // Early return if null
+    // Continue processing validUser
+}
+
+fun validateInput(input: String?) {
+    val validInput = input ?: throw IllegalArgumentException("Input cannot be null")
+    // Process validInput
+}
+```
+
+## Not-Null Assertion (`!!`)
+```kotlin
+val nullableText: String? = "Hello"
+
+// Force unwrap (use carefully!)
+val length = nullableText!!.length  // 5
+
+// Will throw KotlinNullPointerException if null
+val dangerous: String? = null
+// val crash = dangerous!!.length  // Runtime exception!
+```
+
+## Safe Casts (`as?`)
+```kotlin
+val obj: Any = "Hello"
+val str: String? = obj as? String    // "Hello"
+val num: Int? = obj as? Int          // null (safe cast failed)
+
+// Usage with Elvis operator
+val length = (obj as? String)?.length ?: 0  // 5
+```
+
+## Let Function with Nullable Types
+```kotlin
+val name: String? = "Alice"
+
+// Execute block only if not null
+name?.let { validName ->
+    println("Name length: ${validName.length}")
+    println("Uppercase: ${validName.uppercase()}")
+}
+
+// Shorter syntax
+name?.let { println("Hello, $it!") }
+```
+
+### Let with Multiple Nullable Values
+```kotlin
+val firstName: String? = "John"
+val lastName: String? = "Doe"
+
+firstName?.let { first ->
+    lastName?.let { last ->
+        println("Full name: $first $last")
+    }
+}
+```
+
+## Nullable Collections
+```kotlin
+// Nullable collection vs collection of nullables
+val nullableList: List<String>? = null
+val listOfNullables: List<String?> = listOf("a", null, "c")
+val nullableListOfNullables: List<String?>? = null
+
+// Safe operations on nullable collections
+val size = nullableList?.size ?: 0
+val firstItem = nullableList?.firstOrNull()
+
+// Filter out nulls
+val nonNullItems = listOfNullables.filterNotNull()  // ["a", "c"]
+```
+
+## Platform Types (Java Interop)
+```kotlin
+// When calling Java code, types are platform types (Type!)
+// You decide if they're nullable or not
+
+// Java method: String getName()
+val javaName = javaObject.name  // Platform type String!
+
+// Treat as nullable (safe)
+val safeName: String? = javaObject.name
+
+// Treat as non-null (risky)
+val riskyName: String = javaObject.name
+```
+
+## Null Checks and Smart Casts
+```kotlin
+fun processText(text: String?) {
+    if (text != null) {
+        // Smart cast: text is now String (non-null)
+        println("Length: ${text.length}")
+        println("Uppercase: ${text.uppercase()}")
+    }
+}
+
+// Multiple conditions
+fun processUserData(name: String?, age: Int?) {
+    if (name != null && age != null) {
+        // Both are smart cast to non-null types
+        println("User: $name, Age: $age")
+        val isAdult = age >= 18
+    }
+}
+```
+
+## When Expression with Null
+```kotlin
+fun handleValue(value: String?) {
+    when (value) {
+        null -> println("Value is null")
+        "" -> println("Value is empty")
+        else -> println("Value: $value (length: ${value.length})")
+    }
+}
+```
+
+## Late-Initialized Properties
+```kotlin
+class MyClass {
+    // For properties that will be initialized later
+    lateinit var lateProperty: String
+
+    fun initialize() {
+        lateProperty = "Initialized"
+    }
+
+    fun use() {
+        if (::lateProperty.isInitialized) {
+            println(lateProperty)
+        }
+    }
+}
+```
+
+## Common Patterns
+
+### Nullable to Non-Null Conversion
+```kotlin
+// Using requireNotNull
+fun processRequiredValue(value: String?) {
+    val nonNullValue = requireNotNull(value) { "Value cannot be null" }
+    println(nonNullValue.length)
+}
+
+// Using checkNotNull
+fun validateAndProcess(value: String?) {
+    val validated = checkNotNull(value) { "Value must not be null" }
+    // Process validated (non-null) value
+}
+```
+
+### Safe Collection Operations
+```kotlin
+val names: List<String?> = listOf("Alice", null, "Bob", null, "Charlie")
+
+// Filter out nulls
+val validNames = names.filterNotNull()  // [Alice, Bob, Charlie]
+
+// Safe map operations
+val lengths = names.mapNotNull { it?.length }  // [5, 3, 7]
+
+// Safe find operations
+val firstLong = names.find { it != null && it.length > 4 }  // "Alice"
+```
+
+### Null Safety in Higher-Order Functions
+```kotlin
+val numbers: List<Int?> = listOf(1, null, 3, null, 5)
+
+// Safe operations
+val doubled = numbers.mapNotNull { it?.times(2) }  // [2, 6, 10]
+val evenNumbers = numbers.filterNotNull().filter { it % 2 == 0 }
+
+// Safe reduce
+val sum = numbers.filterNotNull().fold(0) { acc, num -> acc + num }  // 9
+```
+
+## Best Practices
+
+### Prefer Safe Calls Over Null Checks
+```kotlin
+// Good
+val length = name?.length ?: 0
+
+// Avoid
+val length = if (name != null) name.length else 0
+```
+
+### Use Elvis Operator for Default Values
+```kotlin
+// Good
+fun greet(name: String?) {
+    val displayName = name?.trim()?.takeIf { it.isNotEmpty() } ?: "Guest"
+    println("Hello, $displayName!")
+}
+
+// Avoid multiple nested safe calls
+fun greetBad(name: String?) {
+    if (name != null) {
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty()) {
+            println("Hello, $trimmed!")
+        } else {
+            println("Hello, Guest!")
+        }
+    } else {
+        println("Hello, Guest!")
+    }
+}
+```
+
+### Minimize Not-Null Assertions
+```kotlin
+// Good - handle null case
+val result = input?.process() ?: getDefaultResult()
+
+// Avoid unless absolutely certain
+val result = input!!.process()  // Dangerous!
+```

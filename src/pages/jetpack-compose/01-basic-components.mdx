@@ -1,0 +1,142 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose </a> <br /> <br />
+
+# Visual Basic: Text, Button, Image, Icon
+
+This document provides a concise overview of basic Jetpack Compose components: `Text`, `Button` (including all button types), `Image`, and `Icon`, with code examples and brief descriptions.
+
+## Text
+Displays a simple text string with customizable styling.
+
+```kotlin
+@Composable
+fun SimpleText() {
+    Text(
+        text = "Hello, Jetpack Compose!",
+        style = TextStyle(
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Blue
+        ),
+        modifier = Modifier.padding(16.dp)
+    )
+}
+```
+
+## Button
+A clickable component that triggers an action when pressed. Jetpack Compose offers several button types: `Button`, `TextButton`, `OutlinedButton`, `ElevatedButton`, and `IconButton`.
+
+### Button (Filled)
+A standard filled button with a solid background.
+
+```kotlin
+@Composable
+fun FilledButton() {
+    Button(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Filled Button")
+    }
+}
+```
+
+### TextButton
+A text-only button with no background, ideal for minimalistic designs.
+
+```kotlin
+@Composable
+fun SimpleTextButton() {
+    TextButton(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Text Button")
+    }
+}
+```
+
+### OutlinedButton
+A button with a border and transparent background.
+
+```kotlin
+@Composable
+fun SimpleOutlinedButton() {
+    OutlinedButton(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Outlined Button")
+    }
+}
+```
+
+### ElevatedButton
+A button with elevation (shadow) for a raised appearance.
+
+```kotlin
+@Composable
+fun SimpleElevatedButton() {
+    ElevatedButton(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Elevated Button")
+    }
+}
+```
+
+### IconButton
+A button containing only an icon, typically used for compact actions.
+
+```kotlin
+@Composable
+fun SimpleIconButton() {
+    IconButton(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Favorite,
+            contentDescription = "Favorite Icon",
+            tint = Color.Red
+        )
+    }
+}
+```
+
+## Image
+Displays an image from a resource, painter, or bitmap.
+
+```kotlin
+@Composable
+fun SimpleImage() {
+    Image(
+        painter = painterResource(id = R.drawable.sample_image),
+        contentDescription = "Sample Image",
+        modifier = Modifier
+            .size(100.dp)
+            .padding(16.dp),
+        contentScale = ContentScale.Crop
+    )
+}
+```
+
+## Icon
+Renders a vector icon or drawable with customizable appearance.
+
+```kotlin
+@Composable
+fun SimpleIcon() {
+    Icon(
+        imageVector = Icons.Default.Favorite,
+        contentDescription = "Favorite Icon",
+        modifier = Modifier
+            .size(24.dp)
+            .padding(16.dp),
+        tint = Color.Red
+    )
+}
+```

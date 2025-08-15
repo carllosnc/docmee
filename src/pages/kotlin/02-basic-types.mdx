@@ -1,0 +1,206 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Basic Types
+
+## Overview
+Kotlin has several built-in basic types that represent numbers, characters, booleans, arrays, and strings. Everything in Kotlin is an object.
+
+## Number Types
+
+### Integer Types
+```kotlin
+val byte: Byte = 127                    // 8-bit signed (-128 to 127)
+val short: Short = 32767                // 16-bit signed (-32,768 to 32,767)
+val int: Int = 2147483647              // 32-bit signed (-2^31 to 2^31-1)
+val long: Long = 9223372036854775807L  // 64-bit signed (-2^63 to 2^63-1)
+
+// Type inference
+val defaultInt = 42        // Int
+val explicitLong = 42L     // Long
+```
+
+### Floating Point Types
+```kotlin
+val float: Float = 3.14f    // 32-bit IEEE 754 single precision
+val double: Double = 3.14   // 64-bit IEEE 754 double precision
+
+// Type inference
+val defaultDecimal = 3.14   // Double
+val explicitFloat = 3.14f   // Float
+```
+
+### Unsigned Types (Kotlin 1.3+)
+```kotlin
+val uByte: UByte = 255u
+val uShort: UShort = 65535u
+val uInt: UInt = 4294967295u
+val uLong: ULong = 18446744073709551615u
+```
+
+## Boolean Type
+```kotlin
+val isTrue: Boolean = true
+val isFalse: Boolean = false
+
+// Boolean operations
+val and = true && false     // false
+val or = true || false      // true
+val not = !true             // false
+```
+
+## Character Type
+```kotlin
+val char: Char = 'A'
+val digit: Char = '5'
+val newline: Char = '\n'
+val unicode: Char = '\u0041'  // 'A'
+
+// Character operations
+val isDigit = '5'.isDigit()        // true
+val isLetter = 'A'.isLetter()      // true
+val lowercase = 'A'.toLowerCase()   // 'a'
+```
+
+## String Type
+```kotlin
+val message: String = "Hello, World!"
+val multiline = """
+    This is a
+    multiline string
+""".trimIndent()
+
+// String operations
+val length = message.length              // 13
+val upper = message.uppercase()          // "HELLO, WORLD!"
+val contains = message.contains("World") // true
+val substring = message.substring(0, 5)  // "Hello"
+```
+
+### String Concatenation
+```kotlin
+val firstName = "John"
+val lastName = "Doe"
+
+// Plus operator
+val fullName = firstName + " " + lastName
+
+// String templates (preferred)
+val greeting = "Hello, $firstName $lastName!"
+val expression = "Length is ${firstName.length}"
+```
+
+## Arrays
+```kotlin
+// Array creation
+val numbers: Array<Int> = arrayOf(1, 2, 3, 4, 5)
+val strings = arrayOf("a", "b", "c")
+val mixed: Array<Any> = arrayOf(1, "hello", true)
+
+// Primitive arrays (more efficient)
+val intArray: IntArray = intArrayOf(1, 2, 3)
+val doubleArray: DoubleArray = doubleArrayOf(1.0, 2.0, 3.0)
+val booleanArray: BooleanArray = booleanArrayOf(true, false)
+
+// Array access
+val first = numbers[0]              // 1
+numbers[1] = 10                     // Modify element
+val size = numbers.size             // 5
+```
+
+## Type Conversions
+
+### Explicit Conversions
+```kotlin
+val int: Int = 42
+val long: Long = int.toLong()
+val double: Double = int.toDouble()
+val string: String = int.toString()
+
+// No implicit conversions
+// val long: Long = int  // Error!
+```
+
+### String to Number
+```kotlin
+val numberString = "123"
+val int = numberString.toInt()           // 123
+val double = numberString.toDouble()     // 123.0
+
+// Safe conversions
+val safeInt = numberString.toIntOrNull() // 123 or null if invalid
+```
+
+## Literals and Representations
+
+### Number Literals
+```kotlin
+val decimal = 123
+val hexadecimal = 0x7F
+val binary = 0b10101010
+val long = 123L
+val float = 123.5f
+val double = 123.5
+
+// Underscores for readability
+val million = 1_000_000
+val bytes = 0xFF_EC_DE_5E
+```
+
+### Character Literals
+```kotlin
+val char = 'a'
+val tab = '\t'
+val newline = '\n'
+val quote = '\''
+val backslash = '\\'
+val unicode = '\u00A9'  // Copyright symbol
+```
+
+## Type Checking and Smart Casts
+```kotlin
+fun processValue(value: Any) {
+    if (value is String) {
+        // Smart cast - value is automatically String here
+        println("String length: ${value.length}")
+    }
+    
+    when (value) {
+        is Int -> println("Integer: $value")
+        is Double -> println("Double: $value")
+        is Boolean -> println("Boolean: $value")
+    }
+}
+```
+
+## Nullable Types
+```kotlin
+val nullableString: String? = null
+val nullableInt: Int? = null
+
+// Safe access
+val length = nullableString?.length     // null if string is null
+val lengthOrZero = nullableString?.length ?: 0  // 0 if null
+```
+
+## Common Operations
+```kotlin
+// Number operations
+val sum = 10 + 5        // 15
+val diff = 10 - 5       // 5
+val product = 10 * 5    // 50
+val quotient = 10 / 5   // 2
+val remainder = 10 % 3  // 1
+
+// Comparison
+val isEqual = (10 == 10)        // true
+val isGreater = (10 > 5)        // true
+val comparison = 10.compareTo(5) // 1 (positive)
+
+// Range operations
+val range = 1..10                    // IntRange
+val isInRange = 5 in range          // true
+val charRange = 'a'..'z'            // CharRange
+```

@@ -1,0 +1,337 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin If Expressions
+
+## Overview
+In Kotlin, `if` is an expression, not a statement. This means it returns a value and can be used wherever an expression is expected.
+
+## Basic If Expressions
+
+### Simple If Expression
+```kotlin
+val age = 18
+val status = if (age >= 18) "Adult" else "Minor"
+println(status) // "Adult"
+
+val number = 10
+val sign = if (number > 0) "Positive" else "Non-positive"
+```
+
+### If Expression vs Statement (Java comparison)
+```kotlin
+// Kotlin - if as expression (returns value)
+val message = if (score >= 60) "Pass" else "Fail"
+
+// Java equivalent would be:
+// String message = (score >= 60) ? "Pass" : "Fail";  // Ternary
+// or
+// String message;
+// if (score >= 60) {
+//     message = "Pass";
+// } else {
+//     message = "Fail";
+// }
+```
+
+## Multi-branch If Expressions
+
+### If-Else If-Else Chain
+```kotlin
+val score = 85
+val grade = if (score >= 90) {
+    "A"
+} else if (score >= 80) {
+    "B"
+} else if (score >= 70) {
+    "C"
+} else if (score >= 60) {
+    "D"
+} else {
+    "F"
+}
+println(grade) // "B"
+```
+
+### Complex Conditions
+```kotlin
+val temperature = 25
+val humidity = 60
+val comfort = if (temperature in 20..26 && humidity < 70) {
+    "Comfortable"
+} else if (temperature > 30 || humidity > 80) {
+    "Uncomfortable"
+} else {
+    "Moderate"
+}
+```
+
+## If Expressions with Blocks
+
+### Multiple Statements in Branches
+```kotlin
+val x = 10
+val result = if (x > 0) {
+    println("Positive number detected")
+    val doubled = x * 2
+    "Result: $doubled"  // Last expression is returned
+} else {
+    println("Non-positive number")
+    val abs = if (x < 0) -x else 0
+    "Absolute: $abs"    // Last expression is returned
+}
+```
+
+### Complex Logic in Branches
+```kotlin
+fun processUser(user: User?) = if (user != null) {
+    val name = user.name.trim()
+    val email = user.email.lowercase()
+    val isValid = name.isNotEmpty() && email.contains("@")
+    
+    if (isValid) {
+        "Valid user: $name ($email)"
+    } else {
+        "Invalid user data"
+    }
+} else {
+    "No user provided"
+}
+```
+
+## Nested If Expressions
+
+### Simple Nesting
+```kotlin
+val age = 25
+val hasLicense = true
+
+val canDrive = if (age >= 16) {
+    if (hasLicense) "Can drive" else "Need license"
+} else {
+    "Too young to drive"
+}
+```
+
+### Complex Nested Logic
+```kotlin
+val score = 78
+val attendance = 85
+val hasBonus = true
+
+val finalGrade = if (score >= 60) {
+    if (attendance >= 80) {
+        val base = if (score >= 90) "A" 
+                  else if (score >= 80) "B" 
+                  else "C"
+        if (hasBonus && score >= 75) "$base+" else base
+    } else {
+        "Need better attendance"
+    }
+} else {
+    "Failed"
+}
+```
+
+## If Expressions in Function Returns
+
+### Direct Return
+```kotlin
+fun getDiscount(isPremium: Boolean, orderAmount: Double): Double {
+    return if (isPremium) {
+        if (orderAmount > 100) 0.15 else 0.10
+    } else {
+        if (orderAmount > 50) 0.05 else 0.0
+    }
+}
+```
+
+### Single Expression Functions
+```kotlin
+fun max(a: Int, b: Int) = if (a > b) a else b
+
+fun getStatus(age: Int) = if (age >= 18) "Adult" else "Minor"
+
+fun calculateTax(income: Double) = if (income > 50000) income * 0.25 else income * 0.15
+```
+
+## If Expressions in Collections
+
+### List Creation
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+val processed = numbers.map { 
+    if (it % 2 == 0) it * 2 else it * 3 
+}
+// [3, 4, 9, 8, 15]
+```
+
+### Filtering with If
+```kotlin
+val ages = listOf(15, 22, 17, 30, 16)
+val categories = ages.map {
+    if (it >= 18) "Adult" else "Minor"
+}
+// ["Minor", "Adult", "Minor", "Adult", "Minor"]
+```
+
+## If Expressions with Nullable Types
+
+### Null Safety
+```kotlin
+val name: String? = "Alice"
+val greeting = if (name != null) {
+    "Hello, ${name.uppercase()}!"
+} else {
+    "Hello, Guest!"
+}
+```
+
+### Smart Casts in If Expressions
+```kotlin
+fun processValue(value: Any) = if (value is String) {
+    "String with length: ${value.length}"
+} else if (value is Int) {
+    "Integer with value: $value"
+} else {
+    "Unknown type: ${value::class.simpleName}"
+}
+```
+
+## Advanced Patterns
+
+### If Expression with When-like Behavior
+```kotlin
+val dayOfWeek = 3
+val dayType = if (dayOfWeek in 1..5) {
+    "Weekday"
+} else if (dayOfWeek in 6..7) {
+    "Weekend"
+} else {
+    "Invalid day"
+}
+```
+
+### Conditional Object Creation
+```kotlin
+data class Config(val env: String, val debug: Boolean)
+
+val environment = "production"
+val config = if (environment == "development") {
+    Config("dev", debug = true)
+} else if (environment == "testing") {
+    Config("test", debug = true)
+} else {
+    Config("prod", debug = false)
+}
+```
+
+### If with Elvis Operator
+```kotlin
+val input: String? = null
+val result = if (!input.isNullOrBlank()) {
+    input.trim().uppercase()
+} else {
+    "DEFAULT"
+}
+
+// More concise with Elvis
+val conciseResult = input?.trim()?.uppercase() ?: "DEFAULT"
+```
+
+## Common Use Cases
+
+### Validation
+```kotlin
+fun validateEmail(email: String) = if (email.isBlank()) {
+    "Email cannot be blank"
+} else if (!email.contains("@")) {
+    "Email must contain @"
+} else if (email.length < 5) {
+    "Email too short"
+} else {
+    "Valid"
+}
+```
+
+### Configuration Selection
+```kotlin
+fun getDatabaseUrl(env: String) = if (env == "production") {
+    "jdbc:mysql://prod-server:3306/mydb"
+} else if (env == "staging") {
+    "jdbc:mysql://staging-server:3306/mydb"
+} else {
+    "jdbc:h2:mem:testdb"
+}
+```
+
+### Mathematical Operations
+```kotlin
+fun calculateDiscount(price: Double, customerType: String) = if (customerType == "VIP") {
+    if (price > 1000) price * 0.20 else price * 0.15
+} else if (customerType == "REGULAR") {
+    if (price > 500) price * 0.10 else price * 0.05
+} else {
+    0.0
+}
+```
+
+## Best Practices
+
+### Prefer If Expressions Over Multiple Assignments
+```kotlin
+// Good
+val message = if (isSuccess) "Operation completed" else "Operation failed"
+
+// Avoid
+var message: String
+if (isSuccess) {
+    message = "Operation completed"
+} else {
+    message = "Operation failed"
+}
+```
+
+### Use Block Syntax for Complex Logic
+```kotlin
+// Good - readable with blocks
+val result = if (condition) {
+    performComplexCalculation()
+    formatResult(data)
+} else {
+    getDefaultValue()
+}
+
+// Avoid - hard to read
+val result = if (condition) performComplexCalculation().let { formatResult(data) } else getDefaultValue()
+```
+
+### Consider When Expression for Multiple Conditions
+```kotlin
+// If you have many conditions, consider when
+val grade = when {
+    score >= 90 -> "A"
+    score >= 80 -> "B"
+    score >= 70 -> "C"
+    score >= 60 -> "D"
+    else -> "F"
+}
+
+// Instead of long if-else chain
+val grade = if (score >= 90) "A"
+           else if (score >= 80) "B"
+           else if (score >= 70) "C"
+           else if (score >= 60) "D"
+           else "F"
+```
+
+### Ensure All Branches Return Values
+```kotlin
+// Good - all branches return values
+val status = if (age >= 18) "Adult" else "Minor"
+
+// Avoid - missing else can cause compilation error when used as expression
+// val status = if (age >= 18) "Adult"  // Error if used as expression
+```

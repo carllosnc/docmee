@@ -1,0 +1,94 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+# Jetpack Compose
+
+## 1. Jetpack Compose Fundamentals
+- **Visual Components**
+  - [Basic: `Text`, `Button`, `Image`, `Icon`](./jetpack-compose/01-basic-components)
+  - [Intermediate: `Card`, `FloatingActionButton`, `IconButton`](./jetpack-compose/02-intermediate-components)
+- **Wrapper Components**
+  - [Basic: `Row`, `Column`, `Box`](./jetpack-compose/03-basic-wrappers)
+  - Intermediate: `Scaffold`
+- **Modifiers**
+  - Basic: `Modifier` (padding, size, click events)
+  - Intermediate: `Modifier.border()`, `Modifier.clip()`, `Modifier.alpha()`
+  - Advanced: `Modifier.shadow()`, `Modifier.animateContentSize()`
+- **State Management**
+  - Basic: `remember`, `mutableStateOf`
+  - Intermediate: Recomposition basics
+  - Advanced: State hoisting
+
+## 2. Layouts and Lists
+- **Layout Components**
+  - Basic: `Column`, `Row`, `Box`
+  - Intermediate: `ConstraintLayout`, `LazyColumn`, `LazyRow`
+  - Advanced: `LazyVerticalGrid`, `LazyHorizontalGrid`
+- **List Components**
+  - Basic: `LazyColumn`, `LazyRow`
+  - Intermediate: Item animations in lists
+- **Spacing and Separation**
+  - Basic: `Spacer`, `Divider`
+
+## 3. Navigation
+- **Navigation Components**
+  - Basic: `NavHost`, `NavController`
+  - Intermediate: Defining routes
+  - Advanced: Passing arguments (primitives, parcels)
+- **Deep Links**
+  - Advanced: Handling deep link navigation
+
+## 4. State Management with ViewModel
+- **State Management**
+  - Basic: Creating ViewModel for Compose
+  - Intermediate: Observing `LiveData` or `StateFlow`, `rememberScrollState()`, `rememberLazyListState()`
+  - Advanced: `LaunchedEffect` for one-time events, `DisposableEffect` for cleanup
+- **Feedback Components**
+  - Intermediate: `Snackbar` for temporary messages
+
+## 5. Theming
+- **Theme Components**
+  - Basic: `MaterialTheme` (colors, typography)
+  - Intermediate: Custom theme creation
+  - Advanced: Light/dark mode switching
+
+## 6. Animations
+- **Animation Components**
+  - Basic: `animateContentSize`, `AnimatedVisibility`
+  - Intermediate: `Crossfade` for transitions
+  - Advanced: Custom animations with `Animatable`
+
+## 7. Data Integration
+- **Network Integration**
+  - Basic: Retrofit/Ktor with Coroutines
+  - Intermediate: Displaying API data in UI
+- **Database Integration**
+  - Intermediate: Room with Compose
+  - Advanced: Observing database changes with Flow
+
+## 8. Custom Composables
+- **Custom Components**
+  - Basic: Creating stateless composables
+  - Intermediate: Creating stateful composables, Parameterizing composables
+  - Advanced: Building layouts with `Layout` composable, Custom `Modifier` implementations
+
+## 9. Interactive Wall Components
+- **Interactive Components**
+  - Basic: `Button`, `IconButton`
+  - Intermediate: `FloatingActionButton`, `SwipeToDismiss`
+  - Advanced: `ModalBottomSheet` for wall item details
+- **Advanced Wall Features**
+  - Intermediate: `Pager` for horizontal pagination
+  - Advanced: `Zoomable` (custom implementation), `Draggable`, `Transformable` for gesture interactions
+
+## 10. Performance Optimization
+- **Optimization Techniques**
+  - Basic: Avoiding unnecessary recompositions, Using `remember`
+  - Advanced: Using `derivedStateOf`, Layout Inspector for UI debugging, Profiler for performance analysis
+
+## 11. Testing
+- **Test Components**
+  - Basic: Testing composables with `ComposeTestRule`
+  - Intermediate: Mocking ViewModel data
+  - Advanced: Writing UI tests with `createComposeRule`, Integration with JUnit

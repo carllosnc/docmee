@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
+
+.family {
+  font-family: "DM Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: <weight>;
+  font-style: normal;
+}
+
+@custom-variant 2xl (@media (max-width: 1535px));
+@custom-variant xl (@media (max-width: 1279px));
+@custom-variant lg (@media (max-width: 1023px));
+@custom-variant md (@media (max-width: 767px));
+@custom-variant sm (@media (max-width: 639px));
+
+.astro-code {
+  font-family: "JetBrains Mono";
+  @apply text-[15px] py-[20px] rounded-none
+}

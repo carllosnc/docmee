@@ -1,0 +1,94 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose </a> <br /> <br />
+
+# Visual Intermediate: Card, FloatingActionButton, IconButton
+
+## Card
+**Description**: A container with elevation and rounded corners, ideal for wall items or grouped content.
+
+```kotlin
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun SimpleCard() {
+    Card(
+        modifier = Modifier.padding(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Text(
+            text = "This is a card",
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+```
+
+## FloatingActionButton
+**Description**: A floating button for primary actions, typically positioned above other UI elements.
+
+```kotlin
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+
+@Composable
+fun SimpleFAB() {
+    FloatingActionButton(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Icon(Icons.Default.Add, contentDescription = "Add")
+    }
+}
+```
+
+## ExtendedFloatingActionButton
+**Description**: A larger floating button with icon and text, used for prominent actions with labels.
+
+```kotlin
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+
+@Composable
+fun SimpleExtendedFAB() {
+    ExtendedFloatingActionButton(
+        onClick = { /* Handle click */ },
+        modifier = Modifier.padding(16.dp),
+        icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
+        text = { Text("Add Item") }
+    )
+}
+```
+
+## IconButton
+**Description**: A compact button with an icon, used for quick actions like liking or sharing.
+
+```kotlin
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.runtime.Composable
+
+@Composable
+fun SimpleIconButton() {
+    IconButton(onClick = { /* Handle click */ }) {
+        Icon(Icons.Default.Favorite, contentDescription = "Favorite")
+    }
+}
+```

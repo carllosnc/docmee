@@ -1,0 +1,370 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Comments and Basic Operators
+
+## Overview
+Kotlin supports various comment styles and provides a comprehensive set of operators for arithmetic, comparison, logical operations, and more.
+
+## Comments
+
+### Single-line Comments
+```kotlin
+// This is a single-line comment
+val name = "Alice" // Comment at the end of line
+
+// Multiple single-line comments
+// can be used for longer explanations
+// that span multiple lines
+```
+
+### Multi-line Comments
+```kotlin
+/*
+ This is a multi-line comment
+ that can span several lines
+ and is useful for longer descriptions
+*/
+
+val age = 30
+
+/*
+ Multi-line comments can also
+ /* be nested like this */
+ which is useful sometimes
+*/
+```
+
+### Documentation Comments (KDoc)
+```kotlin
+/**
+ * Calculates the area of a rectangle.
+ * 
+ * @param width the width of the rectangle
+ * @param height the height of the rectangle
+ * @return the area as a Double
+ */
+fun calculateArea(width: Double, height: Double): Double {
+    return width * height
+}
+
+/**
+ * Represents a user in the system.
+ * 
+ * @property name the user's full name
+ * @property email the user's email address
+ * @constructor Creates a new user with the given name and email
+ */
+data class User(val name: String, val email: String)
+```
+
+## Arithmetic Operators
+
+### Basic Arithmetic
+```kotlin
+val a = 10
+val b = 3
+
+val sum = a + b        // 13 - Addition
+val diff = a - b       // 7  - Subtraction
+val product = a * b    // 30 - Multiplication
+val quotient = a / b   // 3  - Division (integer)
+val remainder = a % b  // 1  - Modulus (remainder)
+```
+
+### Floating Point Arithmetic
+```kotlin
+val x = 10.0
+val y = 3.0
+
+val floatDiv = x / y   // 3.3333333333333335 - Floating point division
+val precise = 10 / 3.0 // 3.3333333333333335 - Mixed types
+```
+
+### Unary Operators
+```kotlin
+val number = 10
+
+val positive = +number  // 10  - Unary plus
+val negative = -number  // -10 - Unary minus
+
+var counter = 5
+val preIncrement = ++counter   // 6 (counter becomes 6, returns 6)
+val postIncrement = counter++  // 6 (returns 6, then counter becomes 7)
+
+var value = 10
+val preDecrement = --value     // 9 (value becomes 9, returns 9)
+val postDecrement = value--    // 9 (returns 9, then value becomes 8)
+```
+
+## Assignment Operators
+
+### Basic Assignment
+```kotlin
+var x = 10
+x = 20  // Simple assignment
+```
+
+### Compound Assignment
+```kotlin
+var number = 10
+
+number += 5   // number = number + 5   -> 15
+number -= 3   // number = number - 3   -> 12
+number *= 2   // number = number * 2   -> 24
+number /= 4   // number = number / 4   -> 6
+number %= 5   // number = number % 5   -> 1
+```
+
+## Comparison Operators
+
+### Equality and Inequality
+```kotlin
+val a = 10
+val b = 20
+
+val equal = (a == b)        // false - Structural equality
+val notEqual = (a != b)     // true  - Structural inequality
+
+// Reference equality (same object)
+val list1 = mutableListOf(1, 2, 3)
+val list2 = mutableListOf(1, 2, 3)
+val list3 = list1
+
+val sameContent = (list1 == list2)   // true  - Same content
+val sameReference = (list1 === list3) // true  - Same object
+val differentRef = (list1 === list2)  // false - Different objects
+```
+
+### Relational Operators
+```kotlin
+val x = 15
+val y = 10
+
+val greater = (x > y)       // true  - Greater than
+val greaterEqual = (x >= y) // true  - Greater than or equal
+val less = (x < y)          // false - Less than
+val lessEqual = (x <= y)    // false - Less than or equal
+```
+
+### String Comparison
+```kotlin
+val str1 = "apple"
+val str2 = "banana"
+
+val lexical = str1 < str2   // true - Lexicographical comparison
+val ignoreCase = str1.equals(str2, ignoreCase = true)  // false
+```
+
+## Logical Operators
+
+### Boolean Logic
+```kotlin
+val isAdult = true
+val hasLicense = false
+val isWeekend = true
+
+// Logical AND
+val canDrive = isAdult && hasLicense  // false
+
+// Logical OR
+val canRelax = isWeekend || !isAdult  // true
+
+// Logical NOT
+val isChild = !isAdult               // false
+
+// Short-circuit evaluation
+val result = isAdult && expensiveCheck()  // expensiveCheck() not called if isAdult is false
+```
+
+### Logical Operators with Expressions
+```kotlin
+val age = 25
+val hasJob = true
+val salary = 50000
+
+val canGetLoan = (age >= 18) && hasJob && (salary > 30000)  // true
+val needsHelp = (age < 18) || !hasJob || (salary < 20000)   // false
+```
+
+## Bitwise Operators
+
+### Bitwise Operations
+```kotlin
+val a = 12  // Binary: 1100
+val b = 10  // Binary: 1010
+
+val bitwiseAnd = a and b    // 8  (1000) - Bitwise AND
+val bitwiseOr = a or b      // 14 (1110) - Bitwise OR
+val bitwiseXor = a xor b    // 6  (0110) - Bitwise XOR
+val bitwiseNot = a.inv()    // -13       - Bitwise NOT (complement)
+```
+
+### Bit Shift Operations
+```kotlin
+val number = 8  // Binary: 1000
+
+val leftShift = number shl 2   // 32 (100000) - Left shift by 2
+val rightShift = number shr 2  // 2  (10)     - Right shift by 2
+val unsignedRight = number ushr 1 // 4 (100)  - Unsigned right shift
+```
+
+## Range Operators
+
+### Range Creation
+```kotlin
+val range1 = 1..10        // 1 to 10 (inclusive)
+val range2 = 1 until 10   // 1 to 9 (exclusive end)
+val range3 = 10 downTo 1  // 10 to 1 (descending)
+val range4 = 1..10 step 2 // 1, 3, 5, 7, 9
+
+val charRange = 'a'..'z'  // Character range
+```
+
+### Range Usage
+```kotlin
+val number = 5
+val isInRange = number in 1..10        // true
+val isNotInRange = number !in 20..30   // true
+
+// In collections
+val numbers = listOf(1, 2, 3, 4, 5)
+val hasThree = 3 in numbers            // true
+```
+
+## Elvis Operator
+
+### Null Coalescing
+```kotlin
+val name: String? = null
+val displayName = name ?: "Unknown"    // "Unknown"
+
+val validName: String? = "Alice"
+val finalName = validName ?: "Unknown" // "Alice"
+
+// With expressions
+fun getLength(text: String?): Int {
+    return text?.length ?: 0
+}
+```
+
+## Safe Call and Not-Null Assertion
+
+### Safe Call Operator
+```kotlin
+val text: String? = "Hello"
+val length = text?.length              // 5 (or null if text was null)
+val upper = text?.uppercase()          // "HELLO" (or null)
+```
+
+### Not-Null Assertion
+```kotlin
+val text: String? = "Hello"
+val definiteLength = text!!.length     // 5 (throws exception if text is null)
+```
+
+## Operator Overloading Examples
+
+### Custom Operators
+```kotlin
+data class Point(val x: Int, val y: Int) {
+    operator fun plus(other: Point) = Point(x + other.x, y + other.y)
+    operator fun minus(other: Point) = Point(x - other.x, y - other.y)
+    operator fun times(factor: Int) = Point(x * factor, y * factor)
+}
+
+val p1 = Point(1, 2)
+val p2 = Point(3, 4)
+
+val sum = p1 + p2        // Point(4, 6)
+val diff = p1 - p2       // Point(-2, -2)
+val scaled = p1 * 3      // Point(3, 6)
+```
+
+## Operator Precedence (Highest to Lowest)
+
+```kotlin
+// 1. Postfix operators: ++, --, ., ?., ?
+val result1 = array[index]++
+
+// 2. Prefix operators: -, +, ++, --, !, label@
+val result2 = -value++
+
+// 3. Type RHS: :, as, as?
+val result3 = value as String
+
+// 4. Multiplicative: *, /, %
+val result4 = a * b + c
+
+// 5. Additive: +, -
+val result5 = a + b * c
+
+// 6. Range: ..
+val result6 = 1..10
+
+// 7. Infix function calls
+val result7 = a shl b
+
+// 8. Elvis: ?:
+val result8 = nullable ?: default
+
+// 9. Named checks: in, !in, is, !is
+val result9 = value in collection
+
+// 10. Comparison: <, >, <=, >=
+val result10 = a < b
+
+// 11. Equality: ==, !=
+val result11 = a == b
+
+// 12. Conjunction: &&
+val result12 = condition1 && condition2
+
+// 13. Disjunction: ||
+val result13 = condition1 || condition2
+
+// 14. Assignment: =, +=, -=, *=, /=, %=
+var x = 10
+x += 5
+```
+
+## Practical Examples
+
+### Calculator Functions
+```kotlin
+fun calculate(a: Double, b: Double, operator: String): Double {
+    return when (operator) {
+        "+" -> a + b
+        "-" -> a - b
+        "*" -> a * b
+        "/" -> if (b != 0.0) a / b else Double.NaN
+        "%" -> a % b
+        else -> throw IllegalArgumentException("Unknown operator: $operator")
+    }
+}
+```
+
+### Validation with Logical Operators
+```kotlin
+fun validateUser(age: Int, email: String?, hasConsent: Boolean): Boolean {
+    return age >= 13 && 
+           !email.isNullOrBlank() && 
+           email.contains("@") && 
+           hasConsent
+}
+```
+
+### Range-based Operations
+```kotlin
+fun getGrade(score: Int): String {
+    return when (score) {
+        in 90..100 -> "A"
+        in 80..89 -> "B"
+        in 70..79 -> "C"
+        in 60..69 -> "D"
+        else -> "F"
+    }
+}
+```

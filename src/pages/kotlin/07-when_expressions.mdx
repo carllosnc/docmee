@@ -1,0 +1,395 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin When Expressions
+
+## Overview
+`when` is Kotlin's replacement for the switch statement, but much more powerful. It's an expression that returns a value and supports pattern matching, ranges, type checking, and arbitrary conditions.
+
+## Basic When Expressions
+
+### Simple Value Matching
+```kotlin
+val dayOfWeek = 3
+val dayName = when (dayOfWeek) {
+    1 -> "Monday"
+    2 -> "Tuesday"
+    3 -> "Wednesday"
+    4 -> "Thursday"
+    5 -> "Friday"
+    6 -> "Saturday"
+    7 -> "Sunday"
+    else -> "Invalid day"
+}
+println(dayName) // "Wednesday"
+```
+
+### Multiple Values for Same Branch
+```kotlin
+val month = 12
+val season = when (month) {
+    12, 1, 2 -> "Winter"
+    3, 4, 5 -> "Spring"
+    6, 7, 8 -> "Summer"
+    9, 10, 11 -> "Fall"
+    else -> "Invalid month"
+}
+```
+
+### When with Ranges
+```kotlin
+val score = 85
+val grade = when (score) {
+    in 90..100 -> "A"
+    in 80..89 -> "B"
+    in 70..79 -> "C"
+    in 60..69 -> "D"
+    in 0..59 -> "F"
+    else -> "Invalid score"
+}
+```
+
+## When with Type Checking
+
+### Type-based Branching
+```kotlin
+fun describe(obj: Any): String = when (obj) {
+    is String -> "String of length ${obj.length}"
+    is Int -> "Integer: $obj"
+    is Double -> "Double: $obj"
+    is List<*> -> "List with ${obj.size} elements"
+    is Boolean -> if (obj) "True" else "False"
+    else -> "Unknown type"
+}
+
+println(describe("Hello"))      // "String of length 5"
+println(describe(42))           // "Integer: 42"
+println(describe(listOf(1,2)))  // "List with 2 elements"
+```
+
+### Smart Casts in When
+```kotlin
+sealed class Shape
+data class Circle(val radius: Double) : Shape()
+data class Rectangle(val width: Double, val height: Double) : Shape()
+data class Triangle(val base: Double, val height: Double) : Shape()
+
+fun calculateArea(shape: Shape): Double = when (shape) {
+    is Circle -> Math.PI * shape.radius * shape.radius
+    is Rectangle -> shape.width * shape.height
+    is Triangle -> 0.5 * shape.base * shape.height
+}
+```
+
+## When without Subject (Conditional When)
+
+### Boolean Conditions
+```kotlin
+val temperature = 25
+val humidity = 80
+
+val comfort = when {
+    temperature < 0 -> "Freezing"
+    temperature < 10 -> "Very Cold"
+    temperature < 20 -> "Cold"
+    temperature > 35 -> "Very Hot"
+    temperature > 30 -> "Hot"
+    humidity > 80 -> "Too Humid"
+    humidity < 30 -> "Too Dry"
+    else -> "Comfortable"
+}
+```
+
+### Complex Conditions
+```kotlin
+fun getUserStatus(age: Int, hasJob: Boolean, income: Int) = when {
+    age < 18 -> "Minor"
+    age >= 65 -> "Senior"
+    !hasJob -> "Unemployed"
+    income > 100000 -> "High earner"
+    income > 50000 -> "Middle class"
+    else -> "Working class"
+}
+```
+
+## When with Collections and Ranges
+
+### Collection Membership
+```kotlin
+val fruit = "apple"
+val category = when (fruit) {
+    in listOf("apple", "banana", "orange") -> "Common fruit"
+    in setOf("mango", "kiwi", "passion fruit") -> "Exotic fruit"
+    else -> "Unknown fruit"
+}
+```
+
+### Range Operations
+```kotlin
+fun getAgeGroup(age: Int) = when (age) {
+    in 0..12 -> "Child"
+    in 13..17 -> "Teenager"
+    in 18..64 -> "Adult"
+    in 65..120 -> "Senior"
+    else -> "Invalid age"
+}
+
+fun getTemperatureDescription(temp: Double) = when {
+    temp < -10.0 -> "Extremely cold"
+    temp in -10.0..0.0 -> "Freezing"
+    temp in 0.0..10.0 -> "Cold"
+    temp in 10.0..20.0 -> "Cool"
+    temp in 20.0..30.0 -> "Warm"
+    temp > 30.0 -> "Hot"
+    else -> "Invalid temperature"
+}
+```
+
+## When with Blocks
+
+### Multiple Statements per Branch
+```kotlin
+val userType = "admin"
+val result = when (userType) {
+    "admin" -> {
+        println("Admin access granted")
+        val permissions = listOf("read", "write", "delete")
+        "Full access with ${permissions.size} permissions"
+    }
+    "user" -> {
+        println("User access granted")
+        val permissions = listOf("read")
+        "Limited access with ${permissions.size} permission"
+    }
+    else -> {
+        println("Access denied")
+        "No permissions"
+    }
+}
+```
+
+### Complex Processing
+```kotlin
+fun processOrder(order: Order) = when (order.status) {
+    "pending" -> {
+        validateOrder(order)
+        calculateTotal(order)
+        "Order processed and ready for payment"
+    }
+    "paid" -> {
+        generateInvoice(order)
+        scheduleShipping(order)
+        "Order confirmed and shipping scheduled"
+    }
+    "shipped" -> {
+        updateTrackingInfo(order)
+        notifyCustomer(order)
+        "Tracking information updated"
+    }
+    else -> {
+        logError("Unknown order status: ${order.status}")
+        "Error processing order"
+    }
+}
+```
+
+## When as Statement vs Expression
+
+### As Expression (Returns Value)
+```kotlin
+val message = when (status) {
+    200 -> "OK"
+    404 -> "Not Found"
+    500 -> "Server Error"
+    else -> "Unknown"
+}
+```
+
+### As Statement (No Return Value)
+```kotlin
+when (action) {
+    "save" -> saveFile()
+    "load" -> loadFile()
+    "exit" -> exitApplication()
+}
+```
+
+## Advanced When Patterns
+
+### Combining Conditions
+```kotlin
+fun getShippingCost(weight: Double, distance: Int, isPriority: Boolean) = when {
+    weight <= 0 -> throw IllegalArgumentException("Weight must be positive")
+    distance <= 0 -> throw IllegalArgumentException("Distance must be positive")
+    isPriority && weight > 10 -> distance * 0.15 + weight * 2.5
+    isPriority -> distance * 0.12 + weight * 2.0
+    weight > 10 -> distance * 0.10 + weight * 1.5
+    else -> distance * 0.08 + weight * 1.0
+}
+```
+
+### Nullable Values
+```kotlin
+fun handleNullable(value: String?) = when (value) {
+    null -> "No value provided"
+    "" -> "Empty string"
+    "hello" -> "Greeting received"
+    else -> "Value: $value"
+}
+```
+
+### Custom Conditions
+```kotlin
+data class User(val name: String, val age: Int, val role: String)
+
+fun getUserPrivileges(user: User) = when {
+    user.role == "admin" -> "Full access"
+    user.role == "moderator" && user.age >= 21 -> "Moderate access"
+    user.role == "user" && user.name.isNotBlank() -> "User access"
+    else -> "No access"
+}
+```
+
+## Exhaustive When (Sealed Classes)
+
+### Sealed Class Example
+```kotlin
+sealed class Result<T>
+data class Success<T>(val data: T) : Result<T>()
+data class Error<T>(val message: String) : Result<T>()
+data class Loading<T>(val progress: Int) : Result<T>()
+
+fun <T> handleResult(result: Result<T>): String = when (result) {
+    is Success -> "Data loaded: ${result.data}"
+    is Error -> "Error occurred: ${result.message}"
+    is Loading -> "Loading... ${result.progress}%"
+    // No else needed - compiler ensures exhaustiveness
+}
+```
+
+### Enum Classes
+```kotlin
+enum class Direction { NORTH, SOUTH, EAST, WEST }
+
+fun getOpposite(direction: Direction) = when (direction) {
+    Direction.NORTH -> Direction.SOUTH
+    Direction.SOUTH -> Direction.NORTH
+    Direction.EAST -> Direction.WEST
+    Direction.WEST -> Direction.EAST
+    // No else needed for enums
+}
+```
+
+## When in Functions
+
+### Single Expression Functions
+```kotlin
+fun getHttpStatusMessage(code: Int) = when (code) {
+    200 -> "OK"
+    201 -> "Created"
+    400 -> "Bad Request"
+    401 -> "Unauthorized"
+    403 -> "Forbidden"
+    404 -> "Not Found"
+    500 -> "Internal Server Error"
+    else -> "Unknown Status"
+}
+
+fun getDayType(dayOfWeek: Int) = when (dayOfWeek) {
+    in 1..5 -> "Weekday"
+    in 6..7 -> "Weekend"
+    else -> "Invalid"
+}
+```
+
+### Validation Functions
+```kotlin
+fun validateInput(input: String): String = when {
+    input.isBlank() -> "Input cannot be blank"
+    input.length < 3 -> "Input too short"
+    input.length > 50 -> "Input too long"
+    !input.matches(Regex("[a-zA-Z0-9 ]+")) -> "Invalid characters"
+    else -> "Valid"
+}
+```
+
+## When with Destructuring
+
+### Data Classes
+```kotlin
+data class Point(val x: Int, val y: Int)
+
+fun classifyPoint(point: Point) = when (point) {
+    Point(0, 0) -> "Origin"
+    Point(0, _) -> "On Y-axis"
+    Point(_, 0) -> "On X-axis"
+    Point(x, y) when x == y -> "On diagonal (x=$x)"
+    Point(x, y) when x > 0 && y > 0 -> "First quadrant"
+    else -> "Other location"
+}
+```
+
+### Pairs and Triples
+```kotlin
+fun processCoordinate(coord: Pair<Int, Int>) = when (coord) {
+    Pair(0, 0) -> "Origin"
+    Pair(_, 0) -> "On X-axis"
+    Pair(0, _) -> "On Y-axis"
+    else -> "General point (${coord.first}, ${coord.second})"
+}
+```
+
+## Performance and Best Practices
+
+### Prefer When Over Long If-Else Chains
+```kotlin
+// Good - using when
+fun getGrade(score: Int) = when {
+    score >= 90 -> "A"
+    score >= 80 -> "B"
+    score >= 70 -> "C"
+    score >= 60 -> "D"
+    else -> "F"
+}
+
+// Avoid - long if-else chain
+fun getGradeBad(score: Int) = 
+    if (score >= 90) "A"
+    else if (score >= 80) "B"
+    else if (score >= 70) "C"
+    else if (score >= 60) "D"
+    else "F"
+```
+
+### Use Ranges for Numeric Comparisons
+```kotlin
+// Good
+val category = when (age) {
+    in 0..12 -> "Child"
+    in 13..17 -> "Teen"
+    in 18..64 -> "Adult"
+    else -> "Senior"
+}
+
+// Less efficient
+val category = when {
+    age >= 0 && age <= 12 -> "Child"
+    age >= 13 && age <= 17 -> "Teen"
+    age >= 18 && age <= 64 -> "Adult"
+    else -> "Senior"
+}
+```
+
+### Order Conditions by Frequency
+```kotlin
+// Order most common cases first for better performance
+fun getFileType(extension: String) = when (extension.lowercase()) {
+    "jpg", "jpeg", "png", "gif" -> "Image"  // Most common
+    "pdf", "doc", "docx" -> "Document"      // Common
+    "mp3", "wav", "flac" -> "Audio"         // Less common
+    "mp4", "avi", "mkv" -> "Video"          // Less common
+    else -> "Unknown"
+}
+```

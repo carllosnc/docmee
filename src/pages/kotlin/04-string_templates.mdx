@@ -1,0 +1,297 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin String Templates and Raw Strings
+
+## Overview
+Kotlin provides powerful string interpolation through string templates and raw strings for multi-line content without escape sequences.
+
+## Basic String Templates
+
+### Simple Variable Interpolation
+```kotlin
+val name = "Alice"
+val age = 30
+
+val greeting = "Hello, $name!"                    // "Hello, Alice!"
+val info = "Name: $name, Age: $age"              // "Name: Alice, Age: 30"
+val message = "$name is $age years old"          // "Alice is 30 years old"
+```
+
+### Property Access
+```kotlin
+data class Person(val name: String, val age: Int)
+val person = Person("Bob", 25)
+
+val description = "Person: $person.name is $person.age years old"
+// "Person: Bob is 25 years old"
+
+val direct = "${person.name} (${person.age})"    // "Bob (25)"
+```
+
+## Expression Templates (`${}`)
+
+### Simple Expressions
+```kotlin
+val x = 10
+val y = 20
+
+val sum = "Sum: ${x + y}"                        // "Sum: 30"
+val comparison = "$x is ${if (x > y) "greater" else "less"} than $y"
+val math = "Result: ${x * y / 2}"               // "Result: 100"
+```
+
+### Method Calls
+```kotlin
+val text = "Hello World"
+val info = "Length: ${text.length}, Uppercase: ${text.uppercase()}"
+// "Length: 11, Uppercase: HELLO WORLD"
+
+val numbers = listOf(1, 2, 3, 4, 5)
+val stats = "Count: ${numbers.size}, Sum: ${numbers.sum()}, Max: ${numbers.maxOrNull()}"
+// "Count: 5, Sum: 15, Max: 5"
+```
+
+### Complex Expressions
+```kotlin
+val items = listOf("apple", "banana", "cherry")
+val report = "Items: ${items.joinToString { it.uppercase() }}"
+// "Items: APPLE, BANANA, CHERRY"
+
+val users = listOf("Alice", "Bob", "Charlie")
+val summary = "Active users (${users.size}): ${users.filter { it.length > 3 }.joinToString()}"
+// "Active users (3): Alice, Charlie"
+```
+
+## Nested String Templates
+```kotlin
+val firstName = "John"
+val lastName = "Doe"
+
+val fullName = "$firstName $lastName"
+val message = "Welcome, ${fullName.uppercase()}!"  // "Welcome, JOHN DOE!"
+
+// Multiple levels
+val greeting = "Hello, ${if (fullName.isNotEmpty()) "Mr. $fullName" else "Guest"}!"
+```
+
+## Raw Strings (Triple Quotes)
+
+### Basic Raw Strings
+```kotlin
+val multiline = """
+    This is a multiline string
+    with no escape sequences needed
+    and preserves formatting
+"""
+
+val path = """C:\Users\Documents\file.txt"""     // No need to escape backslashes
+val regex = """\d{3}-\d{2}-\d{4}"""              // No need to escape backslashes
+```
+
+### Raw Strings with Templates
+```kotlin
+val name = "Alice"
+val age = 30
+
+val profile = """
+    Name: $name
+    Age: $age
+    Status: ${if (age >= 18) "Adult" else "Minor"}
+"""
+```
+
+### Trimming Raw Strings
+```kotlin
+val sql = """
+    SELECT name, age, email
+    FROM users
+    WHERE age > 18
+    ORDER BY name
+""".trimIndent()
+
+val json = """
+    {
+        "name": "$name",
+        "age": $age,
+        "active": true
+    }
+""".trimMargin()
+```
+
+### Custom Margin with `trimMargin()`
+```kotlin
+val code = """
+    |fun greet(name: String) {
+    |    println("Hello, $name!")
+    |}
+""".trimMargin()
+
+// Custom margin character
+val documentation = """
+    #This is documentation
+    #for a function that
+    #greets users
+""".trimMargin("#")
+```
+
+## Escape Sequences in Regular Strings
+```kotlin
+val newline = "First line\nSecond line"
+val tab = "Column1\tColumn2"
+val quote = "He said \"Hello\""
+val backslash = "Path: C:\\Users\\file.txt"
+val unicode = "Copyright \u00A9 2024"
+
+// Dollar sign escape
+val price = "Price: \$19.99"                     // "Price: $19.99"
+val template = "Template: \${variable}"          // "Template: ${variable}"
+```
+
+## Practical Examples
+
+### SQL Queries
+```kotlin
+fun buildQuery(table: String, condition: String, limit: Int): String {
+    return """
+        SELECT *
+        FROM $table
+        WHERE $condition
+        LIMIT $limit
+    """.trimIndent()
+}
+
+val query = buildQuery("users", "age > 18", 10)
+```
+
+### HTML Generation
+```kotlin
+fun createUserCard(name: String, email: String, age: Int): String {
+    return """
+        <div class="user-card">
+            <h2>$name</h2>
+            <p>Email: $email</p>
+            <p>Age: $age</p>
+            <p>Status: ${if (age >= 18) "Adult" else "Minor"}</p>
+        </div>
+    """.trimIndent()
+}
+```
+
+### JSON Templates
+```kotlin
+data class User(val name: String, val age: Int, val email: String)
+
+fun userToJson(user: User): String {
+    return """
+        {
+            "name": "${user.name}",
+            "age": ${user.age},
+            "email": "${user.email}",
+            "timestamp": "${System.currentTimeMillis()}"
+        }
+    """.trimIndent()
+}
+```
+
+### Configuration Files
+```kotlin
+fun generateConfig(host: String, port: Int, ssl: Boolean): String {
+    return """
+        server:
+          host: $host
+          port: $port
+          ssl: $ssl
+          
+        database:
+          url: jdbc:mysql://$host:${port + 1000}/mydb
+          ssl: $ssl
+    """.trimIndent()
+}
+```
+
+## String Building Performance
+```kotlin
+// For simple cases, templates are fine
+val simple = "Hello, $name!"
+
+// For complex building, consider StringBuilder
+fun buildComplexString(items: List<String>): String {
+    return buildString {
+        append("Items (${items.size}):\n")
+        items.forEachIndexed { index, item ->
+            append("${index + 1}. $item\n")
+        }
+    }
+}
+```
+
+## Common Patterns
+
+### Conditional Content
+```kotlin
+val status = "active"
+val message = """
+    User Status: $status
+    ${if (status == "active") "✓ User is currently active" else "⚠ User is inactive"}
+"""
+```
+
+### Lists and Collections
+```kotlin
+val fruits = listOf("apple", "banana", "cherry")
+val shopping = """
+    Shopping List:
+    ${fruits.mapIndexed { i, fruit -> "${i + 1}. ${fruit.replaceFirstChar { it.uppercase() }}" }.joinToString("\n")}
+"""
+```
+
+### File Paths and URLs
+```kotlin
+val baseUrl = "https://api.example.com"
+val userId = 123
+val apiKey = "abc123"
+
+val endpoint = "$baseUrl/users/$userId?key=$apiKey"
+// "https://api.example.com/users/123?key=abc123"
+
+// Raw string for complex paths
+val windowsPath = """C:\Program Files\MyApp\config.json"""
+val regexPattern = """\b\w+@\w+\.\w+\b"""  // Email regex
+```
+
+## Best Practices
+
+### Prefer Templates Over Concatenation
+```kotlin
+// Good
+val message = "Hello, $name! You have $count messages."
+
+// Avoid
+val message = "Hello, " + name + "! You have " + count + " messages."
+```
+
+### Use Raw Strings for Multi-line Content
+```kotlin
+// Good
+val help = """
+    Usage: myapp [options] file
+    Options:
+      -h, --help    Show this help
+      -v, --verbose Enable verbose output
+""".trimIndent()
+
+// Avoid
+val help = "Usage: myapp [options] file\nOptions:\n  -h, --help    Show this help\n  -v, --verbose Enable verbose output"
+```
+
+### Be Careful with Null Values
+```kotlin
+val name: String? = null
+val greeting = "Hello, $name!"  // "Hello, null!"
+
+// Better
+val greeting = "Hello, ${name ?: "Guest"}!"  // "Hello, Guest!"
+```
