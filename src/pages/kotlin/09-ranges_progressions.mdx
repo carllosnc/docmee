@@ -1,0 +1,463 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Ranges and Progressions
+
+## Overview
+Kotlin provides powerful range and progression types that represent sequences of values. They are commonly used in loops, conditions, and collection operations.
+
+## Basic Ranges
+
+### Inclusive Ranges (`..`)
+```kotlin
+// Integer ranges
+val range1 = 1..10        // 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+val range2 = -5..5        // -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5
+
+// Character ranges
+val charRange = 'a'..'z'  // a, b, c, ..., z
+val upperRange = 'A'..'F' // A, B, C, D, E, F
+
+// Long ranges
+val longRange = 1L..100L
+
+println("Range contains 5: ${5 in range1}")        // true
+println("Range contains 15: ${15 in range1}")      // false
+```
+
+### Exclusive Ranges (`until`)
+```kotlin
+val exclusiveRange = 1 until 10   // 1, 2, 3, 4, 5, 6, 7, 8, 9 (excludes 10)
+val charExclusive = 'a' until 'f' // a, b, c, d, e (excludes f)
+
+// Useful for array indices
+val array = arrayOf("a", "b", "c", "d", "e")
+for (i in 0 until array.size) {
+    println("${i}: ${array[i]}")
+}
+```
+
+## Progressions
+
+### Downward Progressions (`downTo`)
+```kotlin
+val downward = 10 downTo 1        // 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+val charDown = 'z' downTo 'a'     // z, y, x, w, ..., a
+
+for (i in 5 downTo 1) {
+    println("Countdown: $i")
+}
+```
+
+### Step Progressions (`step`)
+```kotlin
+val evenNumbers = 2..20 step 2     // 2, 4, 6, 8, 10, 12, 14, 16, 18, 20
+val oddNumbers = 1..19 step 2      // 1, 3, 5, 7, 9, 11, 13, 15, 17, 19
+val byFives = 0..50 step 5         // 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50
+
+// Downward with step
+val countdown = 10 downTo 1 step 2 // 10, 8, 6, 4, 2
+
+// Character progression with step
+val everyThirdLetter = 'a'..'z' step 3 // a, d, g, j, m, p, s, v, y
+```
+
+### Complex Progressions
+```kotlin
+// Large steps
+val decades = 1900..2020 step 10   // 1900, 1910, 1920, ..., 2020
+
+// Negative progression with step
+val negativeStep = 100 downTo 10 step 15 // 100, 85, 70, 55, 40, 25, 10
+
+// Zero step is not allowed
+// val invalid = 1..10 step 0  // IllegalArgumentException
+```
+
+## Range Types and Properties
+
+### Range Properties
+```kotlin
+val range = 1..10
+
+println("Start: ${range.first}")           // 1
+println("End: ${range.last}")              // 10
+println("Is empty: ${range.isEmpty()}")    // false
+
+val emptyRange = 10..5
+println("Empty range: ${emptyRange.isEmpty()}") // true
+
+// Step information for progressions
+val progression = 1..20 step 3
+println("Step: ${progression.step}")       // 3
+println("First: ${progression.first}")     // 1
+println("Last: ${progression.last}")       // 19 (last value that fits the progression)
+```
+
+### Range Types
+```kotlin
+// IntRange
+val intRange: IntRange = 1..10
+
+// LongRange  
+val longRange: LongRange = 1L..100L
+
+// CharRange
+val charRange: CharRange = 'a'..'z'
+
+// IntProgression (with step)
+val intProgression: IntProgression = 1..100 step 5
+
+// LongProgression
+val longProgression: LongProgression = 1L..1000L step 50L
+
+// CharProgression
+val charProgression: CharProgression = 'A'..'Z' step 2
+```
+
+## Membership Testing (`in` operator)
+
+### Basic Membership
+```kotlin
+val range = 1..100
+
+println(50 in range)        // true
+println(150 in range)       // false
+println(0 in range)         // false
+
+// Character membership
+val letters = 'a'..'z'
+println('m' in letters)     // true
+println('A' in letters)     // false
+```
+
+### Membership with Progressions
+```kotlin
+val evenRange = 2..20 step 2
+println(10 in evenRange)    // true
+println(11 in evenRange)    // false
+
+val countdown = 100 downTo 1 step 5
+println(95 in countdown)    // true
+println(94 in countdown)    // false
+```
+
+### Negated Membership (`!in`)
+```kotlin
+val validRange = 1..10
+
+fun validate(number: Int): String {
+    return if (number !in validRange) {
+        "Number $number is out of range"
+    } else {
+        "Number $number is valid"
+    }
+}
+```
+
+## Using Ranges in Loops
+
+### Basic Range Loops
+```kotlin
+// Forward iteration
+for (i in 1..5) {
+    println("Forward: $i")
+}
+
+// Backward iteration
+for (i in 5 downTo 1) {
+    println("Backward: $i")
+}
+
+// With step
+for (i in 0..20 step 4) {
+    println("Step: $i")
+}
+```
+
+### Character Range Loops
+```kotlin
+// Alphabet iteration
+for (letter in 'a'..'z') {
+    print("$letter ")
+}
+println()
+
+// Uppercase letters with step
+for (letter in 'A'..'Z' step 3) {
+    print("$letter ")  // A D G J M P S V Y
+}
+println()
+```
+
+### Practical Loop Examples
+```kotlin
+// Array indices
+val fruits = arrayOf("apple", "banana", "cherry", "date")
+for (i in fruits.indices) {  // Same as 0 until fruits.size
+    println("${i}: ${fruits[i]}")
+}
+
+// Countdown timer
+for (seconds in 10 downTo 1) {
+    println("$seconds seconds remaining...")
+    Thread.sleep(1000) // Wait 1 second
+}
+println("Time's up!")
+
+// Skip processing
+for (i in 1..100 step 10) {
+    println("Processing batch starting at: $i")
+    // Process items i to i+9
+}
+```
+
+## Ranges with Collections
+
+### Collection Creation
+```kotlin
+// Convert range to list
+val numberList = (1..10).toList()           // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+val evenList = (2..20 step 2).toList()      // [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+val letterList = ('a'..'e').toList()        // [a, b, c, d, e]
+
+// Convert to set
+val uniqueNumbers = (1..5).toSet()
+
+// Convert to array
+val numberArray = (1..10).toList().toTypedArray()
+```
+
+### Collection Operations with Ranges
+```kotlin
+val numbers = (1..20).toList()
+
+// Filter using ranges
+val teenagers = numbers.filter { it in 13..19 }
+val notTeens = numbers.filter { it !in 13..19 }
+
+// Map with ranges
+val categories = numbers.map { 
+    when (it) {
+        in 1..5 -> "Low"
+        in 6..10 -> "Medium"
+        in 11..15 -> "High"
+        else -> "Very High"
+    }
+}
+
+// Any/All with ranges
+val hasTeenagers = numbers.any { it in 13..19 }    // true
+val allPositive = numbers.all { it in 1..100 }     // true
+```
+
+## Advanced Range Operations
+
+### Range Intersection and Union
+```kotlin
+fun rangeOverlap(range1: IntRange, range2: IntRange): IntRange? {
+    val start = maxOf(range1.first, range2.first)
+    val end = minOf(range1.last, range2.last)
+    return if (start <= end) start..end else null
+}
+
+val range1 = 1..10
+val range2 = 5..15
+val overlap = rangeOverlap(range1, range2)  // 5..10
+
+// Check if ranges overlap
+fun rangesOverlap(r1: IntRange, r2: IntRange): Boolean {
+    return r1.first <= r2.last && r2.first <= r1.last
+}
+```
+
+### Custom Range Operations
+```kotlin
+// Split range into chunks
+fun IntRange.chunked(size: Int): List<IntRange> {
+    val chunks = mutableListOf<IntRange>()
+    var current = this.first
+    
+    while (current <= this.last) {
+        val end = minOf(current + size - 1, this.last)
+        chunks.add(current..end)
+        current += size
+    }
+    return chunks
+}
+
+val bigRange = 1..100
+val chunks = bigRange.chunked(10)  // [1..10, 11..20, 21..30, ...]
+```
+
+## When Expressions with Ranges
+
+### Range Matching
+```kotlin
+fun categorizeAge(age: Int): String = when (age) {
+    in 0..12 -> "Child"
+    in 13..19 -> "Teenager"
+    in 20..59 -> "Adult"
+    in 60..120 -> "Senior"
+    else -> "Invalid age"
+}
+
+fun getGrade(score: Int): String = when (score) {
+    in 90..100 -> "A"
+    in 80..89 -> "B"
+    in 70..79 -> "C"
+    in 60..69 -> "D"
+    in 0..59 -> "F"
+    else -> "Invalid score"
+}
+```
+
+### Multiple Range Conditions
+```kotlin
+fun getSeasonFromMonth(month: Int): String = when (month) {
+    in 3..5 -> "Spring"
+    in 6..8 -> "Summer"
+    in 9..11 -> "Fall"
+    in 12..2, 1..2 -> "Winter"  // December, January, February
+    else -> "Invalid month"
+}
+
+fun classifyNumber(num: Int): String = when {
+    num in Int.MIN_VALUE..-1 -> "Negative"
+    num == 0 -> "Zero"
+    num in 1..10 -> "Single digit positive"
+    num in 11..99 -> "Double digit positive"
+    else -> "Large positive"
+}
+```
+
+## Performance Considerations
+
+### Efficient Range Usage
+```kotlin
+// Efficient: direct range iteration
+for (i in 1..1000) {
+    // Process i
+}
+
+// Less efficient: converting to collection first
+for (i in (1..1000).toList()) {
+    // Process i - creates unnecessary list
+}
+
+// Memory efficient for large ranges
+val hugeRange = 1..1_000_000
+println("Contains 500k: ${500_000 in hugeRange}") // O(1) operation
+
+// Avoid materializing large ranges
+// val hugeList = hugeRange.toList()  // Don't do this - uses lots of memory
+```
+
+### Range vs Collection Performance
+```kotlin
+// Fast membership test for ranges
+val range = 1..1000
+val isMember = 500 in range  // O(1)
+
+// Slower for collections
+val list = (1..1000).toList()
+val isInList = 500 in list   // O(n) for list, O(1) for set
+```
+
+## Practical Examples
+
+### Date Range Simulation
+```kotlin
+// Simulate days of month
+fun getDaysInMonth(year: Int, month: Int): IntRange {
+    val daysInMonth = when (month) {
+        1, 3, 5, 7, 8, 10, 12 -> 31
+        4, 6, 9, 11 -> 30
+        2 -> if (isLeapYear(year)) 29 else 28
+        else -> throw IllegalArgumentException("Invalid month")
+    }
+    return 1..daysInMonth
+}
+
+fun isLeapYear(year: Int): Boolean = 
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+
+// Usage
+val februaryDays = getDaysInMonth(2024, 2)  // 1..29
+for (day in februaryDays) {
+    println("February $day, 2024")
+}
+```
+
+### Version Number Ranges
+```kotlin
+data class Version(val major: Int, val minor: Int, val patch: Int) : Comparable<Version> {
+    override fun compareTo(other: Version): Int {
+        return compareValuesBy(this, other, { it.major }, { it.minor }, { it.patch })
+    }
+}
+
+fun isSupportedVersion(version: Version): Boolean {
+    val minVersion = Version(2, 0, 0)
+    val maxVersion = Version(3, 9, 99)
+    return version >= minVersion && version <= maxVersion
+}
+```
+
+### Grid Coordinates
+```kotlin
+data class Point(val x: Int, val y: Int)
+
+fun generateGrid(width: Int, height: Int): List<Point> {
+    val points = mutableListOf<Point>()
+    for (x in 0 until width) {
+        for (y in 0 until height) {
+            points.add(Point(x, y))
+        }
+    }
+    return points
+}
+
+// Or more functional approach
+fun generateGridFunctional(width: Int, height: Int): List<Point> =
+    (0 until width).flatMap { x ->
+        (0 until height).map { y ->
+            Point(x, y)
+        }
+    }
+
+// Find neighbors
+fun getNeighbors(point: Point, gridWidth: Int, gridHeight: Int): List<Point> {
+    val neighbors = mutableListOf<Point>()
+    for (dx in -1..1) {
+        for (dy in -1..1) {
+            if (dx == 0 && dy == 0) continue
+            val newX = point.x + dx
+            val newY = point.y + dy
+            if (newX in 0 until gridWidth && newY in 0 until gridHeight) {
+                neighbors.add(Point(newX, newY))
+            }
+        }
+    }
+    return neighbors
+}
+```
+
+### Batch Processing
+```kotlin
+fun <T> processBatches(items: List<T>, batchSize: Int, processor: (List<T>) -> Unit) {
+    for (start in items.indices step batchSize) {
+        val end = minOf(start + batchSize, items.size)
+        val batch = items.subList(start, end)
+        processor(batch)
+    }
+}
+
+// Usage
+val largeDataset = (1..1000).toList()
+processBatches(largeDataset, 50) { batch ->
+    println("Processing batch of ${batch.size} items: ${batch.first()}..${batch.last()}")
+}
+```

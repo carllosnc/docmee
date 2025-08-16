@@ -1,0 +1,513 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Loops
+
+## Overview
+Kotlin provides three types of loops: `for` (enhanced iteration), `while` (condition-based), and `do-while` (post-condition). Each serves different use cases and offers powerful iteration capabilities.
+
+## For Loops
+
+### Basic For Loop with Ranges
+```kotlin
+// Simple range iteration
+for (i in 1..5) {
+    println("Number: $i")
+}
+// Output: 1, 2, 3, 4, 5
+
+// Exclusive range
+for (i in 1 until 5) {
+    println("Number: $i")
+}
+// Output: 1, 2, 3, 4
+
+// Downward iteration
+for (i in 5 downTo 1) {
+    println("Number: $i")
+}
+// Output: 5, 4, 3, 2, 1
+
+// Step iteration
+for (i in 1..10 step 2) {
+    println("Odd: $i")
+}
+// Output: 1, 3, 5, 7, 9
+```
+
+### Character and String Ranges
+```kotlin
+// Character ranges
+for (char in 'a'..'z') {
+    print("$char ")
+}
+// Output: a b c ... z
+
+// Reverse character range
+for (char in 'z' downTo 'a' step 2) {
+    print("$char ")
+}
+// Output: z x v t r p n l j h f d b
+```
+
+### Collection Iteration
+```kotlin
+val fruits = listOf("apple", "banana", "cherry", "date")
+
+// Simple iteration
+for (fruit in fruits) {
+    println("Fruit: $fruit")
+}
+
+// With indices
+for (index in fruits.indices) {
+    println("$index: ${fruits[index]}")
+}
+
+// With index and value
+for ((index, fruit) in fruits.withIndex()) {
+    println("$index: $fruit")
+}
+```
+
+### Array Iteration
+```kotlin
+val numbers = arrayOf(10, 20, 30, 40, 50)
+
+// Iterate values
+for (number in numbers) {
+    println("Value: $number")
+}
+
+// Iterate with indices
+for (i in numbers.indices) {
+    println("Index $i: ${numbers[i]}")
+}
+
+// Iterate with index and value
+for ((index, value) in numbers.withIndex()) {
+    numbers[index] = value * 2  // Modify array
+    println("Doubled $index: ${numbers[index]}")
+}
+```
+
+### Map Iteration
+```kotlin
+val userAges = mapOf("Alice" to 25, "Bob" to 30, "Charlie" to 35)
+
+// Iterate over entries
+for ((name, age) in userAges) {
+    println("$name is $age years old")
+}
+
+// Iterate over keys
+for (name in userAges.keys) {
+    println("User: $name")
+}
+
+// Iterate over values
+for (age in userAges.values) {
+    println("Age: $age")
+}
+
+// Iterate over entries explicitly
+for (entry in userAges.entries) {
+    println("${entry.key} -> ${entry.value}")
+}
+```
+
+### Nested For Loops
+```kotlin
+// Multiplication table
+for (i in 1..5) {
+    for (j in 1..5) {
+        print("${i * j}\t")
+    }
+    println() // New line after each row
+}
+
+// 2D array iteration
+val matrix = arrayOf(
+    arrayOf(1, 2, 3),
+    arrayOf(4, 5, 6),
+    arrayOf(7, 8, 9)
+)
+
+for (row in matrix) {
+    for (element in row) {
+        print("$element ")
+    }
+    println()
+}
+```
+
+## While Loops
+
+### Basic While Loop
+```kotlin
+var count = 1
+while (count <= 5) {
+    println("Count: $count")
+    count++
+}
+// Output: Count: 1, Count: 2, Count: 3, Count: 4, Count: 5
+```
+
+### While with Collections
+```kotlin
+val numbers = mutableListOf(1, 2, 3, 4, 5)
+while (numbers.isNotEmpty()) {
+    val removed = numbers.removeAt(0)
+    println("Removed: $removed, Remaining: ${numbers.size}")
+}
+```
+
+### While with User Input Simulation
+```kotlin
+var input = ""
+val validInputs = setOf("yes", "no", "maybe")
+
+while (input !in validInputs) {
+    input = readLine() ?: ""  // In real code, get user input
+    if (input !in validInputs) {
+        println("Invalid input. Please enter: yes, no, or maybe")
+    }
+}
+println("You entered: $input")
+```
+
+### Conditional Processing with While
+```kotlin
+val items = mutableListOf("apple", "banana", "cherry", "date", "elderberry")
+var processed = 0
+var index = 0
+
+while (index < items.size && processed < 3) {
+    val item = items[index]
+    if (item.length > 5) {  // Process only long names
+        println("Processing: $item")
+        processed++
+    }
+    index++
+}
+```
+
+## Do-While Loops
+
+### Basic Do-While
+```kotlin
+var number = 1
+do {
+    println("Number: $number")
+    number++
+} while (number <= 5)
+// Output: Number: 1, Number: 2, Number: 3, Number: 4, Number: 5
+```
+
+### Do-While vs While Comparison
+```kotlin
+// While loop - may not execute at all
+var i = 10
+while (i < 5) {
+    println("This won't print")
+    i++
+}
+
+// Do-while loop - executes at least once
+var j = 10
+do {
+    println("This will print once: $j")
+    j++
+} while (j < 5)
+// Output: This will print once: 10
+```
+
+### Menu-driven Program Pattern
+```kotlin
+var choice: String
+do {
+    println("""
+        Menu:
+        1. Option 1
+        2. Option 2
+        3. Exit
+        Enter choice:
+    """.trimIndent())
+    
+    choice = readLine() ?: ""
+    
+    when (choice) {
+        "1" -> println("Option 1 selected")
+        "2" -> println("Option 2 selected")
+        "3" -> println("Exiting...")
+        else -> println("Invalid choice")
+    }
+} while (choice != "3")
+```
+
+### Validation with Do-While
+```kotlin
+var password: String
+do {
+    print("Enter password (min 8 characters): ")
+    password = readLine() ?: ""
+    
+    if (password.length < 8) {
+        println("Password too short!")
+    }
+} while (password.length < 8)
+
+println("Password accepted!")
+```
+
+## Loop Control Statements
+
+### Break Statement
+```kotlin
+// Break in for loop
+for (i in 1..10) {
+    if (i == 6) {
+        println("Breaking at $i")
+        break
+    }
+    println("Number: $i")
+}
+// Output: 1, 2, 3, 4, 5, Breaking at 6
+
+// Break in while loop
+var counter = 1
+while (true) {
+    if (counter > 3) {
+        println("Breaking infinite loop")
+        break
+    }
+    println("Counter: $counter")
+    counter++
+}
+```
+
+### Continue Statement
+```kotlin
+// Skip even numbers
+for (i in 1..10) {
+    if (i % 2 == 0) {
+        continue  // Skip even numbers
+    }
+    println("Odd number: $i")
+}
+// Output: 1, 3, 5, 7, 9
+
+// Continue in while loop
+var num = 0
+while (num < 10) {
+    num++
+    if (num % 3 == 0) {
+        continue  // Skip multiples of 3
+    }
+    println("Not divisible by 3: $num")
+}
+```
+
+### Labeled Break and Continue
+```kotlin
+// Labeled loops for nested control
+outer@ for (i in 1..3) {
+    inner@ for (j in 1..3) {
+        if (i == 2 && j == 2) {
+            println("Breaking outer loop at i=$i, j=$j")
+            break@outer  // Break out of outer loop
+        }
+        println("i=$i, j=$j")
+    }
+}
+
+// Labeled continue
+outer@ for (i in 1..3) {
+    for (j in 1..3) {
+        if (i == 2 && j == 1) {
+            println("Continuing outer loop at i=$i, j=$j")
+            continue@outer  // Continue outer loop
+        }
+        println("i=$i, j=$j")
+    }
+}
+```
+
+## Advanced Loop Patterns
+
+### Loop with Destructuring
+```kotlin
+val coordinates = listOf(Pair(1, 2), Pair(3, 4), Pair(5, 6))
+
+for ((x, y) in coordinates) {
+    println("Point: ($x, $y), Distance from origin: ${Math.sqrt((x*x + y*y).toDouble())}")
+}
+
+// With data classes
+data class Person(val name: String, val age: Int)
+val people = listOf(Person("Alice", 25), Person("Bob", 30))
+
+for ((name, age) in people) {
+    println("$name is $age years old")
+}
+```
+
+### Loop with Filtering
+```kotlin
+val numbers = 1..20
+
+// Process only even numbers
+for (num in numbers.filter { it % 2 == 0 }) {
+    println("Even: $num")
+}
+
+// Process with conditions
+for (num in numbers) {
+    when {
+        num % 15 == 0 -> println("$num: FizzBuzz")
+        num % 3 == 0 -> println("$num: Fizz")
+        num % 5 == 0 -> println("$num: Buzz")
+        else -> println("$num")
+    }
+}
+```
+
+### Performance Considerations
+```kotlin
+val largeList = (1..1000000).toList()
+
+// Efficient: direct iteration
+for (item in largeList) {
+    // Process item
+}
+
+// Less efficient: index-based iteration
+for (i in largeList.indices) {
+    val item = largeList[i]
+    // Process item
+}
+
+// Most efficient for arrays
+val array = largeList.toIntArray()
+for (item in array) {
+    // Process item - no boxing/unboxing
+}
+```
+
+## Loop Alternatives with Functional Programming
+
+### forEach vs For Loop
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// Traditional for loop
+for (number in numbers) {
+    println("Number: $number")
+}
+
+// Functional approach with forEach
+numbers.forEach { number ->
+    println("Number: $number")
+}
+
+// With index
+numbers.forEachIndexed { index, number ->
+    println("$index: $number")
+}
+```
+
+### Other Functional Alternatives
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// Instead of for loop with accumulation
+var sum = 0
+for (number in numbers) {
+    sum += number
+}
+
+// Use reduce or fold
+val functionalSum = numbers.reduce { acc, number -> acc + number }
+val foldSum = numbers.fold(0) { acc, number -> acc + number }
+
+// Instead of for loop with transformation
+val doubled = mutableListOf<Int>()
+for (number in numbers) {
+    doubled.add(number * 2)
+}
+
+// Use map
+val functionalDoubled = numbers.map { it * 2 }
+```
+
+## Common Use Cases
+
+### Reading and Processing Data
+```kotlin
+fun processTemperatures(temperatures: List<Double>) {
+    var sum = 0.0
+    var count = 0
+    var maxTemp = Double.MIN_VALUE
+    var minTemp = Double.MAX_VALUE
+    
+    for (temp in temperatures) {
+        sum += temp
+        count++
+        if (temp > maxTemp) maxTemp = temp
+        if (temp < minTemp) minTemp = temp
+    }
+    
+    println("Average: ${sum / count}")
+    println("Max: $maxTemp")
+    println("Min: $minTemp")
+}
+```
+
+### Search Operations
+```kotlin
+fun findFirstEven(numbers: List<Int>): Int? {
+    for (number in numbers) {
+        if (number % 2 == 0) {
+            return number
+        }
+    }
+    return null
+}
+
+fun findAllOccurrences(text: String, char: Char): List<Int> {
+    val positions = mutableListOf<Int>()
+    for ((index, c) in text.withIndex()) {
+        if (c == char) {
+            positions.add(index)
+        }
+    }
+    return positions
+}
+```
+
+### Matrix Operations
+```kotlin
+fun printMatrix(matrix: Array<Array<Int>>) {
+    for (row in matrix) {
+        for (element in row) {
+            print("$element\t")
+        }
+        println()
+    }
+}
+
+fun matrixMultiply(a: Array<Array<Int>>, b: Array<Array<Int>>): Array<Array<Int>> {
+    val result = Array(a.size) { Array(b[0].size) { 0 } }
+    
+    for (i in a.indices) {
+        for (j in b[0].indices) {
+            for (k in b.indices) {
+                result[i][j] += a[i][k] * b[k][j]
+            }
+        }
+    }
+    return result
+}
+```

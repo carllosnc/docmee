@@ -1,0 +1,550 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Functions: Default Parameters and Named Arguments
+
+## Overview
+Kotlin supports default parameter values and named arguments, making function calls more flexible, readable, and reducing the need for function overloading.
+
+## Default Parameters
+
+### Basic Default Parameters
+```kotlin
+fun greet(name: String = "World", greeting: String = "Hello") {
+    println("$greeting, $name!")
+}
+
+fun createUser(name: String, age: Int = 18, active: Boolean = true) {
+    println("User: $name, Age: $age, Active: $active")
+}
+
+// Usage - can omit parameters with defaults
+greet()                    // Hello, World!
+greet("Alice")             // Hello, Alice!
+greet("Bob", "Hi")         // Hi, Bob!
+
+createUser("John")         // User: John, Age: 18, Active: true
+createUser("Jane", 25)     // User: Jane, Age: 25, Active: true
+createUser("Bob", 30, false) // User: Bob, Age: 30, Active: false
+```
+
+### Default Parameters with Different Types
+```kotlin
+fun configureServer(
+    host: String = "localhost",
+    port: Int = 8080,
+    ssl: Boolean = false,
+    timeout: Long = 30_000L,
+    retries: Int = 3
+) {
+    println("Server: $host:$port, SSL: $ssl, Timeout: ${timeout}ms, Retries: $retries")
+}
+
+fun formatNumber(
+    number: Double,
+    decimals: Int = 2,
+    thousandsSeparator: String = ",",
+    decimalSeparator: String = "."
+): String {
+    return "%.${decimals}f".format(number)
+        .replace(".", decimalSeparator)
+        .reversed()
+        .chunked(3)
+        .joinToString(thousandsSeparator)
+        .reversed()
+}
+
+// Usage
+configureServer()                           // All defaults
+configureServer("example.com")              // Custom host, rest defaults
+configureServer(port = 9000, ssl = true)   // Custom port and SSL
+```
+
+### Default Parameters with Expressions
+```kotlin
+fun logMessage(
+    message: String,
+    level: String = "INFO",
+    timestamp: Long = System.currentTimeMillis(),
+    prefix: String = "[$level]"
+) {
+    println("$prefix $timestamp: $message")
+}
+
+fun createRange(
+    start: Int = 0,
+    end: Int = 10,
+    step: Int = if (start <= end) 1 else -1
+): IntProgression {
+    return if (step > 0) start..end step step
+           else start downTo end step -step
+}
+
+// Usage
+logMessage("Application started")  // Uses current timestamp
+Thread.sleep(100)
+logMessage("User logged in")       // Uses new timestamp
+
+val range1 = createRange()         // 0..10 step 1
+val range2 = createRange(10, 0)    // 10 downTo 0 step 1
+```
+
+### Default Parameters with Complex Objects
+```kotlin
+data class DatabaseConfig(
+    val host: String = "localhost",
+    val port: Int = 5432,
+    val username: String = "admin",
+    val password: String = "password"
+)
+
+fun connectToDatabase(
+    config: DatabaseConfig = DatabaseConfig(),
+    poolSize: Int = 10,
+    timeout: Int = 30
+) {
+    println("Connecting to ${config.host}:${config.port} with pool size $poolSize")
+}
+
+fun createList(
+    elements: List<String> = emptyList(),
+    capacity: Int = elements.size.coerceAtLeast(10)
+): MutableList<String> {
+    return ArrayList<String>(capacity).apply { addAll(elements) }
+}
+
+// Usage
+connectToDatabase()  // All defaults
+connectToDatabase(DatabaseConfig("prod-db", 3306), 20)
+val list = createList(listOf("a", "b", "c"))  // Capacity = 10
+```
+
+## Named Arguments
+
+### Basic Named Arguments
+```kotlin
+fun sendEmail(
+    to: String,
+    subject: String,
+    body: String,
+    from: String = "noreply@example.com",
+    cc: List<String> = emptyList(),
+    bcc: List<String> = emptyList(),
+    priority: String = "normal"
+) {
+    println("Email to $to: $subject")
+    println("From: $from, CC: $cc, BCC: $bcc, Priority: $priority")
+}
+
+// Usage with named arguments - more readable and flexible
+sendEmail(
+    to = "user@example.com",
+    subject = "Welcome!",
+    body = "Welcome to our service!"
+)
+
+sendEmail(
+    to = "admin@example.com",
+    subject = "Alert",
+    body = "System notification",
+    priority = "high",
+    cc = listOf("manager@example.com")
+)
+```
+
+### Mixed Positional and Named Arguments
+```kotlin
+fun createButton(
+    text: String,
+    width: Int = 100,
+    height: Int = 30,
+    color: String = "blue",
+    enabled: Boolean = true,
+    onClick: () -> Unit = {}
+) {
+    println("Button: '$text' (${width}x$height) $color, enabled: $enabled")
+}
+
+// Mix positional and named arguments
+createButton("Submit")  // All defaults except text
+
+createButton(
+    "Cancel",
+    color = "red",
+    enabled = false
+)
+
+createButton(
+    "Save",
+    150,  // positional width
+    height = 40,  // named height
+    onClick = { println("Saved!") }
+)
+```
+
+### Named Arguments for Clarity
+```kotlin
+fun transfer(
+    fromAccount: String,
+    toAccount: String,
+    amount: Double,
+    currency: String = "USD",
+    description: String = ""
+) {
+    println("Transfer $amount $currency from $fromAccount to $toAccount: $description")
+}
+
+// Without named arguments - unclear which is from/to
+// transfer("12345", "67890", 100.0)  // Confusing
+
+// With named arguments - very clear
+transfer(
+    fromAccount = "12345",
+    toAccount = "67890",
+    amount = 100.0,
+    description = "Payment for services"
+)
+
+// Can skip parameters and use names for clarity
+transfer(
+    amount = 50.0,
+    fromAccount = "savings",
+    toAccount = "checking"
+)
+```
+
+## Combining Default Parameters and Named Arguments
+
+### Builder-like Pattern
+```kotlin
+fun createWindow(
+    title: String = "Untitled",
+    width: Int = 800,
+    height: Int = 600,
+    resizable: Boolean = true,
+    modal: Boolean = false,
+    centered: Boolean = true,
+    theme: String = "default"
+) {
+    println("Window: '$title' ${width}x$height, resizable: $resizable, modal: $modal")
+}
+
+// Various usage patterns
+val window1 = createWindow()  // All defaults
+
+val window2 = createWindow(
+    title = "Settings",
+    modal = true,
+    resizable = false
+)
+
+val window3 = createWindow(
+    "Main Window",
+    width = 1200,
+    height = 800,
+    theme = "dark"
+)
+```
+
+### Configuration Functions
+```kotlin
+data class HttpRequest(
+    val url: String,
+    val method: String = "GET",
+    val headers: Map<String, String> = emptyMap(),
+    val timeout: Int = 30_000,
+    val retries: Int = 3,
+    val followRedirects: Boolean = true
+)
+
+fun makeRequest(
+    url: String,
+    method: String = "GET",
+    headers: Map<String, String> = emptyMap(),
+    timeout: Int = 30_000,
+    retries: Int = 3,
+    followRedirects: Boolean = true,
+    onSuccess: (String) -> Unit = {},
+    onError: (Exception) -> Unit = {}
+): HttpRequest {
+    val request = HttpRequest(url, method, headers, timeout, retries, followRedirects)
+    println("Making request: $request")
+    return request
+}
+
+// Usage examples
+makeRequest("https://api.example.com/users")
+
+makeRequest(
+    url = "https://api.example.com/users",
+    method = "POST",
+    headers = mapOf("Content-Type" to "application/json"),
+    onSuccess = { response -> println("Success: $response") },
+    onError = { error -> println("Error: ${error.message}") }
+)
+```
+
+### DSL-like Functions
+```kotlin
+fun createTable(
+    name: String,
+    columns: List<String> = emptyList(),
+    primaryKey: String? = null,
+    indexes: List<String> = emptyList(),
+    constraints: List<String> = emptyList(),
+    engine: String = "InnoDB",
+    charset: String = "utf8mb4"
+) {
+    println("CREATE TABLE $name")
+    println("Columns: $columns")
+    if (primaryKey != null) println("PRIMARY KEY: $primaryKey")
+    if (indexes.isNotEmpty()) println("INDEXES: $indexes")
+}
+
+// Usage - DSL-like syntax
+createTable(
+    name = "users",
+    columns = listOf("id INT", "name VARCHAR(100)", "email VARCHAR(255)"),
+    primaryKey = "id",
+    indexes = listOf("email"),
+    constraints = listOf("UNIQUE(email)")
+)
+```
+
+## Advanced Patterns
+
+### Function Overloading Replacement
+```kotlin
+// Instead of multiple overloaded functions:
+/*
+fun log(message: String) { }
+fun log(message: String, level: String) { }
+fun log(message: String, level: String, throwable: Throwable) { }
+*/
+
+// Use one function with defaults:
+fun log(
+    message: String,
+    level: String = "INFO",
+    throwable: Throwable? = null,
+    tag: String = "APP",
+    timestamp: Boolean = true
+) {
+    val prefix = if (timestamp) "[${System.currentTimeMillis()}]" else ""
+    println("$prefix [$tag] $level: $message")
+    throwable?.printStackTrace()
+}
+
+// All these work:
+log("Simple message")
+log("Warning message", "WARN")
+log("Error occurred", "ERROR", RuntimeException("Oops"))
+log("Debug info", tag = "DEBUG", level = "DEBUG")
+```
+
+### Default Parameters with Validation
+```kotlin
+fun createPassword(
+    length: Int = 12,
+    includeNumbers: Boolean = true,
+    includeSymbols: Boolean = true,
+    includeUppercase: Boolean = true,
+    includeLowercase: Boolean = true
+): String {
+    require(length >= 4) { "Password length must be at least 4" }
+    require(includeNumbers || includeSymbols || includeUppercase || includeLowercase) {
+        "At least one character type must be included"
+    }
+    
+    val chars = buildString {
+        if (includeLowercase) append("abcdefghijklmnopqrstuvwxyz")
+        if (includeUppercase) append("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        if (includeNumbers) append("0123456789")
+        if (includeSymbols) append("!@#$%^&*")
+    }
+    
+    return (1..length).map { chars.random() }.joinToString("")
+}
+
+// Usage
+val password1 = createPassword()  // 12 chars, all types
+val password2 = createPassword(length = 8, includeSymbols = false)
+val password3 = createPassword(
+    length = 16,
+    includeNumbers = false,
+    includeSymbols = false
+)
+```
+
+### Default Parameters with Lambdas
+```kotlin
+fun processItems<T, R>(
+    items: List<T>,
+    filter: (T) -> Boolean = { true },
+    transform: (T) -> R,
+    onProgress: (Int, Int) -> Unit = { _, _ -> },
+    batchSize: Int = 100
+): List<R> {
+    val filtered = items.filter(filter)
+    val result = mutableListOf<R>()
+    
+    filtered.chunked(batchSize).forEachIndexed { batchIndex, batch ->
+        val transformed = batch.map(transform)
+        result.addAll(transformed)
+        onProgress(batchIndex + 1, (filtered.size + batchSize - 1) / batchSize)
+    }
+    
+    return result
+}
+
+// Usage
+val numbers = (1..1000).toList()
+
+val doubled = processItems(
+    items = numbers,
+    filter = { it % 2 == 0 },  // Only even numbers
+    transform = { it * 2 },
+    onProgress = { current, total -> println("Batch $current/$total completed") }
+)
+```
+
+## Java Interoperability
+
+### @JvmOverloads Annotation
+```kotlin
+// Generates overloaded versions for Java compatibility
+@JvmOverloads
+fun joinStrings(
+    strings: List<String>,
+    separator: String = ", ",
+    prefix: String = "",
+    suffix: String = ""
+): String {
+    return strings.joinToString(separator, prefix, suffix)
+}
+
+// This generates these Java methods:
+// joinStrings(List<String> strings)
+// joinStrings(List<String> strings, String separator)
+// joinStrings(List<String> strings, String separator, String prefix)
+// joinStrings(List<String> strings, String separator, String prefix, String suffix)
+```
+
+### Default Parameters in Constructors
+```kotlin
+class User @JvmOverloads constructor(
+    val name: String,
+    val age: Int = 18,
+    val email: String = "",
+    val active: Boolean = true
+) {
+    override fun toString() = "User(name='$name', age=$age, email='$email', active=$active)"
+}
+
+// Usage
+val user1 = User("Alice")
+val user2 = User("Bob", 25)
+val user3 = User(
+    name = "Charlie",
+    age = 30,
+    email = "charlie@example.com"
+)
+```
+
+## Best Practices
+
+### Order Parameters Strategically
+```kotlin
+// Good: required parameters first, optional last
+fun downloadFile(
+    url: String,              // Required
+    destination: String,      // Required
+    timeout: Int = 30_000,    // Optional
+    retries: Int = 3,         // Optional
+    onProgress: (Int) -> Unit = {}  // Optional
+) { }
+
+// Avoid: mixing required and optional randomly
+fun badDownloadFile(
+    url: String,
+    timeout: Int = 30_000,    // Optional in middle
+    destination: String,      // Required after optional - confusing!
+    retries: Int = 3
+) { }
+```
+
+### Use Meaningful Default Values
+```kotlin
+// Good: meaningful defaults
+fun sendNotification(
+    message: String,
+    recipient: String,
+    priority: String = "normal",     // Sensible default
+    deliveryTime: Long = System.currentTimeMillis(),  // Current time
+    retryCount: Int = 3              // Reasonable retry count
+) { }
+
+// Avoid: arbitrary or confusing defaults
+fun badSendNotification(
+    message: String,
+    recipient: String,
+    priority: String = "xyz",        // Meaningless default
+    deliveryTime: Long = 0,          // Confusing default
+    retryCount: Int = 999            // Unreasonable default
+) { }
+```
+
+### Consider Readability
+```kotlin
+// When many parameters exist, named arguments improve readability
+fun createChart(
+    data: List<Double>,
+    title: String = "",
+    width: Int = 400,
+    height: Int = 300,
+    showLegend: Boolean = true,
+    showGrid: Boolean = true,
+    backgroundColor: String = "white",
+    foregroundColor: String = "black"
+) { }
+
+// Good usage - clear and readable
+createChart(
+    data = salesData,
+    title = "Monthly Sales",
+    width = 800,
+    height = 600,
+    backgroundColor = "lightgray"
+)
+
+// Less readable without names
+// createChart(salesData, "Monthly Sales", 800, 600, true, true, "lightgray", "black")
+```
+
+### Avoid Too Many Default Parameters
+```kotlin
+// Consider: if you have many parameters, maybe use a data class
+data class ChartConfig(
+    val width: Int = 400,
+    val height: Int = 300,
+    val showLegend: Boolean = true,
+    val showGrid: Boolean = true,
+    val backgroundColor: String = "white",
+    val foregroundColor: String = "black"
+)
+
+fun createChart(
+    data: List<Double>,
+    title: String = "",
+    config: ChartConfig = ChartConfig()
+) { }
+
+// Usage
+createChart(
+    data = salesData,
+    title = "Monthly Sales",
+    config = ChartConfig(width = 800, height = 600, backgroundColor = "lightgray")
+)
+```

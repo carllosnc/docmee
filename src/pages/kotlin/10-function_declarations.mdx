@@ -1,0 +1,587 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Function: Declarations and Syntax
+
+## Overview
+Kotlin functions are declared using the `fun` keyword and offer flexible syntax for parameters, return types, and function bodies. They support modern programming concepts like default parameters, named arguments, and single-expression functions.
+
+## Basic Function Syntax
+
+### Simple Function Declaration
+```kotlin
+fun greet() {
+    println("Hello, World!")
+}
+
+fun sayHello(): Unit {  // Unit return type is optional
+    println("Hello!")
+}
+
+fun add(a: Int, b: Int): Int {
+    return a + b
+}
+
+// Usage
+greet()                    // Hello, World!
+val sum = add(5, 3)       // 8
+```
+
+### Function with Parameters
+```kotlin
+fun introduce(name: String, age: Int) {
+    println("Hi, I'm $name and I'm $age years old")
+}
+
+fun multiply(x: Double, y: Double): Double {
+    return x * y
+}
+
+fun isEven(number: Int): Boolean {
+    return number % 2 == 0
+}
+
+// Usage
+introduce("Alice", 25)     // Hi, I'm Alice and I'm 25 years old
+val product = multiply(3.5, 2.0)  // 7.0
+val even = isEven(4)       // true
+```
+
+## Return Types
+
+### Explicit Return Types
+```kotlin
+fun getLength(text: String): Int {
+    return text.length
+}
+
+fun divide(a: Double, b: Double): Double {
+    return a / b
+}
+
+fun createList(): List<String> {
+    return listOf("apple", "banana", "cherry")
+}
+```
+
+### Unit Return Type (Void)
+```kotlin
+fun printMessage(message: String): Unit {
+    println(message)
+}
+
+// Unit can be omitted
+fun printMessageShort(message: String) {
+    println(message)
+}
+
+fun logError(error: String) {
+    println("ERROR: $error")
+}
+```
+
+### Nullable Return Types
+```kotlin
+fun findFirst(numbers: List<Int>, predicate: (Int) -> Boolean): Int? {
+    for (number in numbers) {
+        if (predicate(number)) {
+            return number
+        }
+    }
+    return null
+}
+
+fun safeDivide(a: Double, b: Double): Double? {
+    return if (b != 0.0) a / b else null
+}
+
+// Usage
+val first = findFirst(listOf(1, 2, 3, 4)) { it > 2 }  // 3
+val result = safeDivide(10.0, 0.0)  // null
+```
+
+## Single-Expression Functions
+
+### Basic Single-Expression Functions
+```kotlin
+fun square(x: Int): Int = x * x
+
+fun isPositive(number: Int): Boolean = number > 0
+
+fun getGreeting(name: String): String = "Hello, $name!"
+
+fun max(a: Int, b: Int): Int = if (a > b) a else b
+```
+
+### Type Inference in Single-Expression Functions
+```kotlin
+// Return type can be inferred
+fun double(x: Int) = x * 2           // Return type: Int
+fun concatenate(a: String, b: String) = a + b  // Return type: String
+fun isEmpty(text: String) = text.isEmpty()      // Return type: Boolean
+
+fun getStatus(code: Int) = when (code) {
+    200 -> "OK"
+    404 -> "Not Found"
+    500 -> "Server Error"
+    else -> "Unknown"
+}  // Return type: String
+```
+
+### Complex Single-Expression Functions
+```kotlin
+fun calculateArea(radius: Double) = Math.PI * radius * radius
+
+fun formatName(first: String, last: String) = "${first.uppercase()} ${last.uppercase()}"
+
+fun validateEmail(email: String) = email.contains("@") && email.contains(".")
+
+fun getDiscount(isPremium: Boolean, amount: Double) = 
+    if (isPremium) amount * 0.1 else if (amount > 100) amount * 0.05 else 0.0
+```
+
+## Function Parameters
+
+### Parameter Types and Names
+```kotlin
+fun processUser(
+    name: String,
+    age: Int,
+    email: String,
+    isActive: Boolean
+) {
+    println("User: $name, Age: $age, Email: $email, Active: $isActive")
+}
+
+fun calculateDistance(
+    x1: Double,
+    y1: Double,
+    x2: Double,
+    y2: Double
+): Double {
+    return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+}
+```
+
+### Mutable Parameters (val vs var)
+```kotlin
+// Parameters are val by default (cannot be reassigned)
+fun process(data: String) {
+    // data = "modified"  // Compilation error
+    val modified = data.uppercase()  // OK - create new variable
+    println(modified)
+}
+
+// Note: You cannot declare parameters as var in Kotlin
+// Use local variables instead
+fun processWithModification(data: String) {
+    var mutableData = data
+    mutableData = mutableData.uppercase()
+    println(mutableData)
+}
+```
+
+## Function Visibility Modifiers
+
+### Public Functions (Default)
+```kotlin
+// Public by default - accessible from anywhere
+fun publicFunction() {
+    println("This is public")
+}
+
+public fun explicitlyPublic() {
+    println("Explicitly public")
+}
+```
+
+### Private Functions
+```kotlin
+private fun privateFunction() {
+    println("This is private")
+}
+
+class MyClass {
+    private fun privateMethod() {
+        println("Private to this class")
+    }
+    
+    fun publicMethod() {
+        privateMethod()  // OK - can call from same class
+    }
+}
+```
+
+### Internal Functions
+```kotlin
+internal fun internalFunction() {
+    println("Visible within the same module")
+}
+```
+
+### Protected Functions (In Classes)
+```kotlin
+open class BaseClass {
+    protected fun protectedFunction() {
+        println("Accessible to subclasses")
+    }
+}
+
+class DerivedClass : BaseClass() {
+    fun callProtected() {
+        protectedFunction()  // OK - accessible in subclass
+    }
+}
+```
+
+## Function Overloading
+
+### Basic Overloading
+```kotlin
+fun print(value: String) {
+    println("String: $value")
+}
+
+fun print(value: Int) {
+    println("Integer: $value")
+}
+
+fun print(value: Double) {
+    println("Double: $value")
+}
+
+fun print(value: Boolean) {
+    println("Boolean: $value")
+}
+
+// Usage
+print("Hello")    // String: Hello
+print(42)         // Integer: 42
+print(3.14)       // Double: 3.14
+print(true)       // Boolean: true
+```
+
+### Overloading with Different Parameter Counts
+```kotlin
+fun createMessage(): String {
+    return "Default message"
+}
+
+fun createMessage(text: String): String {
+    return "Message: $text"
+}
+
+fun createMessage(text: String, author: String): String {
+    return "Message: $text (by $author)"
+}
+
+fun createMessage(text: String, author: String, timestamp: Long): String {
+    return "Message: $text (by $author at $timestamp)"
+}
+```
+
+### Overloading with Different Parameter Types
+```kotlin
+fun format(value: Int): String = value.toString()
+fun format(value: Double): String = "%.2f".format(value)
+fun format(value: Boolean): String = if (value) "Yes" else "No"
+fun format(values: List<Any>): String = values.joinToString(", ")
+
+// Usage
+println(format(42))                    // "42"
+println(format(3.14159))              // "3.14"
+println(format(true))                 // "Yes"
+println(format(listOf(1, 2, 3)))      // "1, 2, 3"
+```
+
+## Local Functions
+
+### Functions Inside Functions
+```kotlin
+fun outerFunction(x: Int, y: Int): Int {
+    fun add(): Int {
+        return x + y  // Can access outer function parameters
+    }
+    
+    fun multiply(): Int {
+        return x * y
+    }
+    
+    return if (x > y) add() else multiply()
+}
+
+fun processData(data: List<String>) {
+    fun isValid(item: String): Boolean {
+        return item.isNotBlank() && item.length > 2
+    }
+    
+    fun sanitize(item: String): String {
+        return item.trim().lowercase()
+    }
+    
+    val processed = data
+        .filter { isValid(it) }
+        .map { sanitize(it) }
+    
+    println("Processed: $processed")
+}
+```
+
+### Local Functions with Closures
+```kotlin
+fun createCounter(initial: Int): () -> Int {
+    var count = initial
+    
+    fun increment(): Int {
+        count++
+        return count
+    }
+    
+    return ::increment
+}
+
+fun createValidator(minLength: Int): (String) -> Boolean {
+    fun validate(input: String): Boolean {
+        return input.length >= minLength
+    }
+    
+    return ::validate
+}
+
+// Usage
+val counter = createCounter(5)
+println(counter())  // 6
+println(counter())  // 7
+
+val validator = createValidator(3)
+println(validator("ab"))    // false
+println(validator("abc"))   // true
+```
+
+## Generic Functions
+
+### Basic Generic Functions
+```kotlin
+fun <T> identity(value: T): T {
+    return value
+}
+
+fun <T> firstOrNull(list: List<T>): T? {
+    return if (list.isEmpty()) null else list[0]
+}
+
+fun <T> swap(pair: Pair<T, T>): Pair<T, T> {
+    return Pair(pair.second, pair.first)
+}
+
+// Usage
+val stringResult = identity("Hello")     // String
+val intResult = identity(42)             // Int
+val first = firstOrNull(listOf(1, 2, 3)) // Int?
+val swapped = swap(Pair("A", "B"))       // Pair("B", "A")
+```
+
+### Multiple Type Parameters
+```kotlin
+fun <T, R> transform(input: T, transformer: (T) -> R): R {
+    return transformer(input)
+}
+
+fun <K, V> createMap(key: K, value: V): Map<K, V> {
+    return mapOf(key to value)
+}
+
+fun <A, B, C> combine(a: A, b: B, combiner: (A, B) -> C): C {
+    return combiner(a, b)
+}
+
+// Usage
+val transformed = transform("hello") { it.uppercase() }  // "HELLO"
+val map = createMap("name", "Alice")                     // Map<String, String>
+val combined = combine(5, 3) { x, y -> x + y }         // 8
+```
+
+### Constrained Generic Functions
+```kotlin
+fun <T : Comparable<T>> findMax(first: T, second: T): T {
+    return if (first > second) first else second
+}
+
+fun <T : Number> addNumbers(a: T, b: T): Double {
+    return a.toDouble() + b.toDouble()
+}
+
+fun <T> processCollection(items: Collection<T>): String where T : Any {
+    return items.joinToString { it.toString() }
+}
+
+// Usage
+val maxInt = findMax(5, 10)           // 10
+val maxString = findMax("apple", "banana") // "banana"
+val sum = addNumbers(3.5, 2)          // 5.5
+```
+
+## Extension Functions
+
+### Basic Extension Functions
+```kotlin
+fun String.isPalindrome(): Boolean {
+    val cleaned = this.lowercase().filter { it.isLetter() }
+    return cleaned == cleaned.reversed()
+}
+
+fun Int.isEven(): Boolean = this % 2 == 0
+
+fun List<Int>.average(): Double {
+    return if (this.isEmpty()) 0.0 else this.sum().toDouble() / this.size
+}
+
+// Usage
+println("racecar".isPalindrome())    // true
+println(4.isEven())                  // true
+println(listOf(1, 2, 3, 4).average()) // 2.5
+```
+
+### Extension Functions with Parameters
+```kotlin
+fun String.repeat(times: Int): String {
+    return (1..times).joinToString("") { this }
+}
+
+fun Int.power(exponent: Int): Long {
+    var result = 1L
+    repeat(exponent) {
+        result *= this
+    }
+    return result
+}
+
+fun <T> List<T>.chunked(size: Int): List<List<T>> {
+    return this.windowed(size, size, true)
+}
+
+// Usage
+println("Ha".repeat(3))              // "HaHaHa"
+println(2.power(3))                  // 8
+println(listOf(1,2,3,4,5).chunked(2)) // [[1, 2], [3, 4], [5]]
+```
+
+## Function References
+
+### Function References as Values
+```kotlin
+fun double(x: Int): Int = x * 2
+fun isPositive(x: Int): Boolean = x > 0
+
+fun processNumbers(numbers: List<Int>, processor: (Int) -> Int): List<Int> {
+    return numbers.map(processor)
+}
+
+fun filterNumbers(numbers: List<Int>, predicate: (Int) -> Boolean): List<Int> {
+    return numbers.filter(predicate)
+}
+
+// Usage with function references
+val numbers = listOf(1, -2, 3, -4, 5)
+val doubled = processNumbers(numbers, ::double)        // [2, -4, 6, -8, 10]
+val positive = filterNumbers(numbers, ::isPositive)    // [1, 3, 5]
+```
+
+### Member Function References
+```kotlin
+class Calculator {
+    fun add(a: Int, b: Int): Int = a + b
+    fun multiply(a: Int, b: Int): Int = a * b
+}
+
+fun applyOperation(a: Int, b: Int, operation: (Int, Int) -> Int): Int {
+    return operation(a, b)
+}
+
+// Usage
+val calc = Calculator()
+val sum = applyOperation(5, 3, calc::add)        // 8
+val product = applyOperation(5, 3, calc::multiply) // 15
+
+// Extension function references
+val lengths = listOf("hello", "world").map(String::length) // [5, 5]
+val uppercased = listOf("hello", "world").map(String::uppercase) // ["HELLO", "WORLD"]
+```
+
+## Best Practices
+
+### Function Naming
+```kotlin
+// Good: verb-based names for actions
+fun calculateTotal(items: List<Item>): Double { /* */ }
+fun validateEmail(email: String): Boolean { /* */ }
+fun sendNotification(user: User, message: String) { /* */ }
+
+// Good: predicate functions with is/has/can prefix
+fun isValid(input: String): Boolean { /* */ }
+fun hasPermission(user: User, action: String): Boolean { /* */ }
+fun canAccess(resource: Resource): Boolean { /* */ }
+
+// Good: getter-style names for retrieving data
+fun getName(): String { /* */ }
+fun getUsers(): List<User> { /* */ }
+fun getCurrentTime(): Long { /* */ }
+```
+
+### Single Responsibility
+```kotlin
+// Good: single responsibility
+fun validatePassword(password: String): Boolean {
+    return password.length >= 8 && 
+           password.any { it.isUpperCase() } &&
+           password.any { it.isLowerCase() } &&
+           password.any { it.isDigit() }
+}
+
+fun hashPassword(password: String): String {
+    // Hash the password
+    return password.hashCode().toString() // Simplified
+}
+
+fun saveUser(user: User): Boolean {
+    // Save user to database
+    return true // Simplified
+}
+
+// Avoid: multiple responsibilities in one function
+fun badRegisterUser(email: String, password: String): User? {
+    // Validates, hashes, saves, sends email - too many responsibilities
+    if (!validateEmail(email) || !validatePassword(password)) return null
+    val hashedPassword = hashPassword(password)
+    val user = User(email, hashedPassword)
+    if (!saveUser(user)) return null
+    sendWelcomeEmail(user)
+    return user
+}
+```
+
+### Function Size
+```kotlin
+// Good: small, focused functions
+fun calculateTax(income: Double, rate: Double): Double = income * rate
+
+fun formatCurrency(amount: Double): String = "$${"%.2f".format(amount)}"
+
+fun isBusinessDay(dayOfWeek: Int): Boolean = dayOfWeek in 1..5
+
+// Better: break down complex functions
+fun processPayroll(employees: List<Employee>) {
+    employees.forEach { employee ->
+        val grossPay = calculateGrossPay(employee)
+        val taxes = calculateTaxes(grossPay, employee.taxRate)
+        val netPay = grossPay - taxes
+        createPayStub(employee, grossPay, taxes, netPay)
+    }
+}
+
+private fun calculateGrossPay(employee: Employee): Double { /* */ }
+private fun calculateTaxes(grossPay: Double, rate: Double): Double { /* */ }
+private fun createPayStub(employee: Employee, gross: Double, taxes: Double, net: Double) { /* */ }
+```
