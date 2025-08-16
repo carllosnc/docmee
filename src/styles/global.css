@@ -18,3 +18,12 @@
   font-family: "JetBrains Mono";
   @apply text-[15px] py-[20px] rounded-none
 }
+
+p code {
+  font-weight: bold;
+  font-family: "JetBrains Mono";
+}
+
+h1, h2 {
+  word-break: break-word
+}
