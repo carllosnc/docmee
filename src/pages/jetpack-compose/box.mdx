@@ -1,0 +1,412 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Box
+
+## Overview
+
+The `Box` composable is a fundamental layout component in Jetpack Compose that stacks its children on top of each other. It's similar to `FrameLayout` in the traditional Android View system. The `Box` is perfect for creating overlapping UI elements, positioning elements precisely, or creating layered designs.
+
+## Basic Syntax
+
+```kotlin
+Box(
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.TopStart,
+    propagateMinConstraints: Boolean = false,
+    content: @Composable BoxScope.() -> Unit
+)
+```
+
+## Parameters
+
+- **modifier**: Modifier to be applied to the Box
+- **contentAlignment**: Default alignment for children inside the Box
+- **propagateMinConstraints**: Whether minimum constraints should be passed to content
+- **content**: The composable content inside the Box scope
+
+## Code Examples
+
+### 1. Basic Box with Overlapping Elements
+
+```kotlin
+@Composable
+fun BasicBoxExample() {
+    Box(
+        modifier = Modifier
+            .size(200.dp)
+            .background(Color.LightGray)
+    ) {
+        Text(
+            text = "Background Text",
+            fontSize = 24.sp,
+            color = Color.Gray
+        )
+        Text(
+            text = "Foreground",
+            fontSize = 18.sp,
+            color = Color.Blue,
+            modifier = Modifier.padding(8.dp)
+        )
+    }
+}
+```
+*Creates a box with two overlapping text elements.*
+
+### 2. Box with Different Alignments
+
+```kotlin
+@Composable
+fun AlignmentBoxExample() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Top Start",
+            modifier = Modifier.align(Alignment.TopStart),
+            color = Color.Red
+        )
+        Text(
+            text = "Center",
+            modifier = Modifier.align(Alignment.Center),
+            color = Color.Blue
+        )
+        Text(
+            text = "Bottom End",
+            modifier = Modifier.align(Alignment.BottomEnd),
+            color = Color.Green
+        )
+    }
+}
+```
+*Demonstrates different alignment options within a Box.*
+
+### 3. Box with Background and Foreground Elements
+
+```kotlin
+@Composable
+fun LayeredBoxExample() {
+    Box(
+        modifier = Modifier.size(300.dp)
+    ) {
+        // Background layer
+        Image(
+            painter = painterResource(id = R.drawable.background_image),
+            contentDescription = "Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        
+        // Overlay layer
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+        )
+        
+        // Content layer
+        Text(
+            text = "Overlay Text",
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}
+```
+*Creates a layered design with background image, overlay, and text.*
+
+### 4. Box with Custom Positioning
+
+```kotlin
+@Composable
+fun CustomPositionBoxExample() {
+    Box(
+        modifier = Modifier
+            .size(250.dp)
+            .background(Color.LightBlue)
+    ) {
+        // Positioned at specific offset
+        Text(
+            text = "Custom Position",
+            modifier = Modifier
+                .offset(x = 50.dp, y = 30.dp)
+                .background(Color.Yellow)
+                .padding(8.dp)
+        )
+        
+        // Another element with different positioning
+        Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = "Star",
+            tint = Color.Red,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .size(32.dp)
+        )
+    }
+}
+```
+*Shows custom positioning using offset and alignment.*
+
+### 5. Interactive Box with Click Handling
+
+```kotlin
+@Composable
+fun InteractiveBoxExample() {
+    var isPressed by remember { mutableStateOf(false) }
+    
+    Box(
+        modifier = Modifier
+            .size(150.dp)
+            .background(
+                if (isPressed) Color.Red else Color.Blue,
+                RoundedCornerShape(16.dp)
+            )
+            .clickable { isPressed = !isPressed },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = if (isPressed) "Pressed!" else "Click Me",
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+```
+*Interactive Box that changes appearance when clicked.*
+
+### 6. Box with Multiple Aligned Elements
+
+```kotlin
+@Composable
+fun MultipleElementsBoxExample() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .background(Color.Gray.copy(alpha = 0.2f))
+    ) {
+        // Top elements
+        Text(
+            text = "Title",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+        )
+        
+        IconButton(
+            onClick = { /* Handle close */ },
+            modifier = Modifier.align(Alignment.TopEnd)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close"
+            )
+        }
+        
+        // Center element
+        Text(
+            text = "Content goes here",
+            modifier = Modifier.align(Alignment.Center)
+        )
+        
+        // Bottom element
+        Button(
+            onClick = { /* Handle action */ },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        ) {
+            Text("Action")
+        }
+    }
+}
+```
+*Complex layout with multiple elements positioned at different alignments.*
+
+### 7. Box with Conditional Content
+
+```kotlin
+@Composable
+fun ConditionalBoxExample() {
+    var showOverlay by remember { mutableStateOf(false) }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        // Main content
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(20) { index ->
+                Text(
+                    text = "Item $index",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.LightGray)
+                        .padding(16.dp)
+                )
+            }
+        }
+        
+        // Conditional overlay
+        if (showOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showOverlay = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .clickable { /* Prevent propagation */ }
+                ) {
+                    Text(
+                        text = "Overlay Content",
+                        modifier = Modifier.padding(24.dp),
+                        fontSize = 18.sp
+                    )
+                }
+            }
+        }
+        
+        // Toggle button
+        FloatingActionButton(
+            onClick = { showOverlay = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Show Overlay"
+            )
+        }
+    }
+}
+```
+*Shows conditional overlay content within a Box.*
+
+### 8. Box with Animation
+
+```kotlin
+@Composable
+fun AnimatedBoxExample() {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    val animatedSize by animateDpAsState(
+        targetValue = if (isExpanded) 200.dp else 100.dp,
+        animationSpec = tween(durationMillis = 300)
+    )
+    
+    Box(
+        modifier = Modifier
+            .size(animatedSize)
+            .background(
+                Color.Blue,
+                RoundedCornerShape(if (isExpanded) 24.dp else 12.dp)
+            )
+            .clickable { isExpanded = !isExpanded },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = if (isExpanded) "Expanded" else "Tap to Expand",
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+```
+*Animated Box that expands and contracts with smooth transitions.*
+
+## Common Alignment Options
+
+```kotlin
+// Available alignments in BoxScope
+Alignment.TopStart
+Alignment.TopCenter
+Alignment.TopEnd
+Alignment.CenterStart
+Alignment.Center
+Alignment.CenterEnd
+Alignment.BottomStart
+Alignment.BottomCenter
+Alignment.BottomEnd
+```
+
+## Best Practices
+
+### 1. Performance Considerations
+```kotlin
+// Good: Use Box for simple overlays
+Box {
+    Image(...)
+    Text(...)
+}
+
+// Consider alternatives for complex layouts
+ConstraintLayout { ... } // For complex positioning
+Column/Row { ... }       // For sequential layouts
+```
+
+### 2. Accessibility
+```kotlin
+Box(
+    modifier = Modifier.semantics {
+        contentDescription = "Card with title and action button"
+        // Merge descendants for screen readers
+        mergeDescendants = true
+    }
+) {
+    // Content
+}
+```
+
+### 3. Content Alignment
+```kotlin
+// Set default alignment for all children
+Box(contentAlignment = Alignment.Center) {
+    Text("Centered by default")
+    Text(
+        text = "Custom aligned",
+        modifier = Modifier.align(Alignment.TopEnd)
+    )
+}
+```
+
+## Common Use Cases
+
+1. **Image Overlays** - Adding text or icons over images
+2. **Loading States** - Showing loading indicators over content
+3. **Tooltips and Badges** - Positioning small UI elements
+4. **Card Layouts** - Creating layered card designs
+5. **Modal Overlays** - Full-screen overlays and dialogs
+6. **Hero Sections** - Banner areas with overlapping content
+
+## Related Components
+
+- **Column** - For vertical linear layouts
+- **Row** - For horizontal linear layouts
+- **ConstraintLayout** - For complex positioning with constraints
+- **Surface** - For material design surfaces with elevation
+- **Card** - For material design cards
+
+---
+
+*This documentation covers the essential aspects of the Box component in Jetpack Compose. The Box is a versatile and powerful tool for creating layered and overlapping UI designs.*

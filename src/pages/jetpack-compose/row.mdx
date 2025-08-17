@@ -1,0 +1,750 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Row
+
+## Overview
+
+The `Row` composable is a fundamental layout component in Jetpack Compose that arranges its children horizontally in a linear fashion. It's similar to `LinearLayout` with horizontal orientation in the traditional Android View system. The `Row` is perfect for creating horizontal lists, toolbars, button groups, and any UI that requires horizontal arrangement of elements.
+
+## Basic Syntax
+
+```kotlin
+Row(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    verticalAlignment: Alignment.Vertical = Alignment.Top,
+    content: @Composable RowScope.() -> Unit
+)
+```
+
+## Parameters
+
+- **modifier**: Modifier to be applied to the Row
+- **horizontalArrangement**: Arrangement of children horizontally within the Row
+- **verticalAlignment**: Default vertical alignment for children
+- **content**: The composable content inside the Row scope
+
+## Code Examples
+
+### 1. Basic Row with Text Elements
+
+```kotlin
+@Composable
+fun BasicRowExample() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "First",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Blue
+        )
+        Text(
+            text = "Second",
+            fontSize = 16.sp,
+            color = Color.Green
+        )
+        Text(
+            text = "Third",
+            fontSize = 16.sp,
+            style = TextStyle(textDecoration = TextDecoration.Underline)
+        )
+    }
+}
+```
+*Creates a simple horizontal arrangement of text elements with spacing.*
+
+### 2. Row with Different Horizontal Arrangements
+
+```kotlin
+@Composable
+fun HorizontalArrangementExample() {
+    Column {
+        // SpaceBetween
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.LightGray.copy(alpha = 0.3f))
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Start", color = Color.Red)
+            Text("Middle", color = Color.Green)  
+            Text("End", color = Color.Blue)
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // SpaceEvenly
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Blue.copy(alpha = 0.3f))
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Text("A", color = Color.White)
+            Text("B", color = Color.White)
+            Text("C", color = Color.White)
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Center
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Green.copy(alpha = 0.3f))
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text("Centered Content")
+        }
+    }
+}
+```
+*Demonstrates different horizontal arrangement options.*
+
+### 3. Row with Vertical Alignments
+
+```kotlin
+@Composable
+fun VerticalAlignmentExample() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .background(Color.LightBlue.copy(alpha = 0.3f))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Top",
+            modifier = Modifier
+                .align(Alignment.Top)
+                .background(Color.Red.copy(alpha = 0.5f))
+                .padding(4.dp)
+        )
+        Text(
+            text = "Center (Default)",
+            modifier = Modifier
+                .background(Color.Green.copy(alpha = 0.5f))
+                .padding(4.dp),
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Bottom",
+            modifier = Modifier
+                .align(Alignment.Bottom)
+                .background(Color.Blue.copy(alpha = 0.5f))
+                .padding(4.dp)
+        )
+    }
+}
+```
+*Shows different vertical alignment options within a Row.*
+
+### 4. Button Group with Row
+
+```kotlin
+@Composable
+fun ButtonGroupExample() {
+    var selectedButton by remember { mutableStateOf(0) }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Button(
+            onClick = { selectedButton = 0 },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selectedButton == 0) Color.Blue else Color.Gray
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text("Option 1")
+        }
+        
+        Button(
+            onClick = { selectedButton = 1 },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selectedButton == 1) Color.Blue else Color.Gray
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text("Option 2")
+        }
+        
+        Button(
+            onClick = { selectedButton = 2 },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selectedButton == 2) Color.Blue else Color.Gray
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text("Option 3")
+        }
+    }
+}
+```
+*Creates a button group with equal weight distribution.*
+
+### 5. Icon and Text Combination
+
+```kotlin
+@Composable
+fun IconTextRowExample() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(16.dp)
+    ) {
+        // Profile Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile",
+                tint = Color.Blue,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "John Doe",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        // Email Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Email,
+                contentDescription = "Email",
+                tint = Color.Green,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "john.doe@example.com",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
+        
+        // Phone Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Phone,
+                contentDescription = "Phone",
+                tint = Color.Orange,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "+1 (555) 123-4567",
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+```
+*Combines icons and text in horizontal layouts.*
+
+### 6. Card Content with Row Layout
+
+```kotlin
+@Composable
+fun CardRowExample() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Image
+            Image(
+                painter = painterResource(id = R.drawable.profile_image),
+                contentDescription = "Product Image",
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Content
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp)
+            ) {
+                Text(
+                    text = "Product Name",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Product description goes here",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "$29.99",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Blue
+                )
+            }
+            
+            // Action Button
+            IconButton(
+                onClick = { /* Handle action */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = "Add to cart",
+                    tint = Color.Blue
+                )
+            }
+        }
+    }
+}
+```
+*Creates a product card with image, content, and action button.*
+
+### 7. Toolbar/App Bar Row
+
+```kotlin
+@Composable
+fun ToolbarRowExample() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Blue)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Left side - Back button and title
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            IconButton(
+                onClick = { /* Handle back */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Text(
+                text = "Settings",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        // Right side - Action buttons
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            IconButton(
+                onClick = { /* Handle search */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color.White
+                )
+            }
+            IconButton(
+                onClick = { /* Handle menu */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Menu",
+                    tint = Color.White
+                )
+            }
+        }
+    }
+}
+```
+*Creates a custom toolbar with navigation and action buttons.*
+
+### 8. Progress Indicator Row
+
+```kotlin
+@Composable
+fun ProgressRowExample() {
+    var progress by remember { mutableStateOf(0.3f) }
+    
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Progress with labels
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "0%",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+            LinearProgressIndicator(
+                progress = progress,
+                modifier = Modifier.weight(1f),
+                color = Color.Blue,
+                trackColor = Color.LightGray
+            )
+            Text(
+                text = "100%",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+        
+        // Progress value and controls
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Progress: ${(progress * 100).toInt()}%",
+                fontWeight = FontWeight.Medium
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { progress = maxOf(0f, progress - 0.1f) }
+                ) {
+                    Text("-")
+                }
+                Button(
+                    onClick = { progress = minOf(1f, progress + 0.1f) }
+                ) {
+                    Text("+")
+                }
+            }
+        }
+    }
+}
+```
+*Shows progress indicator with controls in a Row layout.*
+
+### 9. Scrollable Horizontal Row
+
+```kotlin
+@Composable
+fun ScrollableRowExample() {
+    Column {
+        Text(
+            text = "Horizontal Scrollable Categories",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(16.dp)
+        )
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            repeat(10) { index ->
+                Card(
+                    modifier = Modifier.width(120.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.Orange
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Category ${index + 1}",
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+```
+*Creates horizontally scrollable content cards.*
+
+### 10. Responsive Row with Weight
+
+```kotlin
+@Composable
+fun WeightedRowExample() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(
+            text = "Weight Distribution Examples",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        
+        // Equal weights
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color.Red.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("1f", color = Color.White)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color.Green.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("1f", color = Color.White)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color.Blue.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("1f", color = Color.White)
+            }
+        }
+        
+        // Different weights
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(2f)
+                    .fillMaxHeight()
+                    .background(Color.Purple.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("2f", color = Color.White)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color.Orange.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("1f", color = Color.White)
+            }
+        }
+        
+        // Mixed: weight + fixed size
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
+                    .fillMaxHeight()
+                    .background(Color.Cyan),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Fixed", fontSize = 10.sp)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color.Yellow.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Flexible", fontSize = 10.sp)
+            }
+            Box(
+                modifier = Modifier
+                    .width(60.dp)
+                    .fillMaxHeight()
+                    .background(Color.Magenta),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Fixed", fontSize = 10.sp, color = Color.White)
+            }
+        }
+    }
+}
+```
+*Demonstrates different weight distributions and combinations.*
+
+## Horizontal Arrangement Options
+
+```kotlin
+// Available horizontal arrangements
+Arrangement.Start                 // Children at the start (left)
+Arrangement.End                   // Children at the end (right)
+Arrangement.Center                // Children centered
+Arrangement.SpaceBetween          // Equal space between children
+Arrangement.SpaceAround           // Equal space around children  
+Arrangement.SpaceEvenly           // Equal space between and around
+Arrangement.spacedBy(8.dp)        // Fixed space between children
+```
+
+## Vertical Alignment Options
+
+```kotlin
+// Available vertical alignments in RowScope
+Alignment.Top                     // Top alignment
+Alignment.CenterVertically        // Center alignment
+Alignment.Bottom                  // Bottom alignment
+Alignment.Baseline               // Baseline alignment for text
+```
+
+## Best Practices
+
+### 1. Performance Considerations
+```kotlin
+// Good: Use LazyRow for long horizontal lists
+LazyRow {
+    items(longList) { item ->
+        ItemComposable(item)
+    }
+}
+
+// Avoid: Regular Row with many items
+Row {
+    longList.forEach { item ->
+        ItemComposable(item) // Performance issue for large lists
+    }
+}
+```
+
+### 2. Responsive Design with Weight
+```kotlin
+// Responsive button layout
+Row(modifier = Modifier.fillMaxWidth()) {
+    Button(
+        onClick = { /* Action 1 */ },
+        modifier = Modifier.weight(1f)
+    ) { Text("Button 1") }
+    
+    Spacer(modifier = Modifier.width(8.dp))
+    
+    Button(
+        onClick = { /* Action 2 */ },
+        modifier = Modifier.weight(1f)
+    ) { Text("Button 2") }
+}
+```
+
+### 3. Consistent Spacing
+```kotlin
+// Preferred: Use horizontalArrangement for consistent spacing
+Row(
+    horizontalArrangement = Arrangement.spacedBy(16.dp)
+) {
+    // Content
+}
+
+// Alternative: Manual spacing with Spacer
+Row {
+    Text("Item 1")
+    Spacer(modifier = Modifier.width(16.dp))
+    Text("Item 2")
+}
+```
+
+### 4. Accessibility
+```kotlin
+Row(
+    modifier = Modifier.semantics(mergeDescendants = true) {
+        contentDescription = "User actions: edit, delete, share"
+    }
+) {
+    IconButton(onClick = { /* Edit */ }) {
+        Icon(Icons.Default.Edit, contentDescription = "Edit")
+    }
+    IconButton(onClick = { /* Delete */ }) {
+        Icon(Icons.Default.Delete, contentDescription = "Delete")
+    }
+    IconButton(onClick = { /* Share */ }) {
+        Icon(Icons.Default.Share, contentDescription = "Share")
+    }
+}
+```
+
+## Common Use Cases
+
+1. **Toolbars and App Bars** - Navigation and action buttons
+2. **Button Groups** - Multiple related actions
+3. **Icon and Text Combinations** - Labels with icons
+4. **Card Content** - Horizontal layout within cards
+5. **Form Controls** - Input fields with labels or buttons
+6. **Tab Bars** - Horizontal navigation tabs
+7. **Progress Indicators** - Progress bars with labels
+8. **Image Galleries** - Horizontal scrolling images
+
+## Related Components
+
+- **LazyRow** - For efficient horizontal scrolling lists
+- **Column** - For vertical linear layouts
+- **Box** - For overlapping and stacked layouts  
+- **ConstraintLayout** - For complex positioning requirements
+- **Scaffold** - For overall screen structure with app bars
+
+---
+
+*This documentation covers the essential aspects of the Row component in Jetpack Compose. The Row is essential for creating horizontal user interfaces and is one of the most commonly used layout components.*

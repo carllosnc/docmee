@@ -1,0 +1,795 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# ConstraintLayout
+
+## Overview
+
+ConstraintLayout in Jetpack Compose is a powerful layout composable that allows you to create complex layouts with flat view hierarchies. It positions child elements relative to each other and the parent layout using constraints.
+
+## Setup
+
+Add the dependency to your `build.gradle` file:
+
+```kotlin
+implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
+```
+
+## Basic Usage
+
+### Simple ConstraintLayout
+
+```kotlin
+@Composable
+fun BasicConstraintLayout() {
+    ConstraintLayout(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Create references for composables
+        val (button, text) = createRefs()
+        
+        Button(
+            onClick = { },
+            modifier = Modifier.constrainAs(button) {
+                top.linkTo(parent.top, margin = 16.dp)
+                centerHorizontallyTo(parent)
+            }
+        ) {
+            Text("Click Me")
+        }
+        
+        Text(
+            text = "Hello ConstraintLayout",
+            modifier = Modifier.constrainAs(text) {
+                top.linkTo(button.bottom, margin = 16.dp)
+                centerHorizontallyTo(parent)
+            }
+        )
+    }
+}
+```
+
+Creates a simple layout with a button at the top center and text below it.
+
+## Core Concepts
+
+### 1. Creating References
+
+```kotlin
+@Composable
+fun ReferencesExample() {
+    ConstraintLayout {
+        // Method 1: Destructuring
+        val (button1, button2, text) = createRefs()
+        
+        // Method 2: Individual references
+        val imageRef = createRef()
+        
+        // Method 3: Multiple references
+        val refs = createRefs<ConstrainedLayoutReference>()
+        val (card, icon) = refs
+    }
+}
+```
+
+### 2. Basic Constraints
+
+```kotlin
+@Composable
+fun BasicConstraints() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        val (topText, centerText, bottomText) = createRefs()
+        
+        // Top constraint
+        Text(
+            text = "Top Text",
+            modifier = Modifier.constrainAs(topText) {
+                top.linkTo(parent.top, margin = 16.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+            }
+        )
+        
+        // Center constraint
+        Text(
+            text = "Center Text",
+            modifier = Modifier.constrainAs(centerText) {
+                centerTo(parent)
+            }
+        )
+        
+        // Bottom constraint
+        Text(
+            text = "Bottom Text",
+            modifier = Modifier.constrainAs(bottomText) {
+                bottom.linkTo(parent.bottom, margin = 16.dp)
+                end.linkTo(parent.end, margin = 16.dp)
+            }
+        )
+    }
+}
+```
+
+## Advanced Constraints
+
+### 1. Chains
+
+```kotlin
+@Composable
+fun ChainsExample() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        val (button1, button2, button3) = createRefs()
+        
+        // Horizontal chain
+        createHorizontalChain(button1, button2, button3, chainStyle = ChainStyle.Spread)
+        
+        Button(
+            onClick = { },
+            modifier = Modifier.constrainAs(button1) {
+                centerVerticallyTo(parent)
+            }
+        ) { Text("Button 1") }
+        
+        Button(
+            onClick = { },
+            modifier = Modifier.constrainAs(button2) {
+                centerVerticallyTo(parent)
+            }
+        ) { Text("Button 2") }
+        
+        Button(
+            onClick = { },
+            modifier = Modifier.constrainAs(button3) {
+                centerVerticallyTo(parent)
+            }
+        ) { Text("Button 3") }
+    }
+}
+```
+
+### 2. Chain Styles
+
+```kotlin
+@Composable
+fun ChainStylesDemo() {
+    Column {
+        // Spread chain
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        ) {
+            val (box1, box2, box3) = createRefs()
+            createHorizontalChain(box1, box2, box3, chainStyle = ChainStyle.Spread)
+            
+            repeat(3) { index ->
+                val ref = when(index) {
+                    0 -> box1
+                    1 -> box2
+                    else -> box3
+                }
+                Box(
+                    modifier = Modifier
+                        .size(60.dp, 40.dp)
+                        .background(Color.Blue)
+                        .constrainAs(ref) {
+                            centerVerticallyTo(parent)
+                        }
+                )
+            }
+        }
+        
+        // Packed chain
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+        ) {
+            val (box1, box2, box3) = createRefs()
+            createHorizontalChain(box1, box2, box3, chainStyle = ChainStyle.Packed)
+            
+            repeat(3) { index ->
+                val ref = when(index) {
+                    0 -> box1
+                    1 -> box2
+                    else -> box3
+                }
+                Box(
+                    modifier = Modifier
+                        .size(60.dp, 40.dp)
+                        .background(Color.Green)
+                        .constrainAs(ref) {
+                            centerVerticallyTo(parent)
+                        }
+                )
+            }
+        }
+    }
+}
+```
+
+### 3. Guidelines
+
+```kotlin
+@Composable
+fun GuidelinesExample() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        // Percentage guideline
+        val guideline = createGuidelineFromTop(0.3f)
+        
+        // Absolute guideline
+        val startGuideline = createGuidelineFromStart(100.dp)
+        
+        val (image, title, description) = createRefs()
+        
+        Image(
+            painter = painterResource(id = R.drawable.sample),
+            contentDescription = null,
+            modifier = Modifier
+                .size(80.dp)
+                .constrainAs(image) {
+                    top.linkTo(parent.top, margin = 16.dp)
+                    start.linkTo(startGuideline)
+                    bottom.linkTo(guideline)
+                }
+        )
+        
+        Text(
+            text = "Title",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.constrainAs(title) {
+                top.linkTo(guideline, margin = 16.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+            }
+        )
+        
+        Text(
+            text = "Description text goes here",
+            modifier = Modifier.constrainAs(description) {
+                top.linkTo(title.bottom, margin = 8.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+                end.linkTo(parent.end, margin = 16.dp)
+                width = Dimension.fillToConstraints
+            }
+        )
+    }
+}
+```
+
+### 4. Barriers
+
+```kotlin
+@Composable
+fun BarriersExample() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        val (text1, text2, text3, button) = createRefs()
+        
+        // Create barrier after the longest text
+        val barrier = createEndBarrier(text1, text2, text3)
+        
+        Text(
+            text = "Short",
+            modifier = Modifier.constrainAs(text1) {
+                top.linkTo(parent.top, margin = 16.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+            }
+        )
+        
+        Text(
+            text = "Medium length text",
+            modifier = Modifier.constrainAs(text2) {
+                top.linkTo(text1.bottom, margin = 8.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+            }
+        )
+        
+        Text(
+            text = "Very long text that extends quite far",
+            modifier = Modifier.constrainAs(text3) {
+                top.linkTo(text2.bottom, margin = 8.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+            }
+        )
+        
+        Button(
+            onClick = { },
+            modifier = Modifier.constrainAs(button) {
+                start.linkTo(barrier, margin = 16.dp)
+                centerVerticallyTo(parent)
+            }
+        ) {
+            Text("Action")
+        }
+    }
+}
+```
+
+## Dimension Handling
+
+### 1. Width and Height Constraints
+
+```kotlin
+@Composable
+fun DimensionExample() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        val (box1, box2, box3, box4) = createRefs()
+        
+        // Fixed dimension
+        Box(
+            modifier = Modifier
+                .background(Color.Red)
+                .constrainAs(box1) {
+                    top.linkTo(parent.top, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    width = Dimension.value(100.dp)
+                    height = Dimension.value(50.dp)
+                }
+        )
+        
+        // Fill to constraints
+        Box(
+            modifier = Modifier
+                .background(Color.Blue)
+                .constrainAs(box2) {
+                    top.linkTo(box1.bottom, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    end.linkTo(parent.end, margin = 16.dp)
+                    width = Dimension.fillToConstraints
+                    height = Dimension.value(50.dp)
+                }
+        )
+        
+        // Wrap content
+        Box(
+            modifier = Modifier
+                .background(Color.Green)
+                .padding(16.dp)
+                .constrainAs(box3) {
+                    top.linkTo(box2.bottom, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    width = Dimension.wrapContent
+                    height = Dimension.wrapContent
+                }
+        ) {
+            Text("Wrap Content")
+        }
+        
+        // Preferred wrap with constraints
+        Box(
+            modifier = Modifier
+                .background(Color.Yellow)
+                .constrainAs(box4) {
+                    top.linkTo(box3.bottom, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    end.linkTo(parent.end, margin = 16.dp)
+                    width = Dimension.preferredWrapContent.atLeast(100.dp).atMost(200.dp)
+                    height = Dimension.value(50.dp)
+                }
+        ) {
+            Text("Preferred with limits", modifier = Modifier.padding(8.dp))
+        }
+    }
+}
+```
+
+### 2. Aspect Ratio
+
+```kotlin
+@Composable
+fun AspectRatioExample() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        val (image, card) = createRefs()
+        
+        // Square aspect ratio
+        Image(
+            painter = painterResource(id = R.drawable.sample),
+            contentDescription = null,
+            modifier = Modifier.constrainAs(image) {
+                top.linkTo(parent.top, margin = 16.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+                end.linkTo(parent.end, margin = 16.dp)
+                width = Dimension.fillToConstraints
+                height = Dimension.ratio("1:1")
+            },
+            contentScale = ContentScale.Crop
+        )
+        
+        // 16:9 aspect ratio
+        Card(
+            modifier = Modifier.constrainAs(card) {
+                top.linkTo(image.bottom, margin = 16.dp)
+                start.linkTo(parent.start, margin = 16.dp)
+                end.linkTo(parent.end, margin = 16.dp)
+                width = Dimension.fillToConstraints
+                height = Dimension.ratio("16:9")
+            }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("16:9 Ratio")
+            }
+        }
+    }
+}
+```
+
+## Real-World Examples
+
+### 1. Profile Card Layout
+
+```kotlin
+@Composable
+fun ProfileCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            val (avatar, name, role, bio, followButton, messageButton) = createRefs()
+            
+            // Avatar
+            Image(
+                painter = painterResource(id = R.drawable.avatar),
+                contentDescription = "Profile picture",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .constrainAs(avatar) {
+                        top.linkTo(parent.top)
+                        start.linkTo(parent.start)
+                    }
+            )
+            
+            // Name
+            Text(
+                text = "John Doe",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.constrainAs(name) {
+                    top.linkTo(avatar.top)
+                    start.linkTo(avatar.end, margin = 16.dp)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
+            )
+            
+            // Role
+            Text(
+                text = "Android Developer",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.constrainAs(role) {
+                    top.linkTo(name.bottom, margin = 4.dp)
+                    start.linkTo(name.start)
+                }
+            )
+            
+            // Bio
+            Text(
+                text = "Passionate about creating beautiful and functional mobile applications with Jetpack Compose.",
+                fontSize = 14.sp,
+                modifier = Modifier.constrainAs(bio) {
+                    top.linkTo(avatar.bottom, margin = 16.dp)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
+            )
+            
+            // Buttons
+            val buttonBarrier = createTopBarrier(followButton, messageButton)
+            
+            Button(
+                onClick = { },
+                modifier = Modifier.constrainAs(followButton) {
+                    top.linkTo(bio.bottom, margin = 16.dp)
+                    start.linkTo(parent.start)
+                    end.linkTo(messageButton.start, margin = 8.dp)
+                    width = Dimension.fillToConstraints
+                }
+            ) {
+                Text("Follow")
+            }
+            
+            OutlinedButton(
+                onClick = { },
+                modifier = Modifier.constrainAs(messageButton) {
+                    top.linkTo(bio.bottom, margin = 16.dp)
+                    start.linkTo(followButton.end, margin = 8.dp)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
+            ) {
+                Text("Message")
+            }
+        }
+    }
+}
+```
+
+### 2. Chat Message Layout
+
+```kotlin
+@Composable
+fun ChatMessage(message: String, timestamp: String, isOwnMessage: Boolean) {
+    ConstraintLayout(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        val (bubble, time) = createRefs()
+        
+        Card(
+            modifier = Modifier.constrainAs(bubble) {
+                top.linkTo(parent.top)
+                if (isOwnMessage) {
+                    end.linkTo(parent.end)
+                    start.linkTo(parent.start, margin = 64.dp)
+                } else {
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end, margin = 64.dp)
+                }
+                width = Dimension.fillToConstraints
+            },
+            colors = CardDefaults.cardColors(
+                containerColor = if (isOwnMessage) Color(0xFF007AFF) else Color(0xFFE5E5EA)
+            )
+        ) {
+            Text(
+                text = message,
+                modifier = Modifier.padding(12.dp),
+                color = if (isOwnMessage) Color.White else Color.Black
+            )
+        }
+        
+        Text(
+            text = timestamp,
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.constrainAs(time) {
+                top.linkTo(bubble.bottom, margin = 4.dp)
+                if (isOwnMessage) {
+                    end.linkTo(bubble.end)
+                } else {
+                    start.linkTo(bubble.start)
+                }
+            }
+        )
+    }
+}
+```
+
+### 3. Form Layout
+
+```kotlin
+@Composable
+fun LoginForm() {
+    ConstraintLayout(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp)
+    ) {
+        val (logo, title, emailField, passwordField, loginButton, signupText) = createRefs()
+        val guideline = createGuidelineFromTop(0.3f)
+        
+        // Logo
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "App Logo",
+            modifier = Modifier
+                .size(100.dp)
+                .constrainAs(logo) {
+                    bottom.linkTo(guideline, margin = 32.dp)
+                    centerHorizontallyTo(parent)
+                }
+        )
+        
+        // Title
+        Text(
+            text = "Welcome Back",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.constrainAs(title) {
+                top.linkTo(guideline, margin = 16.dp)
+                centerHorizontallyTo(parent)
+            }
+        )
+        
+        // Email field
+        OutlinedTextField(
+            value = "",
+            onValueChange = { },
+            label = { Text("Email") },
+            modifier = Modifier.constrainAs(emailField) {
+                top.linkTo(title.bottom, margin = 32.dp)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
+            }
+        )
+        
+        // Password field
+        OutlinedTextField(
+            value = "",
+            onValueChange = { },
+            label = { Text("Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.constrainAs(passwordField) {
+                top.linkTo(emailField.bottom, margin = 16.dp)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
+            }
+        )
+        
+        // Login button
+        Button(
+            onClick = { },
+            modifier = Modifier.constrainAs(loginButton) {
+                top.linkTo(passwordField.bottom, margin = 32.dp)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
+            }
+        ) {
+            Text("Login")
+        }
+        
+        // Signup text
+        Text(
+            text = "Don't have an account? Sign up",
+            color = Color.Blue,
+            modifier = Modifier.constrainAs(signupText) {
+                top.linkTo(loginButton.bottom, margin = 16.dp)
+                centerHorizontallyTo(parent)
+            }
+        )
+    }
+}
+```
+
+## Performance Tips
+
+1. **Prefer ConstraintLayout over nested layouts** when dealing with complex UI hierarchies
+2. **Use guidelines and barriers** to create flexible layouts that adapt to content changes
+3. **Minimize constraint references** by grouping related elements
+4. **Use Dimension.fillToConstraints** instead of weight-based layouts for better performance
+
+## Common Patterns
+
+### 1. Centering Content
+
+```kotlin
+// Center both horizontally and vertically
+modifier = Modifier.constrainAs(ref) {
+    centerTo(parent)
+}
+
+// Center only horizontally
+modifier = Modifier.constrainAs(ref) {
+    centerHorizontallyTo(parent)
+    top.linkTo(parent.top, margin = 16.dp)
+}
+
+// Center only vertically
+modifier = Modifier.constrainAs(ref) {
+    centerVerticallyTo(parent)
+    start.linkTo(parent.start, margin = 16.dp)
+}
+```
+
+### 2. Creating Flexible Spacing
+
+```kotlin
+// Using chains with different styles
+createHorizontalChain(ref1, ref2, ref3, chainStyle = ChainStyle.SpreadInside)
+
+// Using guidelines for proportional spacing
+val guideline1 = createGuidelineFromTop(0.25f)
+val guideline2 = createGuidelineFromTop(0.75f)
+```
+
+### 3. Handling Different Screen Sizes
+
+```kotlin
+@Composable
+fun ResponsiveLayout() {
+    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+        val (content1, content2) = createRefs()
+        val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+        
+        Text(
+            text = "Content 1",
+            modifier = Modifier.constrainAs(content1) {
+                if (isLandscape) {
+                    top.linkTo(parent.top, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    end.linkTo(content2.start, margin = 16.dp)
+                    width = Dimension.fillToConstraints
+                } else {
+                    top.linkTo(parent.top, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    end.linkTo(parent.end, margin = 16.dp)
+                    width = Dimension.fillToConstraints
+                }
+            }
+        )
+        
+        Text(
+            text = "Content 2",
+            modifier = Modifier.constrainAs(content2) {
+                if (isLandscape) {
+                    top.linkTo(parent.top, margin = 16.dp)
+                    start.linkTo(content1.end, margin = 16.dp)
+                    end.linkTo(parent.end, margin = 16.dp)
+                    width = Dimension.fillToConstraints
+                } else {
+                    top.linkTo(content1.bottom, margin = 16.dp)
+                    start.linkTo(parent.start, margin = 16.dp)
+                    end.linkTo(parent.end, margin = 16.dp)
+                    width = Dimension.fillToConstraints
+                }
+            }
+        )
+    }
+}
+```
+
+## Migration from View System
+
+### Before (XML ConstraintLayout)
+```xml
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+        
+</androidx.constraintlayout.widget.ConstraintLayout>
+```
+
+### After (Compose ConstraintLayout)
+```kotlin
+ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+    val title = createRef()
+    
+    Text(
+        text = "Title",
+        modifier = Modifier.constrainAs(title) {
+            top.linkTo(parent.top)
+            start.linkTo(parent.start)
+            end.linkTo(parent.end)
+            width = Dimension.fillToConstraints
+        }
+    )
+}
+```
+
+## Best Practices
+
+1. **Use meaningful reference names** that describe the UI element
+2. **Group related constraints** together for better readability
+3. **Prefer intrinsic measurements** over fixed sizes when possible
+4. **Use barriers and guidelines** for dynamic content layouts
+5. **Test on different screen sizes** and orientations
+6. **Consider using ConstraintSet** for animation and dynamic layouts
+
+This documentation covers the comprehensive usage of ConstraintLayout in Jetpack Compose, from basic concepts to advanced real-world implementations.

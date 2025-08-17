@@ -1,0 +1,589 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Column
+
+## Overview
+
+The `Column` composable is a fundamental layout component in Jetpack Compose that arranges its children vertically in a linear fashion. It's similar to `LinearLayout` with vertical orientation in the traditional Android View system. The `Column` is perfect for creating vertical lists, forms, and any UI that requires vertical arrangement of elements.
+
+## Basic Syntax
+
+```kotlin
+Column(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable ColumnScope.() -> Unit
+)
+```
+
+## Parameters
+
+- **modifier**: Modifier to be applied to the Column
+- **verticalArrangement**: Arrangement of children vertically within the Column
+- **horizontalAlignment**: Default horizontal alignment for children
+- **content**: The composable content inside the Column scope
+
+## Code Examples
+
+### 1. Basic Column with Text Elements
+
+```kotlin
+@Composable
+fun BasicColumnExample() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "First Item",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Second Item",
+            fontSize = 16.sp,
+            color = Color.Gray
+        )
+        Text(
+            text = "Third Item",
+            fontSize = 14.sp,
+            style = TextStyle(textDecoration = TextDecoration.Underline)
+        )
+    }
+}
+```
+*Creates a simple vertical list of text elements.*
+
+### 2. Column with Different Vertical Arrangements
+
+```kotlin
+@Composable
+fun VerticalArrangementExample() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.LightGray)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "Top Item",
+            modifier = Modifier
+                .background(Color.Red.copy(alpha = 0.3f))
+                .padding(8.dp)
+        )
+        Text(
+            text = "Middle Item",
+            modifier = Modifier
+                .background(Color.Green.copy(alpha = 0.3f))
+                .padding(8.dp)
+        )
+        Text(
+            text = "Bottom Item",
+            modifier = Modifier
+                .background(Color.Blue.copy(alpha = 0.3f))
+                .padding(8.dp)
+        )
+    }
+}
+```
+*Demonstrates SpaceBetween vertical arrangement.*
+
+### 3. Column with Horizontal Alignments
+
+```kotlin
+@Composable
+fun HorizontalAlignmentExample() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Start Aligned",
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Text(
+            text = "Center Aligned (Default)",
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "End Aligned",
+            modifier = Modifier.align(Alignment.End)
+        )
+    }
+}
+```
+*Shows different horizontal alignment options within a Column.*
+
+### 4. Form Layout with Column
+
+```kotlin
+@Composable
+fun FormLayoutExample() {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Contact Form",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        OutlinedTextField(
+            value = message,
+            onValueChange = { message = it },
+            label = { Text("Message") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+        )
+        
+        Button(
+            onClick = { /* Handle submit */ },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Text("Submit")
+        }
+    }
+}
+```
+*Creates a form layout using Column for vertical arrangement.*
+
+### 5. Column with Mixed Content Types
+
+```kotlin
+@Composable
+fun MixedContentColumnExample() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Image
+        Image(
+            painter = painterResource(id = R.drawable.sample_image),
+            contentDescription = "Sample Image",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop
+        )
+        
+        // Title
+        Text(
+            text = "Article Title",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+        
+        // Subtitle
+        Text(
+            text = "Published on January 15, 2024",
+            fontSize = 12.sp,
+            color = Color.Gray
+        )
+        
+        // Content
+        Text(
+            text = "This is the article content. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+            fontSize = 14.sp,
+            lineHeight = 20.sp
+        )
+        
+        // Action buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { /* Handle like */ },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Like")
+            }
+            OutlinedButton(
+                onClick = { /* Handle share */ },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Share")
+            }
+        }
+    }
+}
+```
+*Combines different content types in a vertical layout.*
+
+### 6. Scrollable Column
+
+```kotlin
+@Composable
+fun ScrollableColumnExample() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(30) { index ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Card ${index + 1}",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "This is content for card number ${index + 1}",
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+}
+```
+*Creates a scrollable column with multiple cards.*
+
+### 7. Column with Conditional Content
+
+```kotlin
+@Composable
+fun ConditionalColumnExample() {
+    var showExtraContent by remember { mutableStateOf(false) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Main Content",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Text(
+            text = "This content is always visible."
+        )
+        
+        Button(
+            onClick = { showExtraContent = !showExtraContent }
+        ) {
+            Text(if (showExtraContent) "Hide Details" else "Show Details")
+        }
+        
+        AnimatedVisibility(visible = showExtraContent) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Additional Information",
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "This content appears when the button is pressed.",
+                    color = Color.Gray
+                )
+                Text(
+                    text = "You can add more detailed information here.",
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+```
+*Shows/hides content conditionally with animation.*
+
+### 8. Nested Columns with Weight
+
+```kotlin
+@Composable
+fun WeightedColumnExample() {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Header section (fixed height)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Blue)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Header",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        // Content section (takes remaining space)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(Color.LightGray)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Main Content Area",
+                fontSize = 16.sp
+            )
+            Text(
+                text = "This section expands to fill available space",
+                color = Color.Gray
+            )
+        }
+        
+        // Footer section (fixed height)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.DarkGray)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Footer",
+                color = Color.White,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+```
+*Demonstrates using weight to create flexible layouts.*
+
+### 9. Column with Custom Spacing
+
+```kotlin
+@Composable
+fun CustomSpacingColumnExample() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Section 1",
+            fontWeight = FontWeight.Bold
+        )
+        Text(text = "Content for section 1")
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            text = "Section 2",
+            fontWeight = FontWeight.Bold
+        )
+        Text(text = "Content for section 2")
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Divider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            thickness = 1.dp,
+            color = Color.Gray
+        )
+        
+        Text(
+            text = "Section 3",
+            fontWeight = FontWeight.Bold
+        )
+        Text(text = "Content for section 3")
+    }
+}
+```
+*Uses Spacer and Divider for custom spacing between elements.*
+
+### 10. Animated Column Content
+
+```kotlin
+@Composable
+fun AnimatedColumnExample() {
+    var itemCount by remember { mutableStateOf(3) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { if (itemCount > 0) itemCount-- }
+            ) {
+                Text("Remove Item")
+            }
+            Button(
+                onClick = { itemCount++ }
+            ) {
+                Text("Add Item")
+            }
+        }
+        
+        Text(
+            text = "Items: $itemCount",
+            fontWeight = FontWeight.Bold
+        )
+        
+        repeat(itemCount) { index ->
+            AnimatedVisibility(
+                visible = true,
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Text(
+                        text = "Dynamic Item ${index + 1}",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+```
+*Demonstrates animated content addition and removal in a Column.*
+
+## Vertical Arrangement Options
+
+```kotlin
+// Available vertical arrangements
+Arrangement.Top                    // Children at the top
+Arrangement.Bottom                 // Children at the bottom  
+Arrangement.Center                 // Children centered
+Arrangement.SpaceBetween          // Equal space between children
+Arrangement.SpaceAround           // Equal space around children
+Arrangement.SpaceEvenly           // Equal space between and around
+Arrangement.spacedBy(8.dp)        // Fixed space between children
+```
+
+## Horizontal Alignment Options
+
+```kotlin
+// Available horizontal alignments in ColumnScope
+Alignment.Start                   // Left alignment
+Alignment.CenterHorizontally      // Center alignment
+Alignment.End                     // Right alignment
+```
+
+## Best Practices
+
+### 1. Performance Considerations
+```kotlin
+// Good: Use LazyColumn for long lists
+LazyColumn {
+    items(longList) { item ->
+        ItemComposable(item)
+    }
+}
+
+// Avoid: Regular Column with many items
+Column {
+    longList.forEach { item ->
+        ItemComposable(item) // Performance issue for large lists
+    }
+}
+```
+
+### 2. Spacing Consistency
+```kotlin
+// Preferred: Use verticalArrangement for consistent spacing
+Column(
+    verticalArrangement = Arrangement.spacedBy(16.dp)
+) {
+    // Content
+}
+
+// Alternative: Manual spacing with Spacer
+Column {
+    Text("Item 1")
+    Spacer(modifier = Modifier.height(16.dp))
+    Text("Item 2")
+}
+```
+
+### 3. Accessibility
+```kotlin
+Column(
+    modifier = Modifier.semantics {
+        contentDescription = "User profile information"
+    }
+) {
+    Text("Name: John Doe")
+    Text("Email: john@example.com")
+}
+```
+
+## Common Use Cases
+
+1. **Forms and Input Fields** - Vertical arrangement of form elements
+2. **Article Content** - Title, image, text content in sequence
+3. **Settings Screens** - List of preferences and options
+4. **Profile Screens** - User information in vertical layout
+5. **Card Content** - Internal layout of cards and containers
+6. **Navigation Drawers** - Menu items arranged vertically
+
+## Related Components
+
+- **LazyColumn** - For efficient scrolling lists with many items
+- **Row** - For horizontal linear layouts  
+- **Box** - For overlapping and stacked layouts
+- **Scaffold** - For overall screen structure
+- **ConstraintLayout** - For complex positioning requirements
+
+---
+
+*This documentation covers the essential aspects of the Column component in Jetpack Compose. The Column is one of the most frequently used layout components for creating vertical user interfaces.*

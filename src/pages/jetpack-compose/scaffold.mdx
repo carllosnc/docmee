@@ -1,0 +1,1044 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Scaffold
+
+## Overview
+
+Scaffold is a high-level composable that provides the basic structure for a screen in Material Design. It implements the basic material layout structure with slots for common UI elements like app bars, floating action buttons, drawers, and snackbars.
+
+## Setup
+
+Scaffold is part of the Material3 library:
+
+```kotlin
+implementation "androidx.compose.material3:material3:1.1.2"
+```
+
+## Basic Usage
+
+### Simple Scaffold
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BasicScaffold() {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Basic Scaffold") }
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            items(100) { index ->
+                Text(
+                    text = "Item $index",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+```
+
+Creates a basic screen with a top app bar and scrollable content. The `innerPadding` ensures content doesn't overlap with system bars.
+
+## Core Components
+
+### 1. TopBar
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopBarExample() {
+    var menuExpanded by remember { mutableStateOf(false) }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("My App") },
+                navigationIcon = {
+                    IconButton(onClick = { /* Handle navigation */ }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* Handle search */ }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More")
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            onClick = { menuExpanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("About") },
+                            onClick = { menuExpanded = false }
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Content Area")
+        }
+    }
+}
+```
+
+### 2. Bottom Bar
+
+```kotlin
+@Composable
+fun BottomBarExample() {
+    var selectedItem by remember { mutableIntStateOf(0) }
+    val items = listOf("Home", "Search", "Profile")
+    val icons = listOf(Icons.Default.Home, Icons.Default.Search, Icons.Default.Person)
+    
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                items.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        icon = { Icon(icons[index], contentDescription = item) },
+                        label = { Text(item) },
+                        selected = selectedItem == index,
+                        onClick = { selectedItem = index }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Selected: ${items[selectedItem]}")
+        }
+    }
+}
+```
+
+### 3. Floating Action Button
+
+```kotlin
+@Composable
+fun FABExample() {
+    var itemCount by remember { mutableIntStateOf(0) }
+    
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { itemCount++ }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Items: $itemCount")
+        }
+    }
+}
+```
+
+### 4. Extended FAB
+
+```kotlin
+@Composable
+fun ExtendedFABExample() {
+    val listState = rememberLazyListState()
+    val isExpanded by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0
+        }
+    }
+    
+    Scaffold(
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { /* Handle action */ },
+                expanded = isExpanded,
+                icon = { Icon(Icons.Default.Edit, contentDescription = "Edit") },
+                text = { Text("Compose") }
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            items(50) { index ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Item $index",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+```
+
+## Snackbar Integration
+
+### 1. Basic Snackbar
+
+```kotlin
+@Composable
+fun SnackbarExample() {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Hello Snackbar!")
+                    }
+                }
+            ) {
+                Icon(Icons.Default.Notifications, contentDescription = "Show Snackbar")
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Click FAB to show Snackbar")
+        }
+    }
+}
+```
+
+### 2. Snackbar with Action
+
+```kotlin
+@Composable
+fun SnackbarWithActionExample() {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var counter by remember { mutableIntStateOf(0) }
+    
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+        topBar = {
+            TopAppBar(
+                title = { Text("Snackbar with Action") },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            counter++
+                            scope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Item $counter added",
+                                    actionLabel = "Undo",
+                                    withDismissAction = true,
+                                    duration = SnackbarDuration.Long
+                                )
+                                when (result) {
+                                    SnackbarResult.ActionPerformed -> {
+                                        counter--
+                                        snackbarHostState.showSnackbar("Undone!")
+                                    }
+                                    SnackbarResult.Dismissed -> {
+                                        // Snackbar dismissed without action
+                                    }
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Counter: $counter")
+        }
+    }
+}
+```
+
+## Drawer Implementation
+
+### 1. Modal Navigation Drawer
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ModalDrawerExample() {
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var selectedItem by remember { mutableIntStateOf(0) }
+    
+    val menuItems = listOf("Home", "Profile", "Settings", "About")
+    val icons = listOf(
+        Icons.Default.Home,
+        Icons.Default.Person,
+        Icons.Default.Settings,
+        Icons.Default.Info
+    )
+    
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(Modifier.height(12.dp))
+                menuItems.forEachIndexed { index, item ->
+                    NavigationDrawerItem(
+                        icon = { Icon(icons[index], contentDescription = null) },
+                        label = { Text(item) },
+                        selected = index == selectedItem,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            selectedItem = index
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(menuItems[selectedItem]) },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    drawerState.apply {
+                                        if (isClosed) open() else close()
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    }
+                )
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("${menuItems[selectedItem]} Content")
+            }
+        }
+    }
+}
+```
+
+### 2. Permanent Navigation Drawer
+
+```kotlin
+@Composable
+fun PermanentDrawerExample() {
+    var selectedItem by remember { mutableIntStateOf(0) }
+    val menuItems = listOf("Dashboard", "Analytics", "Reports", "Settings")
+    
+    PermanentNavigationDrawer(
+        drawerContent = {
+            PermanentDrawerSheet(modifier = Modifier.width(240.dp)) {
+                Spacer(Modifier.height(12.dp))
+                menuItems.forEachIndexed { index, item ->
+                    NavigationDrawerItem(
+                        label = { Text(item) },
+                        selected = index == selectedItem,
+                        onClick = { selectedItem = index },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(title = { Text(menuItems[selectedItem]) })
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("${menuItems[selectedItem]} Content")
+            }
+        }
+    }
+}
+```
+
+## Advanced Examples
+
+### 1. Complete App Structure
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CompleteAppStructure() {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var fabVisible by remember { mutableStateOf(true) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    val tabs = listOf("Home", "Explore", "Library")
+    val tabIcons = listOf(Icons.Default.Home, Icons.Default.Search, Icons.Default.List)
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(tabs[selectedTab]) },
+                actions = {
+                    IconButton(onClick = { fabVisible = !fabVisible }) {
+                        Icon(
+                            if (fabVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Toggle FAB"
+                        )
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            NavigationBar {
+                tabs.forEachIndexed { index, tab ->
+                    NavigationBarItem(
+                        icon = { Icon(tabIcons[index], contentDescription = tab) },
+                        label = { Text(tab) },
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index }
+                    )
+                }
+            }
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = fabVisible,
+                enter = scaleIn(),
+                exit = scaleOut()
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Action performed!")
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add")
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        when (selectedTab) {
+            0 -> HomeContent(innerPadding)
+            1 -> ExploreContent(innerPadding)
+            2 -> LibraryContent(innerPadding)
+        }
+    }
+}
+
+@Composable
+fun HomeContent(paddingValues: PaddingValues) {
+    LazyColumn(
+        modifier = Modifier.padding(paddingValues),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(20) { index ->
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Home Item $index",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Description for item $index",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExploreContent(paddingValues: PaddingValues) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.padding(paddingValues),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(50) { index ->
+            Card(
+                modifier = Modifier.aspectRatio(1f)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Explore $index")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LibraryContent(paddingValues: PaddingValues) {
+    LazyColumn(
+        modifier = Modifier.padding(paddingValues)
+    ) {
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Your Library",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Manage your saved items here")
+                }
+            }
+        }
+        items(15) { index ->
+            ListItem(
+                headlineContent = { Text("Library Item $index") },
+                supportingContent = { Text("Supporting text") },
+                leadingContent = {
+                    Icon(Icons.Default.Star, contentDescription = null)
+                }
+            )
+        }
+    }
+}
+```
+
+### 2. Collapsible Top Bar
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CollapsibleTopBarExample() {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = { Text("Collapsible Header") },
+                navigationIcon = {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Share, contentDescription = "Share")
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            items(100) { index ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Item $index with long content that demonstrates the collapsible behavior",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+```
+
+### 3. Search App Bar
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchAppBarExample() {
+    var searchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val items = remember { (1..100).map { "Item $it" } }
+    val filteredItems = remember(searchQuery) {
+        if (searchQuery.isEmpty()) items else items.filter { 
+            it.contains(searchQuery, ignoreCase = true) 
+        }
+    }
+    
+    Scaffold(
+        topBar = {
+            if (searchActive) {
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onSearch = { searchActive = false },
+                    active = searchActive,
+                    onActiveChange = { searchActive = it },
+                    placeholder = { Text("Search items...") },
+                    leadingIcon = {
+                        IconButton(onClick = { 
+                            searchActive = false
+                            searchQuery = ""
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    }
+                ) {
+                    LazyColumn {
+                        items(filteredItems) { item ->
+                            ListItem(
+                                headlineContent = { Text(item) },
+                                modifier = Modifier.clickable {
+                                    searchQuery = item
+                                    searchActive = false
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                TopAppBar(
+                    title = { Text("Search Example") },
+                    actions = {
+                        IconButton(onClick = { searchActive = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                    }
+                )
+            }
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            items(filteredItems) { item ->
+                ListItem(
+                    headlineContent = { Text(item) }
+                )
+                HorizontalDivider()
+            }
+        }
+    }
+}
+```
+
+## Customization
+
+### 1. Custom Colors and Styling
+
+```kotlin
+@Composable
+fun CustomStyledScaffold() {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Custom Styling") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    label = { Text("Home") },
+                    selected = true,
+                    onClick = { }
+                )
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { },
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.onTertiary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
+        }
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Custom themed content")
+            }
+        }
+    }
+}
+```
+
+### 2. WindowInsets Handling
+
+```kotlin
+@Composable
+fun WindowInsetsExample() {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Window Insets") },
+                windowInsets = TopAppBarDefaults.windowInsets
+            )
+        },
+        bottomBar = {
+            NavigationBar(
+                windowInsets = NavigationBarDefaults.windowInsets
+            ) {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    label = { Text("Home") },
+                    selected = true,
+                    onClick = { }
+                )
+            }
+        },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            items(50) { index ->
+                Text(
+                    text = "Item $index",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+```
+
+## Navigation Integration
+
+### 1. Bottom Navigation with Navigation Component
+
+```kotlin
+@Composable
+fun NavigationExample() {
+    val navController = rememberNavController()
+    val items = listOf("home", "search", "profile")
+    val icons = listOf(Icons.Default.Home, Icons.Default.Search, Icons.Default.Person)
+    val labels = listOf("Home", "Search", "Profile")
+    
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                
+                items.forEachIndexed { index, screen ->
+                    NavigationBarItem(
+                        icon = { Icon(icons[index], contentDescription = labels[index]) },
+                        label = { Text(labels[index]) },
+                        selected = currentDestination?.hierarchy?.any { it.route == screen } == true,
+                        onClick = {
+                            navController.navigate(screen) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "home",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("home") { HomeScreen() }
+            composable("search") { SearchScreen() }
+            composable("profile") { ProfileScreen() }
+        }
+    }
+}
+
+@Composable
+fun HomeScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("Home Screen")
+    }
+}
+
+@Composable
+fun SearchScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("Search Screen")
+    }
+}
+
+@Composable
+fun ProfileScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("Profile Screen")
+    }
+}
+```
+
+## Performance Considerations
+
+### 1. State Management
+
+```kotlin
+@Composable
+fun PerformantScaffold() {
+    // Use remember to avoid recreation
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    // Use derivedStateOf for computed values
+    val listState = rememberLazyListState()
+    val showFab by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex < 5
+        }
+    }
+    
+    Scaffold(
+        floatingActionButton = {
+            AnimatedVisibility(visible = showFab) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("FAB clicked!")
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add")
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            items(1000) { index ->
+                Text(
+                    text = "Item $index",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+```
+
+## Best Practices
+
+1. **Always use innerPadding** from Scaffold's content lambda to avoid UI overlap
+2. **Remember state objects** like `SnackbarHostState` and `DrawerState`
+3. **Use appropriate WindowInsets** for edge-to-edge layouts
+4. **Animate FAB visibility** based on scroll state for better UX
+5. **Handle back press** properly with drawers and search bars
+6. **Use proper content padding** for lists and grids
+7. **Test on different screen sizes** and orientations
+
+## Common Patterns
+
+### 1. Master-Detail Layout
+
+```kotlin
+@Composable
+fun MasterDetailScaffold() {
+    var selectedItem by remember { mutableStateOf<String?>(null) }
+    val isWideScreen = LocalConfiguration.current.screenWidthDp > 600
+    
+    if (isWideScreen) {
+        Row {
+            // Master pane
+            Surface(
+                modifier = Modifier.weight(1f),
+                tonalElevation = 1.dp
+            ) {
+                MasterPane(
+                    onItemSelected = { selectedItem = it },
+                    selectedItem = selectedItem
+                )
+            }
+            
+            // Detail pane
+            Surface(modifier = Modifier.weight(2f)) {
+                DetailPane(selectedItem)
+            }
+        }
+    } else {
+        // Single pane with navigation
+        if (selectedItem == null) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(title = { Text("Items") })
+                }
+            ) { innerPadding ->
+                MasterPane(
+                    onItemSelected = { selectedItem = it },
+                    selectedItem = selectedItem,
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+        } else {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(selectedItem ?: "") },
+                        navigationIcon = {
+                            IconButton(onClick = { selectedItem = null }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    )
+                }
+            ) { innerPadding ->
+                DetailPane(
+                    selectedItem,
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MasterPane(
+    onItemSelected: (String) -> Unit,
+    selectedItem: String?,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(modifier = modifier) {
+        items(20) { index ->
+            val item = "Item $index"
+            ListItem(
+                headlineContent = { Text(item) },
+                modifier = Modifier.clickable { onItemSelected(item) },
+                colors = if (item == selectedItem) {
+                    ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                } else {
+                    ListItemDefaults.colors()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun DetailPane(
+    selectedItem: String?,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = selectedItem?.let { "Details for $it" } ?: "Select an item",
+            style = MaterialTheme.typography.headlineMedium
+        )
+    }
+}
+```
+
+This comprehensive documentation covers all major aspects of the Scaffold component in Jetpack Compose, from basic usage to advanced patterns and real-world implementations. Each example includes clear descriptions and demonstrates practical use cases.
