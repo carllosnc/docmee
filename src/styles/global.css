@@ -2,7 +2,7 @@
 @plugin '@tailwindcss/typography';
 
 .family {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Arimo", sans-serif;
   font-optical-sizing: auto;
   font-weight: <weight>;
   font-style: normal;
@@ -15,7 +15,7 @@
 @custom-variant sm (@media (max-width: 639px));
 
 .astro-code {
-  font-family: "JetBrains Mono";
+  font-family: "JetBrains Mono", monospace;
   @apply text-[15px] py-[20px] rounded-none
 }
 
