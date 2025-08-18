@@ -1,0 +1,653 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Object Orientation</a> <br /> <br />
+
+# Kotlin: Composition over Inheritance
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [The Problem with Inheritance](#the-problem-with-inheritance)
+3. [Composition Basics](#composition-basics)
+4. [Practical Examples](#practical-examples)
+5. [Delegation Pattern](#delegation-pattern)
+6. [Interface Segregation](#interface-segregation)
+7. [Strategy Pattern with Composition](#strategy-pattern-with-composition)
+8. [Decorator Pattern](#decorator-pattern)
+9. [Best Practices](#best-practices)
+10. [When to Use Each Approach](#when-to-use-each-approach)
+
+## Introduction
+
+**Composition over inheritance** is a fundamental design principle that favors object composition over class inheritance. Instead of creating "is-a" relationships through inheritance, we create "has-a" relationships through composition.
+
+### Key Benefits:
+- **Flexibility**: Easy to change behavior at runtime
+- **Modularity**: Components can be reused independently
+- **Testing**: Easier to mock dependencies
+- **Maintainability**: Reduces coupling between classes
+
+## The Problem with Inheritance
+
+### Inheritance Example (Problematic)
+
+```kotlin
+// Base class
+open class Bird {
+    open fun fly() = "Flying high!"
+    open fun makeSound() = "Chirp!"
+}
+
+// Inheritance creates rigid hierarchy
+class Eagle : Bird() {
+    override fun fly() = "Soaring majestically!"
+    override fun makeSound() = "Screech!"
+}
+
+class Penguin : Bird() {
+    override fun fly() = throw UnsupportedOperationException("Penguins can't fly!")
+    override fun makeSound() = "Honk!"
+}
+
+class Ostrich : Bird() {
+    override fun fly() = throw UnsupportedOperationException("Ostriches can't fly!")
+    override fun makeSound() = "Boom!"
+}
+```
+
+**Problems:**
+- Penguins and ostriches inherit `fly()` but can't use it
+- Hard to add new behaviors without modifying the hierarchy
+- Violates Liskov Substitution Principle
+
+## Composition Basics
+
+### Basic Composition Example
+
+```kotlin
+// Separate behaviors into interfaces
+interface Flyable {
+    fun fly(): String
+}
+
+interface SoundMaker {
+    fun makeSound(): String
+}
+
+// Concrete implementations
+class CanFly : Flyable {
+    override fun fly() = "Flying through the sky!"
+}
+
+class CannotFly : Flyable {
+    override fun fly() = "Cannot fly, but can run fast!"
+}
+
+class ChirpSound : SoundMaker {
+    override fun makeSound() = "Chirp chirp!"
+}
+
+class RoarSound : SoundMaker {
+    override fun makeSound() = "ROAR!"
+}
+
+// Composed bird class
+class Bird(
+    private val flyBehavior: Flyable,
+    private val soundBehavior: SoundMaker
+) {
+    fun performFly() = flyBehavior.fly()
+    fun performSound() = soundBehavior.makeSound()
+    
+    // Behavior can be changed at runtime
+    fun setFlyBehavior(flyBehavior: Flyable) {
+        this.flyBehavior = flyBehavior
+    }
+}
+
+// Usage
+fun main() {
+    val eagle = Bird(CanFly(), RoarSound())
+    val penguin = Bird(CannotFly(), ChirpSound())
+    
+    println(eagle.performFly())    // Flying through the sky!
+    println(penguin.performFly())  // Cannot fly, but can run fast!
+}
+```
+
+## Practical Examples
+
+### 1. Logger Composition
+
+```kotlin
+interface Logger {
+    fun log(message: String)
+}
+
+class FileLogger : Logger {
+    override fun log(message: String) {
+        println("Writing to file: $message")
+    }
+}
+
+class ConsoleLogger : Logger {
+    override fun log(message: String) {
+        println("Console: $message")
+    }
+}
+
+class DatabaseLogger : Logger {
+    override fun log(message: String) {
+        println("Saving to database: $message")
+    }
+}
+
+// Service class using composition
+class UserService(private val logger: Logger) {
+    fun createUser(name: String) {
+        // Business logic here
+        logger.log("User created: $name")
+    }
+    
+    fun deleteUser(id: Int) {
+        // Business logic here
+        logger.log("User deleted: $id")
+    }
+}
+
+// Usage
+fun main() {
+    val service1 = UserService(FileLogger())
+    val service2 = UserService(ConsoleLogger())
+    
+    service1.createUser("John")  // Writing to file: User created: John
+    service2.createUser("Jane")  // Console: User created: Jane
+}
+```
+
+### 2. Payment Processing System
+
+```kotlin
+interface PaymentProcessor {
+    fun processPayment(amount: Double): String
+}
+
+interface NotificationSender {
+    fun sendNotification(message: String)
+}
+
+class CreditCardProcessor : PaymentProcessor {
+    override fun processPayment(amount: Double) = 
+        "Processed $$amount via Credit Card"
+}
+
+class PayPalProcessor : PaymentProcessor {
+    override fun processPayment(amount: Double) = 
+        "Processed $$amount via PayPal"
+}
+
+class EmailNotification : NotificationSender {
+    override fun sendNotification(message: String) {
+        println("Email: $message")
+    }
+}
+
+class SMSNotification : NotificationSender {
+    override fun sendNotification(message: String) {
+        println("SMS: $message")
+    }
+}
+
+// Composed payment service
+class PaymentService(
+    private val processor: PaymentProcessor,
+    private val notifier: NotificationSender
+) {
+    fun processPayment(amount: Double) {
+        val result = processor.processPayment(amount)
+        notifier.sendNotification(result)
+    }
+}
+
+// Usage
+fun main() {
+    val service1 = PaymentService(CreditCardProcessor(), EmailNotification())
+    val service2 = PaymentService(PayPalProcessor(), SMSNotification())
+    
+    service1.processPayment(100.0)
+    // Email: Processed $100.0 via Credit Card
+    
+    service2.processPayment(50.0)
+    // SMS: Processed $50.0 via PayPal
+}
+```
+
+## Delegation Pattern
+
+Kotlin provides built-in support for delegation, making composition even more elegant:
+
+### Class Delegation
+
+```kotlin
+interface Drawable {
+    fun draw()
+}
+
+interface Clickable {
+    fun click()
+}
+
+class Rectangle : Drawable {
+    override fun draw() = println("Drawing rectangle")
+}
+
+class Button : Clickable {
+    override fun click() = println("Button clicked!")
+}
+
+// Using delegation - the class automatically implements interfaces
+class DrawableButton(
+    drawable: Drawable,
+    clickable: Clickable
+) : Drawable by drawable, Clickable by clickable {
+    
+    fun render() {
+        draw()  // Delegated to drawable
+        println("Button rendered")
+    }
+}
+
+// Usage
+fun main() {
+    val drawableButton = DrawableButton(Rectangle(), Button())
+    drawableButton.draw()    // Drawing rectangle
+    drawableButton.click()   // Button clicked!
+    drawableButton.render()  // Drawing rectangle + Button rendered
+}
+```
+
+### Property Delegation
+
+```kotlin
+class LazyExample {
+    // Lazy initialization
+    val expensiveValue: String by lazy {
+        println("Computing expensive value...")
+        "Expensive Result"
+    }
+    
+    // Observable property
+    var name: String by observable("Initial") { prop, old, new ->
+        println("$old -> $new")
+    }
+}
+
+// Usage
+fun main() {
+    val example = LazyExample()
+    example.name = "John"        // Initial -> John
+    example.name = "Jane"        // John -> Jane
+    println(example.expensiveValue) // Computing expensive value... Expensive Result
+}
+```
+
+## Interface Segregation
+
+Breaking large interfaces into smaller, focused ones:
+
+```kotlin
+// Instead of one large interface
+interface BadVehicle {
+    fun startEngine()
+    fun stopEngine()
+    fun fly()
+    fun sail()
+    fun drive()
+}
+
+// Better: Segregated interfaces
+interface Drivable {
+    fun drive()
+}
+
+interface Flyable {
+    fun fly()
+}
+
+interface Sailable {
+    fun sail()
+}
+
+interface Engine {
+    fun start()
+    fun stop()
+}
+
+// Implementations
+class CarEngine : Engine {
+    override fun start() = println("Car engine started")
+    override fun stop() = println("Car engine stopped")
+}
+
+class CarDriving : Drivable {
+    override fun drive() = println("Driving on road")
+}
+
+class PlaneFlyable : Flyable {
+    override fun fly() = println("Flying in the air")
+}
+
+// Composed vehicles
+class Car(
+    private val engine: Engine,
+    private val drivable: Drivable
+) {
+    fun startAndDrive() {
+        engine.start()
+        drivable.drive()
+    }
+}
+
+class Plane(
+    private val engine: Engine,
+    private val flyable: Flyable
+) {
+    fun takeOff() {
+        engine.start()
+        flyable.fly()
+    }
+}
+
+// Usage
+fun main() {
+    val car = Car(CarEngine(), CarDriving())
+    val plane = Plane(CarEngine(), PlaneFlyable())
+    
+    car.startAndDrive()  // Car engine started + Driving on road
+    plane.takeOff()      // Car engine started + Flying in the air
+}
+```
+
+## Strategy Pattern with Composition
+
+```kotlin
+interface SortingStrategy {
+    fun <T : Comparable<T>> sort(items: MutableList<T>): List<T>
+}
+
+class BubbleSort : SortingStrategy {
+    override fun <T : Comparable<T>> sort(items: MutableList<T>): List<T> {
+        println("Using Bubble Sort")
+        return items.sorted() // Simplified implementation
+    }
+}
+
+class QuickSort : SortingStrategy {
+    override fun <T : Comparable<T>> sort(items: MutableList<T>): List<T> {
+        println("Using Quick Sort")
+        return items.sorted() // Simplified implementation
+    }
+}
+
+class MergeSort : SortingStrategy {
+    override fun <T : Comparable<T>> sort(items: MutableList<T>): List<T> {
+        println("Using Merge Sort")
+        return items.sorted() // Simplified implementation
+    }
+}
+
+class Sorter(private var strategy: SortingStrategy) {
+    fun <T : Comparable<T>> sort(items: MutableList<T>): List<T> {
+        return strategy.sort(items)
+    }
+    
+    fun setStrategy(strategy: SortingStrategy) {
+        this.strategy = strategy
+    }
+}
+
+// Usage
+fun main() {
+    val sorter = Sorter(BubbleSort())
+    val numbers = mutableListOf(64, 34, 25, 12, 22, 11, 90)
+    
+    sorter.sort(numbers)  // Using Bubble Sort
+    
+    // Change strategy at runtime
+    sorter.setStrategy(QuickSort())
+    sorter.sort(numbers)  // Using Quick Sort
+    
+    sorter.setStrategy(MergeSort())
+    sorter.sort(numbers)  // Using Merge Sort
+}
+```
+
+## Decorator Pattern
+
+Adding behavior dynamically without altering structure:
+
+```kotlin
+interface Coffee {
+    fun cost(): Double
+    fun description(): String
+}
+
+class SimpleCoffee : Coffee {
+    override fun cost() = 2.0
+    override fun description() = "Simple coffee"
+}
+
+// Base decorator
+abstract class CoffeeDecorator(protected val coffee: Coffee) : Coffee {
+    override fun cost() = coffee.cost()
+    override fun description() = coffee.description()
+}
+
+class MilkDecorator(coffee: Coffee) : CoffeeDecorator(coffee) {
+    override fun cost() = super.cost() + 0.5
+    override fun description() = super.description() + ", milk"
+}
+
+class SugarDecorator(coffee: Coffee) : CoffeeDecorator(coffee) {
+    override fun cost() = super.cost() + 0.2
+    override fun description() = super.description() + ", sugar"
+}
+
+class WhipDecorator(coffee: Coffee) : CoffeeDecorator(coffee) {
+    override fun cost() = super.cost() + 0.7
+    override fun description() = super.description() + ", whip"
+}
+
+// Usage
+fun main() {
+    var coffee: Coffee = SimpleCoffee()
+    println("${coffee.description()} - $${coffee.cost()}")
+    // Simple coffee - $2.0
+    
+    coffee = MilkDecorator(coffee)
+    println("${coffee.description()} - $${coffee.cost()}")
+    // Simple coffee, milk - $2.5
+    
+    coffee = SugarDecorator(coffee)
+    println("${coffee.description()} - $${coffee.cost()}")
+    // Simple coffee, milk, sugar - $2.7
+    
+    coffee = WhipDecorator(coffee)
+    println("${coffee.description()} - $${coffee.cost()}")
+    // Simple coffee, milk, sugar, whip - $3.4
+}
+```
+
+## Best Practices
+
+### 1. Use Constructor Injection
+
+```kotlin
+// Good: Dependencies injected via constructor
+class OrderService(
+    private val paymentProcessor: PaymentProcessor,
+    private val emailService: EmailService,
+    private val inventoryService: InventoryService
+) {
+    fun processOrder(order: Order) {
+        inventoryService.reserve(order.items)
+        paymentProcessor.process(order.payment)
+        emailService.sendConfirmation(order.customerEmail)
+    }
+}
+```
+
+### 2. Favor Immutable Compositions
+
+```kotlin
+data class Car(
+    val engine: Engine,
+    val transmission: Transmission,
+    val wheels: List<Wheel>
+) {
+    fun start() = engine.start()
+    fun shiftGear(gear: Int) = transmission.shift(gear)
+}
+```
+
+### 3. Use Factory Functions for Complex Compositions
+
+```kotlin
+fun createBasicCar(): Car {
+    return Car(
+        engine = GasolineEngine(),
+        transmission = ManualTransmission(),
+        wheels = List(4) { StandardWheel() }
+    )
+}
+
+fun createElectricCar(): Car {
+    return Car(
+        engine = ElectricEngine(),
+        transmission = AutomaticTransmission(),
+        wheels = List(4) { EcoWheel() }
+    )
+}
+```
+
+### 4. Test-Friendly Design
+
+```kotlin
+class UserService(
+    private val userRepository: UserRepository,
+    private val emailService: EmailService
+) {
+    fun registerUser(user: User) {
+        userRepository.save(user)
+        emailService.sendWelcome(user.email)
+    }
+}
+
+// Easy to test with mocks
+class UserServiceTest {
+    @Test
+    fun testRegisterUser() {
+        val mockRepository = mockk<UserRepository>()
+        val mockEmailService = mockk<EmailService>()
+        val service = UserService(mockRepository, mockEmailService)
+        
+        val user = User("test@example.com")
+        service.registerUser(user)
+        
+        verify { mockRepository.save(user) }
+        verify { mockEmailService.sendWelcome(user.email) }
+    }
+}
+```
+
+## When to Use Each Approach
+
+### Use Composition When:
+- You need flexibility and runtime behavior changes
+- Components should be reusable across different contexts
+- You want to avoid deep inheritance hierarchies
+- Testing with mocks is important
+- Behaviors are independent and can be mixed and matched
+
+### Use Inheritance When:
+- There's a clear "is-a" relationship
+- You need to override specific methods in a template pattern
+- The hierarchy is shallow and stable
+- Polymorphism through inheritance is the most natural solution
+
+### Hybrid Approach Example
+
+```kotlin
+// Base class for common structure
+abstract class Animal(protected val name: String) {
+    abstract fun makeSound(): String
+    
+    fun introduce() = "I am $name"
+}
+
+// Composed behaviors
+interface MovementBehavior {
+    fun move(): String
+}
+
+class Walking : MovementBehavior {
+    override fun move() = "Walking on legs"
+}
+
+class Swimming : MovementBehavior {
+    override fun move() = "Swimming in water"
+}
+
+class Flying : MovementBehavior {
+    override fun move() = "Flying in the air"
+}
+
+// Combining inheritance and composition
+class Dog(
+    name: String,
+    private val movementBehavior: MovementBehavior = Walking()
+) : Animal(name) {
+    override fun makeSound() = "Woof!"
+    
+    fun move() = movementBehavior.move()
+}
+
+class Duck(
+    name: String,
+    private var movementBehavior: MovementBehavior = Swimming()
+) : Animal(name) {
+    override fun makeSound() = "Quack!"
+    
+    fun move() = movementBehavior.move()
+    
+    // Can change behavior at runtime
+    fun setMovementBehavior(behavior: MovementBehavior) {
+        movementBehavior = behavior
+    }
+}
+
+// Usage
+fun main() {
+    val dog = Dog("Buddy")
+    println(dog.introduce())  // I am Buddy
+    println(dog.makeSound())  // Woof!
+    println(dog.move())       // Walking on legs
+    
+    val duck = Duck("Donald")
+    println(duck.move())      // Swimming in water
+    
+    duck.setMovementBehavior(Flying())
+    println(duck.move())      // Flying in the air
+}
+```
+
+## Summary
+
+Composition over inheritance promotes:
+- **Flexibility**: Easy to change and extend behavior
+- **Reusability**: Components can be used in multiple contexts  
+- **Testability**: Dependencies can be easily mocked
+- **Maintainability**: Loose coupling between components
+- **Single Responsibility**: Each component has one reason to change
+
+By favoring composition, you create more modular, flexible, and maintainable code that can adapt to changing requirements without major structural changes.
