@@ -1,0 +1,956 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Custom Delegates
+
+## Overview
+
+Custom delegates in Kotlin allow you to create your own property delegation behavior by implementing specific operator functions. This enables you to encapsulate complex property logic, validation, transformation, and side effects in reusable components.
+
+## Basic Custom Delegate Structure
+
+### Read-Only Custom Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ReadOnlyDelegate<T>(private val value: T) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        println("Getting value of property '${property.name}': $value")
+        return value
+    }
+}
+
+class Example {
+    val constantValue: String by ReadOnlyDelegate("Hello World")
+    val computedValue: Int by ReadOnlyDelegate(42 * 2)
+}
+
+fun main() {
+    val example = Example()
+    println(example.constantValue)  // Getting value of property 'constantValue': Hello World
+    println(example.computedValue)  // Getting value of property 'computedValue': 84
+}
+```
+
+Read-only delegates only need to implement the `getValue` operator.
+
+### Read-Write Custom Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ReadWriteDelegate<T>(initialValue: T) {
+    private var value: T = initialValue
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        println("Reading '${property.name}': $value")
+        return value
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+        println("Writing '${property.name}': ${this.value} -> $value")
+        this.value = value
+    }
+}
+
+class Person {
+    var name: String by ReadWriteDelegate("Unknown")
+    var age: Int by ReadWriteDelegate(0)
+}
+
+fun main() {
+    val person = Person()
+    
+    person.name = "Alice"       // Writing 'name': Unknown -> Alice
+    println(person.name)        // Reading 'name': Alice
+    
+    person.age = 30            // Writing 'age': 0 -> 30
+    println(person.age)        // Reading 'age': 30
+}
+```
+
+Read-write delegates implement both `getValue` and `setValue` operators.
+
+## Property Context and Reflection
+
+### Delegate with Property Information
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class PropertyInfoDelegate<T>(private var value: T) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        println("Property Info:")
+        println("  Name: ${property.name}")
+        println("  Type: ${property.returnType}")
+        println("  Owner: ${thisRef?.javaClass?.simpleName ?: "No owner"}")
+        println("  Value: $value")
+        return value
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        println("Setting ${property.name} in ${thisRef?.javaClass?.simpleName}")
+        println("  ${this.value} -> $newValue")
+        this.value = newValue
+    }
+}
+
+class User {
+    var username: String by PropertyInfoDelegate("guest")
+    var loginCount: Int by PropertyInfoDelegate(0)
+}
+
+fun main() {
+    val user = User()
+    
+    println(user.username)
+    // Property Info:
+    //   Name: username
+    //   Type: kotlin.String
+    //   Owner: User
+    //   Value: guest
+    
+    user.loginCount = 5
+    // Setting loginCount in User
+    //   0 -> 5
+}
+```
+
+Delegates can access property metadata through the `KProperty` parameter.
+
+### Context-Aware Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ContextAwareDelegate<T>(private var value: T) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        when (thisRef) {
+            is UserService -> println("Accessing ${property.name} from UserService")
+            is AdminService -> println("Accessing ${property.name} from AdminService")
+            else -> println("Accessing ${property.name} from unknown context")
+        }
+        return value
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        val context = thisRef?.javaClass?.simpleName ?: "Unknown"
+        println("[$context] Setting ${property.name} = $newValue")
+        this.value = newValue
+    }
+}
+
+class UserService {
+    var maxRetries: Int by ContextAwareDelegate(3)
+}
+
+class AdminService {
+    var maxRetries: Int by ContextAwareDelegate(5)
+}
+
+fun main() {
+    val userService = UserService()
+    val adminService = AdminService()
+    
+    println(userService.maxRetries)     // Accessing maxRetries from UserService
+    println(adminService.maxRetries)    // Accessing maxRetries from AdminService
+    
+    userService.maxRetries = 2          // [UserService] Setting maxRetries = 2
+    adminService.maxRetries = 10        // [AdminService] Setting maxRetries = 10
+}
+```
+
+Delegates can behave differently based on the owning object context.
+
+## Validation Delegates
+
+### Basic Validation Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ValidatedDelegate<T>(
+    initialValue: T,
+    private val validator: (T) -> Boolean,
+    private val errorMessage: (T) -> String = { "Invalid value: $it" }
+) {
+    private var value: T = initialValue
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        if (validator(newValue)) {
+            value = newValue
+            println("✓ ${property.name} set to: $newValue")
+        } else {
+            println("✗ Validation failed for ${property.name}: ${errorMessage(newValue)}")
+            throw IllegalArgumentException(errorMessage(newValue))
+        }
+    }
+}
+
+// Helper functions for common validations
+fun <T : Comparable<T>> range(min: T, max: T) = { value: T -> value in min..max }
+fun notEmpty() = { value: String -> value.isNotEmpty() }
+fun email() = { value: String -> value.contains("@") && value.contains(".") }
+fun positive() = { value: Number -> value.toDouble() > 0 }
+
+class Product {
+    var name: String by ValidatedDelegate("", notEmpty()) { "Product name cannot be empty" }
+    var price: Double by ValidatedDelegate(0.0, positive()) { "Price must be positive: $it" }
+    var rating: Int by ValidatedDelegate(1, range(1, 5)) { "Rating must be 1-5: $it" }
+}
+
+fun main() {
+    val product = Product()
+    
+    try {
+        product.name = "Laptop"         // ✓ name set to: Laptop
+        product.price = 999.99          // ✓ price set to: 999.99
+        product.rating = 4              // ✓ rating set to: 4
+        
+        product.rating = 10             // ✗ Validation failed, throws exception
+    } catch (e: IllegalArgumentException) {
+        println("Caught: ${e.message}")
+    }
+}
+```
+
+Validation delegates ensure data integrity with custom validation logic.
+
+### Multi-Rule Validation Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+data class ValidationRule<T>(
+    val validator: (T) -> Boolean,
+    val message: (T) -> String
+)
+
+class MultiValidatedDelegate<T>(
+    initialValue: T,
+    private val rules: List<ValidationRule<T>>
+) {
+    private var value: T = initialValue
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        val failedRules = rules.filter { !it.validator(newValue) }
+        
+        if (failedRules.isEmpty()) {
+            value = newValue
+            println("✓ ${property.name} = $newValue (passed ${rules.size} rules)")
+        } else {
+            val errors = failedRules.map { it.message(newValue) }
+            println("✗ ${property.name} validation failed:")
+            errors.forEach { println("  - $it") }
+            throw IllegalArgumentException("Validation failed: ${errors.joinToString(", ")}")
+        }
+    }
+}
+
+// Builder function for easier usage
+fun <T> validated(initialValue: T, vararg rules: ValidationRule<T>) =
+    MultiValidatedDelegate(initialValue, rules.toList())
+
+class UserAccount {
+    var username: String by validated(
+        "",
+        ValidationRule({ it.length >= 3 }) { "Username too short: $it (minimum 3 chars)" },
+        ValidationRule({ it.length <= 20 }) { "Username too long: $it (maximum 20 chars)" },
+        ValidationRule({ it.all { c -> c.isLetterOrDigit() || c == '_' } }) { 
+            "Username contains invalid characters: $it" 
+        }
+    )
+    
+    var password: String by validated(
+        "",
+        ValidationRule({ it.length >= 8 }) { "Password too short: minimum 8 characters" },
+        ValidationRule({ it.any { c -> c.isUpperCase() } }) { "Password must contain uppercase" },
+        ValidationRule({ it.any { c -> c.isDigit() } }) { "Password must contain digit" },
+        ValidationRule({ it.any { c -> !c.isLetterOrDigit() } }) { "Password must contain special character" }
+    )
+}
+
+fun main() {
+    val account = UserAccount()
+    
+    try {
+        account.username = "user123"    // ✓ username = user123 (passed 3 rules)
+        account.password = "SecurePass1!"  // ✓ password = SecurePass1! (passed 4 rules)
+        
+        account.username = "ab"         // Multiple validation failures
+    } catch (e: IllegalArgumentException) {
+        println("Error: ${e.message}")
+    }
+}
+```
+
+Multi-rule validation provides comprehensive data validation.
+
+## Transformation Delegates
+
+### Value Transformation Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class TransformingDelegate<T, R>(
+    initialValue: T,
+    private val transform: (T) -> R,
+    private val reverse: (R) -> T
+) {
+    private var internalValue: T = initialValue
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): R {
+        val transformed = transform(internalValue)
+        println("Transforming ${property.name}: $internalValue -> $transformed")
+        return transformed
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
+        val reversed = reverse(value)
+        println("Reverse transforming ${property.name}: $value -> $reversed")
+        internalValue = reversed
+    }
+}
+
+class TemperatureSensor {
+    // Store in Celsius, expose as Fahrenheit
+    var temperatureF: Double by TransformingDelegate(
+        initialValue = 20.0,  // 20°C
+        transform = { celsius -> celsius * 9/5 + 32 },  // C to F
+        reverse = { fahrenheit -> (fahrenheit - 32) * 5/9 }  // F to C
+    )
+    
+    // Store raw value, expose as formatted string
+    var pressure: String by TransformingDelegate(
+        initialValue = 1013.25,
+        transform = { raw -> "${String.format("%.1f", raw)} hPa" },
+        reverse = { formatted -> formatted.replace(" hPa", "").toDouble() }
+    )
+}
+
+fun main() {
+    val sensor = TemperatureSensor()
+    
+    println("Initial temp: ${sensor.temperatureF}°F")
+    // Transforming temperatureF: 20.0 -> 68.0
+    // Initial temp: 68.0°F
+    
+    sensor.temperatureF = 86.0  // Set 86°F
+    // Reverse transforming temperatureF: 86.0 -> 30.0
+    
+    println("New temp: ${sensor.temperatureF}°F")
+    // Transforming temperatureF: 30.0 -> 86.0
+    // New temp: 86.0°F
+    
+    println("Pressure: ${sensor.pressure}")
+    // Transforming pressure: 1013.25 -> 1013.3 hPa
+    
+    sensor.pressure = "1020.5 hPa"
+    // Reverse transforming pressure: 1020.5 hPa -> 1020.5
+}
+```
+
+Transformation delegates can convert between different representations.
+
+### Formatting Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+import java.text.SimpleDateFormat
+import java.util.*
+
+class FormattedDelegate<T>(
+    initialValue: T,
+    private val formatter: (T) -> String,
+    private val parser: (String) -> T
+) {
+    private var value: T = initialValue
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): String {
+        return formatter(value)
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, formattedValue: String) {
+        try {
+            value = parser(formattedValue)
+            println("Parsed ${property.name}: '$formattedValue' -> $value")
+        } catch (e: Exception) {
+            println("Failed to parse ${property.name}: '$formattedValue' (${e.message})")
+            throw e
+        }
+    }
+    
+    fun getRawValue(): T = value
+}
+
+class EventLogger {
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    
+    var timestamp: String by FormattedDelegate(
+        initialValue = Date(),
+        formatter = { date -> dateFormat.format(date) },
+        parser = { str -> dateFormat.parse(str) }
+    )
+    
+    var amount: String by FormattedDelegate(
+        initialValue = 0.0,
+        formatter = { value -> "$${String.format("%.2f", value)}" },
+        parser = { str -> str.removePrefix("$").toDouble() }
+    )
+    
+    fun getTimestampAsDate(): Date = (::timestamp.getDelegate() as FormattedDelegate<Date>).getRawValue()
+}
+
+fun main() {
+    val logger = EventLogger()
+    
+    println("Current timestamp: ${logger.timestamp}")
+    println("Current amount: ${logger.amount}")
+    
+    logger.timestamp = "2023-12-25 15:30:45"
+    // Parsed timestamp: '2023-12-25 15:30:45' -> Mon Dec 25 15:30:45 GMT 2023
+    
+    logger.amount = "$1,234.56"
+    // Failed to parse (NumberFormatException due to comma)
+    
+    logger.amount = "$1234.56"
+    // Parsed amount: '$1234.56' -> 1234.56
+    
+    println("Updated amount: ${logger.amount}")
+}
+```
+
+Formatting delegates handle string representation and parsing.
+
+## Caching and Performance Delegates
+
+### Memoization Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class MemoizedDelegate<T>(private val computation: () -> T) {
+    private var cached: T? = null
+    private var isComputed = false
+    private var accessCount = 0
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        accessCount++
+        
+        if (!isComputed) {
+            println("Computing ${property.name} (access #$accessCount)...")
+            cached = computation()
+            isComputed = true
+        } else {
+            println("Using cached ${property.name} (access #$accessCount)")
+        }
+        
+        return cached!!
+    }
+    
+    fun clearCache() {
+        cached = null
+        isComputed = false
+        println("Cache cleared")
+    }
+}
+
+fun <T> memoized(computation: () -> T) = MemoizedDelegate(computation)
+
+class DataProcessor {
+    val expensiveCalculation: Double by memoized {
+        Thread.sleep(1000) // Simulate expensive computation
+        Math.PI * 42
+    }
+    
+    val fibonacciResult: Long by memoized {
+        fibonacci(40) // Expensive recursive calculation
+    }
+    
+    private fun fibonacci(n: Long): Long {
+        return if (n <= 1) n else fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
+
+fun main() {
+    val processor = DataProcessor()
+    
+    println("First access:")
+    println(processor.expensiveCalculation)
+    // Computing expensiveCalculation (access #1)...
+    // 131.94689...
+    
+    println("Second access:")
+    println(processor.expensiveCalculation)
+    // Using cached expensiveCalculation (access #2)
+    // 131.94689...
+    
+    println("Fibonacci result:")
+    println(processor.fibonacciResult)
+    // Computing fibonacciResult (access #1)...
+    // [long computation time]
+    // 102334155
+}
+```
+
+Memoization delegates cache expensive computations.
+
+### Time-Based Cache Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class TimedCacheDelegate<T>(
+    private val computation: () -> T,
+    private val ttlMillis: Long = 5000L // 5 second default TTL
+) {
+    private var cached: T? = null
+    private var lastComputed: Long = 0
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        val now = System.currentTimeMillis()
+        
+        if (cached == null || (now - lastComputed) > ttlMillis) {
+            println("Cache expired for ${property.name}, recomputing...")
+            cached = computation()
+            lastComputed = now
+        } else {
+            val remaining = ttlMillis - (now - lastComputed)
+            println("Using cached ${property.name} (expires in ${remaining}ms)")
+        }
+        
+        return cached!!
+    }
+    
+    fun invalidate() {
+        cached = null
+        lastComputed = 0
+    }
+}
+
+fun <T> timedCache(ttlMillis: Long = 5000L, computation: () -> T) = 
+    TimedCacheDelegate(computation, ttlMillis)
+
+class WeatherService {
+    val currentTemperature: Double by timedCache(3000L) {
+        println("  → Fetching temperature from API...")
+        Thread.sleep(500) // Simulate API call
+        20.0 + (Math.random() * 10) // Random temperature 20-30°C
+    }
+    
+    val weatherForecast: List<String> by timedCache(10000L) {
+        println("  → Fetching forecast from API...")
+        Thread.sleep(1000)
+        listOf("Sunny", "Partly Cloudy", "Rainy")
+    }
+}
+
+fun main() {
+    val weather = WeatherService()
+    
+    repeat(3) { i ->
+        println("Request $i:")
+        println("Temperature: ${weather.currentTemperature}°C")
+        Thread.sleep(2000)
+    }
+    
+    println("\nAfter TTL expiry:")
+    println("Temperature: ${weather.currentTemperature}°C")
+}
+```
+
+Time-based cache delegates automatically expire and refresh cached values.
+
+## Observable and Event Delegates
+
+### Event-Driven Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+interface PropertyChangeListener<T> {
+    fun onPropertyChanged(property: String, oldValue: T, newValue: T)
+}
+
+class ObservableDelegate<T>(
+    initialValue: T,
+    private val listeners: MutableList<PropertyChangeListener<T>> = mutableListOf()
+) {
+    private var value: T = initialValue
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        val oldValue = value
+        value = newValue
+        
+        listeners.forEach { listener ->
+            try {
+                listener.onPropertyChanged(property.name, oldValue, newValue)
+            } catch (e: Exception) {
+                println("Listener error for ${property.name}: ${e.message}")
+            }
+        }
+    }
+    
+    fun addListener(listener: PropertyChangeListener<T>) {
+        listeners.add(listener)
+    }
+    
+    fun removeListener(listener: PropertyChangeListener<T>) {
+        listeners.remove(listener)
+    }
+}
+
+class Logger : PropertyChangeListener<String> {
+    override fun onPropertyChanged(property: String, oldValue: String, newValue: String) {
+        println("[LOG] $property: '$oldValue' -> '$newValue'")
+    }
+}
+
+class Validator : PropertyChangeListener<String> {
+    override fun onPropertyChanged(property: String, oldValue: String, newValue: String) {
+        if (newValue.length < 3) {
+            println("[WARN] $property is too short: '$newValue'")
+        }
+    }
+}
+
+class User {
+    private val nameDelegate = ObservableDelegate("Unknown")
+    private val emailDelegate = ObservableDelegate("")
+    
+    var name: String by nameDelegate
+    var email: String by emailDelegate
+    
+    init {
+        val logger = Logger()
+        val validator = Validator()
+        
+        nameDelegate.addListener(logger)
+        nameDelegate.addListener(validator)
+        emailDelegate.addListener(logger)
+    }
+}
+
+fun main() {
+    val user = User()
+    
+    user.name = "Alice"
+    // [LOG] name: 'Unknown' -> 'Alice'
+    
+    user.name = "Al"
+    // [LOG] name: 'Alice' -> 'Al'
+    // [WARN] name is too short: 'Al'
+    
+    user.email = "alice@test.com"
+    // [LOG] email: '' -> 'alice@test.com'
+}
+```
+
+Event-driven delegates notify multiple listeners of property changes.
+
+### State Machine Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+data class StateTransition<T>(
+    val from: T,
+    val to: T,
+    val action: () -> Unit = {}
+)
+
+class StateMachineDelegate<T>(
+    initialState: T,
+    private val validTransitions: List<StateTransition<T>>
+) {
+    private var state: T = initialState
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = state
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newState: T) {
+        val transition = validTransitions.find { 
+            it.from == state && it.to == newState 
+        }
+        
+        if (transition != null) {
+            println("State transition: ${state} -> ${newState}")
+            state = newState
+            transition.action()
+        } else {
+            println("Invalid transition: ${state} -> ${newState}")
+            throw IllegalStateException("Invalid state transition from $state to $newState")
+        }
+    }
+}
+
+enum class OrderState { PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED }
+
+class Order(private val orderId: String) {
+    var status: OrderState by StateMachineDelegate(
+        OrderState.PENDING,
+        listOf(
+            StateTransition(OrderState.PENDING, OrderState.CONFIRMED) {
+                println("  → Sending confirmation email")
+            },
+            StateTransition(OrderState.PENDING, OrderState.CANCELLED) {
+                println("  → Order cancelled, no charges made")
+            },
+            StateTransition(OrderState.CONFIRMED, OrderState.SHIPPED) {
+                println("  → Generating tracking number")
+            },
+            StateTransition(OrderState.CONFIRMED, OrderState.CANCELLED) {
+                println("  → Processing refund")
+            },
+            StateTransition(OrderState.SHIPPED, OrderState.DELIVERED) {
+                println("  → Order completed successfully")
+            }
+        )
+    )
+}
+
+fun main() {
+    val order = Order("ORD-123")
+    
+    println("Initial status: ${order.status}")
+    
+    order.status = OrderState.CONFIRMED
+    // State transition: PENDING -> CONFIRMED
+    //   → Sending confirmation email
+    
+    order.status = OrderState.SHIPPED
+    // State transition: CONFIRMED -> SHIPPED
+    //   → Generating tracking number
+    
+    try {
+        order.status = OrderState.CANCELLED  // Invalid transition
+    } catch (e: IllegalStateException) {
+        println("Error: ${e.message}")
+    }
+    
+    order.status = OrderState.DELIVERED
+    // State transition: SHIPPED -> DELIVERED
+    //   → Order completed successfully
+}
+```
+
+State machine delegates enforce valid state transitions with actions.
+
+## Thread-Safe Delegates
+
+### Synchronized Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
+import kotlin.concurrent.thread
+
+class SynchronizedDelegate<T>(initialValue: T) {
+    private var value: T = initialValue
+    private val lock = ReentrantReadWriteLock()
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        return lock.read { 
+            println("Reading ${property.name} from thread: ${Thread.currentThread().name}")
+            value 
+        }
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        lock.write {
+            println("Writing ${property.name} from thread: ${Thread.currentThread().name}")
+            Thread.sleep(10) // Simulate some work
+            value = newValue
+        }
+    }
+}
+
+class ThreadSafeCounter {
+    var count: Int by SynchronizedDelegate(0)
+    var name: String by SynchronizedDelegate("Counter")
+    
+    fun increment() {
+        count++
+    }
+    
+    fun decrement() {
+        count--
+    }
+}
+
+fun main() {
+    val counter = ThreadSafeCounter()
+    
+    // Create multiple threads that modify the counter
+    val threads = (1..5).map { threadId ->
+        thread(name = "Thread-$threadId") {
+            repeat(10) {
+                counter.increment()
+                Thread.sleep(5)
+            }
+            println("${Thread.currentThread().name} finished, count: ${counter.count}")
+        }
+    }
+    
+    // Wait for all threads to complete
+    threads.forEach { it.join() }
+    
+    println("Final count: ${counter.count}") // Should be 50
+}
+```
+
+Synchronized delegates provide thread-safe property access.
+
+### Atomic Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
+
+class AtomicDelegate<T>(initialValue: T) {
+    private val atomicValue = AtomicReference(initialValue)
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        return atomicValue.get()
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        atomicValue.set(newValue)
+        println("Set ${property.name} to $newValue on ${Thread.currentThread().name}")
+    }
+    
+    fun compareAndSet(expected: T, newValue: T): Boolean {
+        return atomicValue.compareAndSet(expected, newValue)
+    }
+    
+    fun getAndUpdate(updater: (T) -> T): T {
+        return atomicValue.getAndUpdate(updater)
+    }
+}
+
+class AtomicCounter {
+    var value: Int by AtomicDelegate(0)
+    private val valueDelegate = ::value.getDelegate() as AtomicDelegate<Int>
+    
+    fun increment(): Int {
+        return valueDelegate.getAndUpdate { it + 1 }
+    }
+    
+    fun compareAndIncrement(expected: Int): Boolean {
+        return valueDelegate.compareAndSet(expected, expected + 1)
+    }
+}
+
+fun main() {
+    val counter = AtomicCounter()
+    
+    val threads = (1..10).map { threadId ->
+        thread(name = "Worker-$threadId") {
+            repeat(100) {
+                val oldValue = counter.increment()
+                if (threadId == 1 && it % 25 == 0) {
+                    println("Thread $threadId: incremented from $oldValue to ${counter.value}")
+                }
+            }
+        }
+    }
+    
+    threads.forEach { it.join() }
+    println("Final value: ${counter.value}") // Should be 1000
+}
+```
+
+Atomic delegates use lock-free synchronization for high-performance scenarios.
+
+## Best Practices and Patterns
+
+### Delegate Factory Pattern
+
+```kotlin
+import kotlin.reflect.KProperty
+
+// Factory for creating commonly used delegates
+object DelegateFactory {
+    
+    fun <T> logged(initialValue: T) = object : ReadWriteProperty<Any?, T> {
+        private var value = initialValue
+        
+        override fun getValue(thisRef: Any?, property: KProperty<*>): T {
+            println("[GET] ${property.name}: $value")
+            return value
+        }
+        
+        override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+            println("[SET] ${property.name}: ${this.value} -> $value")
+            this.value = value
+        }
+    }
+    
+    fun <T : Comparable<T>> bounded(initial: T, min: T, max: T) = 
+        object : ReadWriteProperty<Any?, T> {
+            private var value = initial.coerceIn(min, max)
+            
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+            
+            override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+                this.value = value.coerceIn(min, max)
+                println("${property.name} bounded to: ${this.value}")
+            }
+        }
+    
+    fun <T> withHistory(initialValue: T, maxHistory: Int = 10) =
+        object : ReadWriteProperty<Any?, T> {
+            private var value = initialValue
+            private val history = mutableListOf<T>()
+            
+            override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+            
+            override fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+                history.add(value)
+                if (history.size > maxHistory) {
+                    history.removeAt(0)
+                }
+                value = newValue
+                println("${property.name} updated (${history.size} items in history)")
+            }
+            
+            fun getHistory(): List<T> = history.toList()
+        }
+}
+
+// Extension properties for easier access to ReadWriteProperty
+interface ReadWriteProperty<in T, V> {
+    fun getValue(thisRef: T, property: KProperty<*>): V
+    fun setValue(thisRef: T, property: KProperty<*>, value: V)
+}
+
+class GameCharacter {
+    var health: Int by DelegateFactory.bounded(100, 0, 100)
+    var level: Int by DelegateFactory.logged(1)
+    var experience: Int by DelegateFactory.withHistory(0, 5)
+}
+
+fun main() {
+    val character = GameCharacter()
+    
+    character.health = 150      // health bounded to: 100
+    character.level = 5         // [SET] level: 1 -> 5
+    
+    character.experience = 100  // experience updated (1 items in history)
+    character.experience = 250  // experience updated (2 items in history)
+    character.experience = 500  // experience updated (3 items in history)
+    
+    println("Health: ${character.health}")  // [GET] health: 100
+    println("Level: ${character.level}")    // [GET] level:

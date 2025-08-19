@@ -1,0 +1,1012 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Built-in Delegates
+
+## Overview
+
+Kotlin provides several built-in delegates in the standard library that handle common property delegation scenarios. These delegates are optimized, thread-safe (where applicable), and cover the most frequent use cases for property delegation.
+
+## Lazy Delegate
+
+### Basic Lazy Initialization
+
+```kotlin
+class DatabaseConnection {
+    // Lazy initialization - created only when first accessed
+    val connection: String by lazy {
+        println("Establishing database connection...")
+        Thread.sleep(1000) // Simulate connection time
+        "Connected to database"
+    }
+    
+    // Lazy with explicit type
+    val metadata: Map<String, String> by lazy<Map<String, String>> {
+        println("Loading metadata...")
+        mapOf("version" to "1.0", "driver" to "postgresql")
+    }
+}
+
+fun main() {
+    val db = DatabaseConnection()
+    println("DatabaseConnection created")
+    
+    // Connection not established yet
+    println("First access:")
+    println(db.connection)  // Establishing database connection... Connected to database
+    
+    println("Second access:")
+    println(db.connection)  // Connected to database (cached)
+}
+```
+
+The `lazy` delegate initializes the property only on first access and caches the result.
+
+### Lazy Thread Safety Modes
+
+```kotlin
+import kotlin.concurrent.thread
+
+class ResourceManager {
+    // Default: SYNCHRONIZED - thread-safe, single initialization
+    val synchronizedResource: String by lazy {
+        println("Creating synchronized resource on thread: ${Thread.currentThread().name}")
+        "Synchronized Resource"
+    }
+    
+    // PUBLICATION - multiple threads may initialize, first completed wins
+    val publicationResource: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        println("Creating publication resource on thread: ${Thread.currentThread().name}")
+        Thread.sleep(100) // Simulate work
+        "Publication Resource"
+    }
+    
+    // NONE - not thread-safe, fastest but only safe for single-threaded access
+    val unsafeResource: String by lazy(LazyThreadSafetyMode.NONE) {
+        println("Creating unsafe resource on thread: ${Thread.currentThread().name}")
+        "Unsafe Resource"
+    }
+}
+
+fun main() {
+    val manager = ResourceManager()
+    
+    // Test synchronized lazy (thread-safe)
+    repeat(3) { i ->
+        thread {
+            println("Thread $i: ${manager.synchronizedResource}")
+        }
+    }
+    
+    Thread.sleep(200)
+    
+    // Test publication lazy
+    repeat(3) { i ->
+        thread {
+            println("Thread $i: ${manager.publicationResource}")
+        }
+    }
+    
+    Thread.sleep(500)
+}
+```
+
+Different thread safety modes provide various trade-offs between safety and performance.
+
+### Lazy with Custom Initializer
+
+```kotlin
+class ConfigurationLoader(private val configPath: String) {
+    val config: Properties by lazy {
+        println("Loading configuration from $configPath")
+        Properties().apply {
+            // Simulate loading from file
+            setProperty("app.name", "MyApplication")
+            setProperty("app.version", "1.0.0")
+            setProperty("database.url", "jdbc:postgresql://localhost/mydb")
+        }
+    }
+    
+    // Lazy computation with dependencies
+    val databaseConfig: Map<String, String> by lazy {
+        println("Processing database configuration")
+        config.stringPropertyNames().filter { it.startsWith("database.") }
+            .associateWith { config.getProperty(it) }
+    }
+}
+
+fun main() {
+    val loader = ConfigurationLoader("/etc/myapp/config.properties")
+    
+    println("Loader created, no files loaded yet")
+    println("Database config: ${loader.databaseConfig}")
+    // Loading configuration from /etc/myapp/config.properties
+    // Processing database configuration
+    // Database config: {database.url=jdbc:postgresql://localhost/mydb}
+    
+    println("Second access:")
+    println("App name: ${loader.config.getProperty("app.name")}")
+    // App name: MyApplication (config already loaded)
+}
+```
+
+Lazy properties can have complex initialization logic and dependencies.
+
+## Observable Delegate
+
+### Basic Observable Properties
+
+```kotlin
+import kotlin.properties.Delegates
+
+class User {
+    var username: String by Delegates.observable("guest") { property, oldValue, newValue ->
+        println("${property.name} changed from '$oldValue' to '$newValue'")
+    }
+    
+    var loginCount: Int by Delegates.observable(0) { _, old, new ->
+        println("Login count: $old -> $new")
+        if (new > 10) {
+            println("Frequent user detected!")
+        }
+    }
+    
+    // Observable with validation side effect
+    var email: String by Delegates.observable("") { _, old, new ->
+        println("Email updated: $old -> $new")
+        if (new.isNotEmpty() && !new.contains("@")) {
+            println("Warning: Invalid email format")
+        }
+    }
+}
+
+fun main() {
+    val user = User()
+    
+    user.username = "alice"      // username changed from 'guest' to 'alice'
+    user.loginCount = 5          // Login count: 0 -> 5
+    user.loginCount = 12         // Login count: 5 -> 12, Frequent user detected!
+    user.email = "alice.com"     // Email updated:  -> alice.com, Warning: Invalid email format
+}
+```
+
+Observable delegates trigger callbacks whenever the property value changes.
+
+### Observable with Complex Logic
+
+```kotlin
+import kotlin.properties.Delegates
+
+data class Product(val id: String, val name: String, val price: Double)
+
+class ShoppingCart {
+    private val items = mutableListOf<Product>()
+    
+    var discountPercent: Double by Delegates.observable(0.0) { _, old, new ->
+        println("Discount changed from ${old}% to ${new}%")
+        updateTotalPrice()
+    }
+    
+    private var totalPrice: Double = 0.0
+    
+    fun addItem(product: Product) {
+        items.add(product)
+        updateTotalPrice()
+        println("Added ${product.name} to cart")
+    }
+    
+    private fun updateTotalPrice() {
+        val subtotal = items.sumOf { it.price }
+        totalPrice = subtotal * (1 - discountPercent / 100)
+        println("Total price updated: $${String.format("%.2f", totalPrice)}")
+    }
+    
+    fun getTotal(): Double = totalPrice
+}
+
+fun main() {
+    val cart = ShoppingCart()
+    
+    cart.addItem(Product("1", "Laptop", 999.99))
+    // Added Laptop to cart
+    // Total price updated: $999.99
+    
+    cart.addItem(Product("2", "Mouse", 29.99))
+    // Added Mouse to cart
+    // Total price updated: $1029.98
+    
+    cart.discountPercent = 10.0
+    // Discount changed from 0.0% to 10.0%
+    // Total price updated: $926.98
+    
+    println("Final total: $${String.format("%.2f", cart.getTotal())}")
+}
+```
+
+Observable properties can trigger complex business logic updates.
+
+### Multiple Observers Pattern
+
+```kotlin
+import kotlin.properties.Delegates
+
+class EventSystem {
+    private val listeners = mutableListOf<(String, String) -> Unit>()
+    
+    var status: String by Delegates.observable("idle") { _, old, new ->
+        listeners.forEach { it(old, new) }
+    }
+    
+    fun addListener(listener: (String, String) -> Unit) {
+        listeners.add(listener)
+    }
+}
+
+class Logger {
+    fun logStatusChange(old: String, new: String) {
+        println("[LOG] Status changed: $old -> $new at ${System.currentTimeMillis()}")
+    }
+}
+
+class MetricsCollector {
+    private val statusCounts = mutableMapOf<String, Int>()
+    
+    fun recordStatusChange(old: String, new: String) {
+        statusCounts[new] = statusCounts.getOrDefault(new, 0) + 1
+        println("[METRICS] Status '$new' occurred ${statusCounts[new]} times")
+    }
+}
+
+fun main() {
+    val eventSystem = EventSystem()
+    val logger = Logger()
+    val metrics = MetricsCollector()
+    
+    // Register multiple observers
+    eventSystem.addListener { old, new -> logger.logStatusChange(old, new) }
+    eventSystem.addListener { old, new -> metrics.recordStatusChange(old, new) }
+    
+    eventSystem.status = "running"
+    // [LOG] Status changed: idle -> running at 1234567890
+    // [METRICS] Status 'running' occurred 1 times
+    
+    eventSystem.status = "stopped"
+    // [LOG] Status changed: running -> stopped at 1234567891
+    // [METRICS] Status 'stopped' occurred 1 times
+    
+    eventSystem.status = "running"
+    // [LOG] Status changed: stopped -> running at 1234567892
+    // [METRICS] Status 'running' occurred 2 times
+}
+```
+
+Observable delegates can notify multiple listeners for complex event systems.
+
+## Vetoable Delegate
+
+### Basic Vetoable Properties
+
+```kotlin
+import kotlin.properties.Delegates
+
+class BankAccount(initialBalance: Double) {
+    var balance: Double by Delegates.vetoable(initialBalance) { _, oldValue, newValue ->
+        println("Attempting to change balance: $oldValue -> $newValue")
+        val isValid = newValue >= 0.0
+        if (!isValid) {
+            println("Transaction rejected: Insufficient funds")
+        }
+        isValid // Return true to allow, false to reject
+    }
+    
+    fun withdraw(amount: Double) {
+        balance -= amount
+    }
+    
+    fun deposit(amount: Double) {
+        balance += amount
+    }
+}
+
+fun main() {
+    val account = BankAccount(100.0)
+    println("Initial balance: ${account.balance}")
+    
+    account.deposit(50.0)
+    // Attempting to change balance: 100.0 -> 150.0
+    println("After deposit: ${account.balance}") // 150.0
+    
+    account.withdraw(200.0)
+    // Attempting to change balance: 150.0 -> -50.0
+    // Transaction rejected: Insufficient funds
+    println("After failed withdrawal: ${account.balance}") // 150.0 (unchanged)
+    
+    account.withdraw(75.0)
+    // Attempting to change balance: 150.0 -> 75.0
+    println("After successful withdrawal: ${account.balance}") // 75.0
+}
+```
+
+Vetoable delegates can reject property changes based on validation logic.
+
+### Complex Validation with Vetoable
+
+```kotlin
+import kotlin.properties.Delegates
+
+data class ValidationResult(val isValid: Boolean, val message: String)
+
+class UserProfile {
+    var username: String by Delegates.vetoable("") { _, old, new ->
+        validateUsername(new).also { result ->
+            if (!result.isValid) {
+                println("Username validation failed: ${result.message}")
+            }
+        }.isValid
+    }
+    
+    var age: Int by Delegates.vetoable(0) { _, old, new ->
+        val isValid = new in 13..120
+        if (!isValid) {
+            println("Age validation failed: Age must be between 13 and 120")
+        }
+        isValid
+    }
+    
+    var email: String by Delegates.vetoable("") { _, old, new ->
+        validateEmail(new).also { result ->
+            if (!result.isValid) {
+                println("Email validation failed: ${result.message}")
+            } else {
+                println("Email updated successfully: $old -> $new")
+            }
+        }.isValid
+    }
+    
+    private fun validateUsername(username: String): ValidationResult {
+        return when {
+            username.length < 3 -> ValidationResult(false, "Username too short")
+            username.length > 20 -> ValidationResult(false, "Username too long")
+            !username.all { it.isLetterOrDigit() || it == '_' } -> 
+                ValidationResult(false, "Username contains invalid characters")
+            else -> ValidationResult(true, "Valid username")
+        }
+    }
+    
+    private fun validateEmail(email: String): ValidationResult {
+        return if (email.contains("@") && email.contains(".")) {
+            ValidationResult(true, "Valid email")
+        } else {
+            ValidationResult(false, "Invalid email format")
+        }
+    }
+}
+
+fun main() {
+    val profile = UserProfile()
+    
+    profile.username = "ab"           // Username validation failed: Username too short
+    println("Username: '${profile.username}'") // '' (unchanged)
+    
+    profile.username = "valid_user"   // Accepted
+    println("Username: '${profile.username}'") // 'valid_user'
+    
+    profile.age = 150                 // Age validation failed: Age must be between 13 and 120
+    println("Age: ${profile.age}")    // 0 (unchanged)
+    
+    profile.age = 25                  // Accepted
+    println("Age: ${profile.age}")    // 25
+    
+    profile.email = "invalid"         // Email validation failed: Invalid email format
+    profile.email = "user@test.com"   // Email updated successfully:  -> user@test.com
+    println("Email: '${profile.email}'") // 'user@test.com'
+}
+```
+
+Complex validation logic can be implemented with detailed error reporting.
+
+### Vetoable with State Management
+
+```kotlin
+import kotlin.properties.Delegates
+
+enum class OrderStatus { PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED }
+
+class Order(private val orderId: String) {
+    var status: OrderStatus by Delegates.vetoable(OrderStatus.PENDING) { _, old, new ->
+        val isValidTransition = isValidStatusTransition(old, new)
+        if (isValidTransition) {
+            println("Order $orderId: Status changed from $old to $new")
+            onStatusChanged(old, new)
+        } else {
+            println("Order $orderId: Invalid status transition from $old to $new")
+        }
+        isValidTransition
+    }
+    
+    private fun isValidStatusTransition(from: OrderStatus, to: OrderStatus): Boolean {
+        return when (from) {
+            OrderStatus.PENDING -> to in setOf(OrderStatus.CONFIRMED, OrderStatus.CANCELLED)
+            OrderStatus.CONFIRMED -> to in setOf(OrderStatus.SHIPPED, OrderStatus.CANCELLED)
+            OrderStatus.SHIPPED -> to in setOf(OrderStatus.DELIVERED)
+            OrderStatus.DELIVERED -> false // Final state
+            OrderStatus.CANCELLED -> false // Final state
+        }
+    }
+    
+    private fun onStatusChanged(old: OrderStatus, new: OrderStatus) {
+        when (new) {
+            OrderStatus.CONFIRMED -> println("  → Sending confirmation email")
+            OrderStatus.SHIPPED -> println("  → Generating tracking number")
+            OrderStatus.DELIVERED -> println("  → Requesting customer feedback")
+            OrderStatus.CANCELLED -> println("  → Processing refund")
+            else -> {}
+        }
+    }
+}
+
+fun main() {
+    val order = Order("ORD-123")
+    
+    order.status = OrderStatus.CONFIRMED
+    // Order ORD-123: Status changed from PENDING to CONFIRMED
+    //   → Sending confirmation email
+    
+    order.status = OrderStatus.DELIVERED    // Invalid transition
+    // Order ORD-123: Invalid status transition from CONFIRMED to DELIVERED
+    
+    order.status = OrderStatus.SHIPPED
+    // Order ORD-123: Status changed from CONFIRMED to SHIPPED
+    //   → Generating tracking number
+    
+    order.status = OrderStatus.DELIVERED
+    // Order ORD-123: Status changed from SHIPPED to DELIVERED
+    //   → Requesting customer feedback
+    
+    order.status = OrderStatus.CANCELLED    // Invalid - already delivered
+    // Order ORD-123: Invalid status transition from DELIVERED to CANCELLED
+    
+    println("Final status: ${order.status}") // DELIVERED
+}
+```
+
+Vetoable delegates are perfect for implementing state machines with validation.
+
+## NotNull Delegate
+
+### Basic NotNull Usage
+
+```kotlin
+import kotlin.properties.Delegates
+
+class DatabaseConfig {
+    // Must be initialized before first read access
+    var connectionString: String by Delegates.notNull()
+    var username: String by Delegates.notNull()
+    var password: String by Delegates.notNull()
+    
+    // Optional with default
+    var maxConnections: Int by Delegates.notNull<Int>().apply { 
+        // Can't set default here, notNull doesn't support it
+    }
+    
+    fun initialize(connStr: String, user: String, pass: String, maxConn: Int = 10) {
+        connectionString = connStr
+        username = user
+        password = pass
+        maxConnections = maxConn
+    }
+    
+    fun connect() {
+        println("Connecting with: $connectionString")
+        println("User: $username")
+        println("Max connections: $maxConnections")
+        // password accessed but not printed for security
+        val _ = password
+    }
+}
+
+fun main() {
+    val config = DatabaseConfig()
+    
+    // Initialize required properties
+    config.initialize(
+        "jdbc:postgresql://localhost:5432/mydb",
+        "admin", 
+        "secret123",
+        20
+    )
+    
+    config.connect()
+    // Connecting with: jdbc:postgresql://localhost:5432/mydb
+    // User: admin
+    // Max connections: 20
+    
+    // Accessing uninitialized notNull throws IllegalStateException
+    val config2 = DatabaseConfig()
+    try {
+        println(config2.connectionString) // Throws exception
+    } catch (e: IllegalStateException) {
+        println("Error: ${e.message}") // Property connectionString should be initialized before get.
+    }
+}
+```
+
+NotNull delegates ensure properties are initialized before access.
+
+### NotNull with Dependency Injection Pattern
+
+```kotlin
+import kotlin.properties.Delegates
+
+interface Logger {
+    fun log(message: String)
+}
+
+class ConsoleLogger : Logger {
+    override fun log(message: String) = println("[LOG] $message")
+}
+
+interface DataService {
+    fun fetchData(): List<String>
+}
+
+class DatabaseService : DataService {
+    override fun fetchData(): List<String> = listOf("data1", "data2", "data3")
+}
+
+class BusinessService {
+    // Dependencies injected via notNull delegates
+    var logger: Logger by Delegates.notNull()
+    var dataService: DataService by Delegates.notNull()
+    
+    fun processData() {
+        logger.log("Starting data processing")
+        val data = dataService.fetchData()
+        logger.log("Processing ${data.size} items")
+        data.forEach { item ->
+            logger.log("Processing: $item")
+        }
+        logger.log("Data processing completed")
+    }
+}
+
+// Dependency injection setup
+class ServiceContainer {
+    fun createBusinessService(): BusinessService {
+        return BusinessService().apply {
+            logger = ConsoleLogger()
+            dataService = DatabaseService()
+        }
+    }
+}
+
+fun main() {
+    val container = ServiceContainer()
+    val businessService = container.createBusinessService()
+    
+    businessService.processData()
+    // [LOG] Starting data processing
+    // [LOG] Processing 3 items
+    // [LOG] Processing: data1
+    // [LOG] Processing: data2
+    // [LOG] Processing: data3
+    // [LOG] Data processing completed
+}
+```
+
+NotNull delegates work well for dependency injection patterns.
+
+### NotNull with Late Initialization
+
+```kotlin
+import kotlin.properties.Delegates
+
+class AndroidActivity {
+    // UI components initialized in onCreate
+    var toolbar: String by Delegates.notNull()
+    var recyclerView: String by Delegates.notNull()
+    var fab: String by Delegates.notNull()
+    
+    // Network service initialized asynchronously
+    var apiService: String by Delegates.notNull()
+    
+    fun onCreate() {
+        println("Activity onCreate called")
+        toolbar = "Toolbar initialized"
+        recyclerView = "RecyclerView initialized"
+        fab = "FloatingActionButton initialized"
+        
+        // API service will be initialized later
+        initializeApiService()
+    }
+    
+    private fun initializeApiService() {
+        // Simulate async initialization
+        Thread {
+            Thread.sleep(100)
+            apiService = "API Service initialized"
+            println("API Service ready")
+        }.start()
+    }
+    
+    fun onResume() {
+        println("Using UI components:")
+        println("- $toolbar")
+        println("- $recyclerView")
+        println("- $fab")
+    }
+    
+    fun makeApiCall() {
+        // This might fail if called too early
+        try {
+            println("Making API call with: $apiService")
+        } catch (e: IllegalStateException) {
+            println("API service not ready yet: ${e.message}")
+        }
+    }
+}
+
+fun main() {
+    val activity = AndroidActivity()
+    
+    activity.onCreate()
+    activity.onResume()
+    
+    // Try API call immediately (might fail)
+    activity.makeApiCall()
+    
+    // Wait and try again
+    Thread.sleep(200)
+    activity.makeApiCall()
+}
+```
+
+NotNull delegates help manage component lifecycle and initialization order.
+
+## Map Delegation
+
+### Basic Map Delegation
+
+```kotlin
+class Person(map: Map<String, Any?>) {
+    val name: String by map
+    val age: Int by map
+    val email: String by map
+}
+
+class MutablePerson(private val map: MutableMap<String, Any?>) {
+    var name: String by map
+    var age: Int by map
+    var email: String by map
+    
+    fun toMap(): Map<String, Any?> = map.toMap()
+}
+
+fun main() {
+    // Immutable properties from Map
+    val personData = mapOf(
+        "name" to "Alice",
+        "age" to 30,
+        "email" to "alice@example.com"
+    )
+    val person = Person(personData)
+    
+    println("${person.name} is ${person.age} years old")
+    println("Email: ${person.email}")
+    
+    // Mutable properties from MutableMap
+    val mutablePersonData = mutableMapOf(
+        "name" to "Bob",
+        "age" to 25,
+        "email" to "bob@example.com"
+    )
+    val mutablePerson = MutablePerson(mutablePersonData)
+    
+    println("Before: ${mutablePerson.name}, age ${mutablePerson.age}")
+    
+    mutablePerson.name = "Robert"
+    mutablePerson.age = 26
+    
+    println("After: ${mutablePerson.name}, age ${mutablePerson.age}")
+    println("Underlying map: ${mutablePerson.toMap()}")
+}
+```
+
+Map delegation allows properties to be backed by Map entries.
+
+### JSON-like Data Handling
+
+```kotlin
+class JsonObject(private val data: MutableMap<String, Any?> = mutableMapOf()) {
+    // String properties
+    var title: String by data
+    var description: String by data
+    
+    // Numeric properties
+    var id: Int by data
+    var price: Double by data
+    
+    // Boolean properties
+    var active: Boolean by data
+    
+    // Nullable properties
+    var category: String? by data
+    
+    fun setFromJson(json: Map<String, Any?>) {
+        data.putAll(json)
+    }
+    
+    fun toJson(): Map<String, Any?> = data.toMap()
+}
+
+fun main() {
+    val jsonObj = JsonObject()
+    
+    // Set properties normally
+    jsonObj.title = "Product A"
+    jsonObj.id = 123
+    jsonObj.price = 29.99
+    jsonObj.active = true
+    
+    println("Object: ${jsonObj.toJson()}")
+    
+    // Load from JSON-like map
+    val jsonData = mapOf(
+        "title" to "Product B",
+        "description" to "High quality product",
+        "id" to 456,
+        "price" to 49.99,
+        "active" to false,
+        "category" to "Electronics"
+    )
+    
+    val jsonObj2 = JsonObject()
+    jsonObj2.setFromJson(jsonData)
+    
+    println("From JSON: ${jsonObj2.title} - $${jsonObj2.price}")
+    println("Category: ${jsonObj2.category}")
+    println("Full JSON: ${jsonObj2.toJson()}")
+}
+```
+
+Map delegation is excellent for dynamic data structures like JSON.
+
+### Configuration Management with Map
+
+```kotlin
+class AppConfig(configData: Map<String, Any?> = emptyMap()) {
+    private val config = configData.toMutableMap()
+    
+    // Application settings
+    var appName: String by config
+    var version: String by config
+    var debugMode: Boolean by config
+    
+    // Database settings
+    var dbUrl: String by config
+    var dbPort: Int by config
+    
+    // Feature flags
+    var enableNewFeature: Boolean by config
+    var maxUsers: Int by config
+    
+    fun loadFromProperties(properties: Map<String, String>) {
+        properties.forEach { (key, value) ->
+            config[key] = when (key) {
+                "dbPort", "maxUsers" -> value.toIntOrNull() ?: 0
+                "debugMode", "enableNewFeature" -> value.toBoolean()
+                else -> value
+            }
+        }
+    }
+    
+    fun getAllConfig(): Map<String, Any?> = config.toMap()
+    
+    fun getConfigString(): String {
+        return config.entries.joinToString("\n") { "${it.key} = ${it.value}" }
+    }
+}
+
+fun main() {
+    // Initialize with default values
+    val defaultConfig = mapOf(
+        "appName" to "MyApp",
+        "version" to "1.0.0",
+        "debugMode" to false,
+        "dbUrl" to "localhost",
+        "dbPort" to 5432,
+        "enableNewFeature" to false,
+        "maxUsers" to 100
+    )
+    
+    val config = AppConfig(defaultConfig)
+    
+    println("Default configuration:")
+    println(config.getConfigString())
+    
+    // Update configuration from properties
+    val userProperties = mapOf(
+        "appName" to "ProductionApp",
+        "debugMode" to "true",
+        "dbUrl" to "prod-server.com",
+        "dbPort" to "3306",
+        "maxUsers" to "1000"
+    )
+    
+    config.loadFromProperties(userProperties)
+    
+    println("\nUpdated configuration:")
+    println("App: ${config.appName} v${config.version}")
+    println("Debug: ${config.debugMode}")
+    println("Database: ${config.dbUrl}:${config.dbPort}")
+    println("Max users: ${config.maxUsers}")
+}
+```
+
+Map delegation enables flexible configuration management systems.
+
+## Combining Built-in Delegates
+
+### Lazy + Observable Pattern
+
+```kotlin
+import kotlin.properties.Delegates
+
+class DataManager {
+    // Lazy initialization of expensive resource
+    private val dataSource: String by lazy {
+        println("Initializing data source...")
+        Thread.sleep(500)
+        "Connected to database"
+    }
+    
+    // Observable property that uses lazy resource
+    var query: String by Delegates.observable("") { _, old, new ->
+        if (new.isNotEmpty()) {
+            println("Query changed: '$old' -> '$new'")
+            executeQuery(new)
+        }
+    }
+    
+    private fun executeQuery(sql: String) {
+        println("Using $dataSource to execute: $sql")
+    }
+}
+
+fun main() {
+    val manager = DataManager()
+    println("DataManager created")
+    
+    manager.query = "SELECT * FROM users"
+    // Initializing data source...
+    // Query changed: '' -> 'SELECT * FROM users'
+    // Using Connected to database to execute: SELECT * FROM users
+    
+    manager.query = "SELECT * FROM products"
+    // Query changed: 'SELECT * FROM users' -> 'SELECT * FROM products'
+    // Using Connected to database to execute: SELECT * FROM products
+}
+```
+
+### NotNull + Map Delegation
+
+```kotlin
+import kotlin.properties.Delegates
+
+class ServiceRegistry {
+    // Required services using notNull
+    var primaryDatabase: String by Delegates.notNull()
+    var authService: String by Delegates.notNull()
+    
+    // Optional services using map
+    private val optionalServices = mutableMapOf<String, Any?>()
+    var cacheService: String? by optionalServices
+    var emailService: String? by optionalServices
+    var analyticsService: String? by optionalServices
+    
+    fun initialize() {
+        // Initialize required services
+        primaryDatabase = "PostgreSQL Connection"
+        authService = "JWT Authentication Service"
+        
+        // Initialize optional services
+        cacheService = "Redis Cache"
+        emailService = "SMTP Service"
+        // analyticsService remains null
+    }
+    
+    fun getServiceStatus(): String {
+        return buildString {
+            appendLine("=== Service Registry Status ===")
+            appendLine("Required Services:")
+            appendLine("  Primary DB: $primaryDatabase")
+            appendLine("  Auth: $authService")
+            appendLine("Optional Services:")
+            appendLine("  Cache: ${cacheService ?: "Not configured"}")
+            appendLine("  Email: ${emailService ?: "Not configured"}")
+            appendLine("  Analytics: ${analyticsService ?: "Not configured"}")
+        }
+    }
+}
+
+fun main() {
+    val registry = ServiceRegistry()
+    
+    registry.initialize()
+    println(registry.getServiceStatus())
+    
+    // Add analytics service later
+    registry.analyticsService = "Google Analytics"
+    println("\nAfter adding analytics:")
+    println(registry.getServiceStatus())
+}
+```
+
+### Vetoable + Observable Combination
+
+```kotlin
+import kotlin.properties.Delegates
+
+class SmartThermostat {
+    // Current temperature (read-only, from sensor)
+    val currentTemperature: Double by lazy { 22.0 } // Simulate sensor reading
+    
+    // Target temperature with validation and observation
+    var targetTemperature: Double by Delegates.vetoable(20.0) { _, old, new ->
+        val isValid = new in 16.0..30.0
+        if (isValid) {
+            println("Temperature target: ${old}°C -> ${new}°C")
+            adjustHeating(new)
+        } else {
+            println("Invalid temperature: ${new}°C (must be 16-30°C)")
+        }
+        isValid
+    }
+    
+    // Mode with state validation
+    var mode: String by Delegates.vetoable("auto") { _, old, new ->
+        val validModes = setOf("auto", "heat", "cool", "off")
+        val isValid = new in validModes
+        if (isValid) {
+            println("Mode changed: $old -> $new")
+            onModeChanged(old, new)
+        } else {
+            println("Invalid mode: $new (valid: $validModes)")
+        }
+        isValid
+    }
+    
+    private fun adjustHeating(target: Double) {
+        val current = currentTemperature
+        when {
+            target > current + 1 -> println("  → Turning on heating")
+            target < current - 1 -> println("  → Turning on cooling")
+            else -> println("  → Temperature adjustment not needed")
+        }
+    }
+    
+    private fun onModeChanged(old: String, new: String) {
+        when (new) {
+            "off" -> println("  → System turned off")
+            "auto" -> println("  → Auto mode: adjusting based on target")
+            "heat" -> println("  → Heat-only mode")
+            "cool" -> println("  → Cool-only mode")
+        }
+    }
+}
+
+fun main() {
+    val thermostat = SmartThermostat()
+    
+    println("Current: ${thermostat.currentTemperature}°C")
+    println("Target: ${thermostat.targetTemperature}°C")
+    
+    thermostat.targetTemperature = 24.0
+    // Temperature target: 20.0°C -> 24.0°C
+    //   → Turning on heating
+    
+    thermostat.targetTemperature = 35.0  // Invalid
+    // Invalid temperature: 35.0°C (must be 16

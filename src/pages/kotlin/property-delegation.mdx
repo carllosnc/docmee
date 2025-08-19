@@ -1,0 +1,690 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Property Delegation
+
+## Overview
+
+Property delegation in Kotlin allows you to delegate the getter and setter logic of a property to another object. This is achieved using the `by` keyword and enables powerful patterns like lazy initialization, observable properties, and custom property behaviors.
+
+## Basic Property Delegation
+
+### Simple Delegation with Custom Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class StringDelegate {
+    private var value: String = ""
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): String {
+        println("Getting value of ${property.name}")
+        return value
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: String) {
+        println("Setting ${property.name} to $value")
+        this.value = value
+    }
+}
+
+class Person {
+    var name: String by StringDelegate()
+}
+
+fun main() {
+    val person = Person()
+    person.name = "John"    // Setting name to John
+    println(person.name)    // Getting value of name, John
+}
+```
+
+Custom delegates must implement `getValue` and `setValue` operators for read-write properties.
+
+### Read-Only Property Delegation
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ReadOnlyDelegate(private val value: String) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): String {
+        println("Accessing read-only property ${property.name}")
+        return value
+    }
+}
+
+class Config {
+    val appName: String by ReadOnlyDelegate("MyApp")
+}
+
+fun main() {
+    val config = Config()
+    println(config.appName)  // Accessing read-only property appName, MyApp
+    // config.appName = "New"  // Compilation error - read-only property
+}
+```
+
+Read-only properties only need the `getValue` operator.
+
+## Built-in Delegates
+
+### Lazy Delegate
+
+```kotlin
+class ExpensiveResource {
+    init {
+        println("Creating expensive resource...")
+        Thread.sleep(1000) // Simulate expensive initialization
+    }
+    
+    fun doWork() = "Working..."
+}
+
+class Service {
+    // Lazy initialization - created only when first accessed
+    val resource: ExpensiveResource by lazy {
+        println("Initializing resource...")
+        ExpensiveResource()
+    }
+    
+    // Lazy with thread safety mode
+    val threadSafeResource: ExpensiveResource by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        ExpensiveResource()
+    }
+}
+
+fun main() {
+    val service = Service()
+    println("Service created")
+    // Resource not created yet
+    
+    println(service.resource.doWork()) // Now resource is created
+    println(service.resource.doWork()) // Uses the same instance
+}
+```
+
+`lazy` creates properties that are initialized only when first accessed.
+
+### Observable Delegate
+
+```kotlin
+import kotlin.properties.Delegates
+
+class User {
+    var name: String by Delegates.observable("Unknown") { property, oldValue, newValue ->
+        println("${property.name} changed from '$oldValue' to '$newValue'")
+    }
+    
+    var age: Int by Delegates.observable(0) { _, old, new ->
+        println("Age changed from $old to $new")
+    }
+}
+
+fun main() {
+    val user = User()
+    user.name = "Alice"     // name changed from 'Unknown' to 'Alice'
+    user.name = "Bob"       // name changed from 'Alice' to 'Bob'
+    user.age = 25          // Age changed from 0 to 25
+}
+```
+
+`observable` triggers a callback whenever the property value changes.
+
+### Vetoable Delegate
+
+```kotlin
+import kotlin.properties.Delegates
+
+class BankAccount {
+    var balance: Double by Delegates.vetoable(0.0) { _, oldValue, newValue ->
+        // Veto negative balances
+        newValue >= 0.0
+    }
+    
+    var accountType: String by Delegates.vetoable("Standard") { _, old, new ->
+        // Only allow specific account types
+        new in listOf("Standard", "Premium", "VIP")
+    }
+}
+
+fun main() {
+    val account = BankAccount()
+    
+    account.balance = 100.0
+    println(account.balance)    // 100.0
+    
+    account.balance = -50.0     // Vetoed - remains 100.0
+    println(account.balance)    // 100.0
+    
+    account.accountType = "Premium"
+    println(account.accountType) // Premium
+    
+    account.accountType = "Invalid" // Vetoed - remains Premium
+    println(account.accountType)    // Premium
+}
+```
+
+`vetoable` allows you to reject property changes based on custom logic.
+
+### NotNull Delegate
+
+```kotlin
+import kotlin.properties.Delegates
+
+class Configuration {
+    // Must be initialized before first access
+    var databaseUrl: String by Delegates.notNull()
+    var apiKey: String by Delegates.notNull()
+}
+
+fun main() {
+    val config = Configuration()
+    
+    // Initialize required properties
+    config.databaseUrl = "jdbc:postgresql://localhost/db"
+    config.apiKey = "secret-key"
+    
+    println(config.databaseUrl) // jdbc:postgresql://localhost/db
+    
+    // Accessing uninitialized notNull property throws exception
+    val config2 = Configuration()
+    // println(config2.databaseUrl) // IllegalStateException
+}
+```
+
+`notNull` ensures properties are initialized before access, throwing an exception otherwise.
+
+## Map Delegation
+
+### Property Delegation to Map
+
+```kotlin
+class DynamicUser(private val map: Map<String, Any?>) {
+    val name: String by map
+    val age: Int by map
+    val email: String by map
+}
+
+class MutableDynamicUser(private val map: MutableMap<String, Any?>) {
+    var name: String by map
+    var age: Int by map
+    var email: String by map
+}
+
+fun main() {
+    // Read-only properties from Map
+    val userMap = mapOf(
+        "name" to "Alice",
+        "age" to 30,
+        "email" to "alice@example.com"
+    )
+    val user = DynamicUser(userMap)
+    println("${user.name}, ${user.age}, ${user.email}")
+    
+    // Mutable properties from MutableMap
+    val mutableUserMap = mutableMapOf(
+        "name" to "Bob",
+        "age" to 25,
+        "email" to "bob@example.com"
+    )
+    val mutableUser = MutableDynamicUser(mutableUserMap)
+    mutableUser.age = 26
+    println("Updated age: ${mutableUser.age}")
+    println("Map contents: $mutableUserMap")
+}
+```
+
+Properties can be delegated to map entries, useful for dynamic data structures.
+
+## Custom Advanced Delegates
+
+### Validation Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ValidatedDelegate<T>(
+    private var value: T,
+    private val validator: (T) -> Boolean,
+    private val errorMessage: String = "Invalid value"
+) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        if (validator(newValue)) {
+            value = newValue
+        } else {
+            throw IllegalArgumentException("$errorMessage: $newValue")
+        }
+    }
+}
+
+class Person {
+    var age: Int by ValidatedDelegate(0, { it >= 0 && it <= 150 }, "Age must be 0-150")
+    var email: String by ValidatedDelegate("", { it.contains("@") }, "Invalid email format")
+}
+
+fun main() {
+    val person = Person()
+    person.age = 25
+    person.email = "test@example.com"
+    
+    try {
+        person.age = -5  // Throws exception
+    } catch (e: IllegalArgumentException) {
+        println(e.message)  // Age must be 0-150: -5
+    }
+}
+```
+
+Custom validation logic can be encapsulated in delegate classes.
+
+### Cached Property Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class CachedDelegate<T>(private val computation: () -> T) {
+    private var cached: T? = null
+    private var isInitialized = false
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        if (!isInitialized) {
+            println("Computing value for ${property.name}")
+            cached = computation()
+            isInitialized = true
+        }
+        return cached!!
+    }
+}
+
+// Extension function for easier usage
+fun <T> cached(computation: () -> T) = CachedDelegate(computation)
+
+class DataProcessor {
+    val expensiveResult: String by cached {
+        Thread.sleep(1000) // Simulate expensive computation
+        "Computed Result"
+    }
+    
+    val anotherResult: Int by cached {
+        println("Computing another result...")
+        42
+    }
+}
+
+fun main() {
+    val processor = DataProcessor()
+    println(processor.expensiveResult)  // Computing value for expensiveResult
+    println(processor.expensiveResult)  // Uses cached value
+    println(processor.anotherResult)    // Computing another result...
+}
+```
+
+Cached delegates compute values once and reuse them.
+
+### History Tracking Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class HistoryDelegate<T>(initialValue: T) {
+    private var currentValue: T = initialValue
+    private val history = mutableListOf<T>()
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = currentValue
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+        history.add(currentValue)
+        currentValue = value
+        println("${property.name} changed to $value (history: ${history.size} items)")
+    }
+    
+    fun getHistory(): List<T> = history.toList()
+    fun getPrevious(): T? = history.lastOrNull()
+}
+
+class TrackedObject {
+    private val nameDelegate = HistoryDelegate("Unknown")
+    var name: String by nameDelegate
+    
+    fun getNameHistory() = nameDelegate.getHistory()
+    fun getPreviousName() = nameDelegate.getPrevious()
+}
+
+fun main() {
+    val obj = TrackedObject()
+    obj.name = "First"      // name changed to First (history: 1 items)
+    obj.name = "Second"     // name changed to Second (history: 2 items)
+    obj.name = "Third"      // name changed to Third (history: 3 items)
+    
+    println("Current: ${obj.name}")           // Current: Third
+    println("Previous: ${obj.getPreviousName()}")  // Previous: Second
+    println("History: ${obj.getNameHistory()}")     // History: [Unknown, First, Second]
+}
+```
+
+Delegates can maintain history of property changes.
+
+## Thread-Safe Delegates
+
+### Synchronized Property Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
+
+class SynchronizedDelegate<T>(initialValue: T) {
+    private var value: T = initialValue
+    private val lock = ReentrantReadWriteLock()
+    
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        return lock.read { value }
+    }
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        lock.write { value = newValue }
+    }
+}
+
+class ThreadSafeCounter {
+    var count: Int by SynchronizedDelegate(0)
+    
+    fun increment() { count++ }
+    fun decrement() { count-- }
+}
+
+fun main() {
+    val counter = ThreadSafeCounter()
+    
+    // Simulate concurrent access
+    val threads = (1..10).map {
+        Thread {
+            repeat(100) { counter.increment() }
+        }
+    }
+    
+    threads.forEach { it.start() }
+    threads.forEach { it.join() }
+    
+    println("Final count: ${counter.count}") // Should be 1000
+}
+```
+
+Thread-safe delegates protect property access in concurrent environments.
+
+## Delegate Providers
+
+### Custom Delegate Provider
+
+```kotlin
+import kotlin.reflect.KProperty
+import kotlin.properties.ReadOnlyProperty
+import kotlin.properties.ReadWriteProperty
+
+class LoggingDelegate<T>(private var value: T, private val name: String) : ReadWriteProperty<Any?, T> {
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T {
+        println("[$name] Getting ${property.name}: $value")
+        return value
+    }
+    
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+        println("[$name] Setting ${property.name}: $this.value -> $value")
+        this.value = value
+    }
+}
+
+// Delegate provider
+class LoggingProvider<T>(private val initialValue: T) {
+    operator fun provideDelegate(thisRef: Any?, property: KProperty<*>): ReadWriteProperty<Any?, T> {
+        println("Creating delegate for property ${property.name}")
+        return LoggingDelegate(initialValue, property.name)
+    }
+}
+
+fun <T> logged(initialValue: T) = LoggingProvider(initialValue)
+
+class Example {
+    var name: String by logged("Default")
+    var count: Int by logged(0)
+}
+
+fun main() {
+    // Creating delegate for property name
+    // Creating delegate for property count
+    val example = Example()
+    
+    example.name = "Test"    // [name] Setting name: Default -> Test
+    println(example.name)    // [name] Getting name: Test
+    example.count = 42       // [count] Setting count: 0 -> 42
+}
+```
+
+Delegate providers allow dynamic creation of delegates based on property information.
+
+## Property Delegation with Generics
+
+### Generic Delegate with Type Constraints
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class BoundedDelegate<T : Comparable<T>>(
+    private var value: T,
+    private val minValue: T,
+    private val maxValue: T
+) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        value = when {
+            newValue < minValue -> minValue
+            newValue > maxValue -> maxValue
+            else -> newValue
+        }
+        println("${property.name} set to $value (bounded)")
+    }
+}
+
+fun <T : Comparable<T>> bounded(initial: T, min: T, max: T) = BoundedDelegate(initial, min, max)
+
+class GameCharacter {
+    var health: Int by bounded(100, 0, 100)
+    var level: Int by bounded(1, 1, 50)
+    var experience: Double by bounded(0.0, 0.0, 1000.0)
+}
+
+fun main() {
+    val character = GameCharacter()
+    
+    character.health = 150      // health set to 100 (bounded)
+    character.health = -10      // health set to 0 (bounded)
+    character.level = 60        // level set to 50 (bounded)
+    
+    println("Health: ${character.health}, Level: ${character.level}")
+}
+```
+
+Generic delegates can work with type constraints for flexible reuse.
+
+## Advanced Patterns
+
+### Composite Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class CompositeDelegate<T>(
+    private var value: T,
+    private val observers: List<(T, T) -> Unit> = emptyList()
+) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        val oldValue = value
+        value = newValue
+        observers.forEach { it(oldValue, newValue) }
+    }
+}
+
+fun <T> composite(
+    initial: T,
+    vararg observers: (T, T) -> Unit
+) = CompositeDelegate(initial, observers.toList())
+
+class ReactiveModel {
+    var data: String by composite(
+        "initial",
+        { old, new -> println("Logger: $old -> $new") },
+        { old, new -> println("Validator: Checking $new") },
+        { old, new -> println("Cache: Invalidating for $new") }
+    )
+}
+
+fun main() {
+    val model = ReactiveModel()
+    model.data = "updated"
+    // Logger: initial -> updated
+    // Validator: Checking updated
+    // Cache: Invalidating for updated
+}
+```
+
+Composite delegates can combine multiple behaviors.
+
+### Conditional Delegate
+
+```kotlin
+import kotlin.reflect.KProperty
+
+class ConditionalDelegate<T>(
+    private var value: T,
+    private val condition: (T) -> Boolean,
+    private val onSuccess: (T) -> Unit = {},
+    private val onFailure: (T) -> T = { value }
+) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+        if (condition(newValue)) {
+            value = newValue
+            onSuccess(newValue)
+        } else {
+            value = onFailure(newValue)
+        }
+    }
+}
+
+fun <T> conditional(
+    initial: T,
+    condition: (T) -> Boolean,
+    onSuccess: (T) -> Unit = {},
+    onFailure: (T) -> T = { initial }
+) = ConditionalDelegate(initial, condition, onSuccess, onFailure)
+
+class SmartDevice {
+    var temperature: Int by conditional(
+        initial = 20,
+        condition = { it in 10..30 },
+        onSuccess = { println("Temperature set to $it°C") },
+        onFailure = { 
+            println("Invalid temperature $it, keeping current")
+            temperature // Keep current value
+        }
+    )
+}
+
+fun main() {
+    val device = SmartDevice()
+    device.temperature = 25     // Temperature set to 25°C
+    device.temperature = 50     // Invalid temperature 50, keeping current
+    println(device.temperature) // 25
+}
+```
+
+Conditional delegates execute different logic based on conditions.
+
+## Best Practices
+
+### 1. Use Built-in Delegates When Possible
+
+```kotlin
+class PreferBuiltIn {
+    // Good: Use built-in lazy
+    val expensiveValue: String by lazy { computeExpensiveValue() }
+    
+    // Good: Use built-in observable
+    var name: String by Delegates.observable("") { _, old, new ->
+        println("Name changed: $old -> $new")
+    }
+}
+
+private fun computeExpensiveValue(): String = "expensive"
+```
+
+### 2. Create Reusable Delegate Functions
+
+```kotlin
+// Reusable delegate factory functions
+fun <T> defaulted(defaultValue: T) = object : ReadWriteProperty<Any?, T> {
+    private var value: T = defaultValue
+    
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+        this.value = value
+    }
+}
+
+fun <T> resettable(initialValue: T) = object : ReadWriteProperty<Any?, T> {
+    private var value: T = initialValue
+    private val initial: T = initialValue
+    
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+        this.value = value
+    }
+    
+    fun reset() { value = initial }
+}
+```
+
+### 3. Combine Delegates for Complex Behavior
+
+```kotlin
+class User {
+    // Combine lazy and validation
+    val userId: String by lazy { generateUserId() }
+    
+    // Observable with validation
+    var email: String by Delegates.vetoable("") { _, _, new ->
+        new.contains("@") && new.contains(".")
+    }
+}
+
+private fun generateUserId(): String = "user_${System.currentTimeMillis()}"
+```
+
+## Key Benefits
+
+1. **Encapsulation**: Property logic is separated from the class
+2. **Reusability**: Delegates can be used across multiple properties/classes
+3. **Consistency**: Common property behaviors are standardized
+4. **Lazy Loading**: Expensive computations can be deferred
+5. **Validation**: Property changes can be validated automatically
+6. **Observation**: Property changes can trigger side effects
+7. **Thread Safety**: Concurrent access can be handled transparently
+
+## When to Use Property Delegation
+
+- When you need lazy initialization of expensive resources
+- When you want to observe property changes
+- When you need to validate property values
+- When implementing caching mechanisms
+- When you need thread-safe property access
+- When working with dynamic data (like JSON to object mapping)
+- When you want to add logging or debugging to property access
+- When implementing undo/redo functionality with property history

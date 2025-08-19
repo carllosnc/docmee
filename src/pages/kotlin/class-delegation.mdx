@@ -1,0 +1,415 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Class Delegation
+
+## Overview
+
+Class delegation in Kotlin allows a class to implement an interface by delegating the implementation to another object. This is achieved using the `by` keyword and follows the delegation pattern, providing composition over inheritance.
+
+## Basic Interface Delegation
+
+### Simple Delegation
+
+```kotlin
+interface Printer {
+    fun print(message: String)
+}
+
+class ConsolePrinter : Printer {
+    override fun print(message: String) {
+        println("Console: $message")
+    }
+}
+
+// Delegating implementation to ConsolePrinter
+class Logger(printer: Printer) : Printer by printer
+
+fun main() {
+    val consolePrinter = ConsolePrinter()
+    val logger = Logger(consolePrinter)
+    logger.print("Hello World") // Output: Console: Hello World
+}
+```
+
+The `Logger` class implements `Printer` by delegating all method calls to the `printer` parameter.
+
+### Delegation with Property
+
+```kotlin
+interface Repository {
+    fun save(data: String): Boolean
+    fun load(): String
+}
+
+class DatabaseRepository : Repository {
+    override fun save(data: String): Boolean {
+        println("Saving to database: $data")
+        return true
+    }
+    
+    override fun load(): String = "Data from database"
+}
+
+class CachedRepository(private val repository: Repository) : Repository by repository {
+    private var cache: String? = null
+    
+    override fun load(): String {
+        return cache ?: repository.load().also { cache = it }
+    }
+}
+```
+
+`CachedRepository` delegates to `repository` but overrides specific methods when needed.
+
+## Multiple Interface Delegation
+
+```kotlin
+interface Readable {
+    fun read(): String
+}
+
+interface Writable {
+    fun write(data: String)
+}
+
+class FileReader : Readable {
+    override fun read(): String = "File content"
+}
+
+class FileWriter : Writable {
+    override fun write(data: String) {
+        println("Writing: $data")
+    }
+}
+
+// Delegating to multiple interfaces
+class FileManager(
+    reader: Readable,
+    writer: Writable
+) : Readable by reader, Writable by writer
+
+fun main() {
+    val manager = FileManager(FileReader(), FileWriter())
+    println(manager.read())  // File content
+    manager.write("New data") // Writing: New data
+}
+```
+
+A class can delegate to multiple interfaces simultaneously.
+
+## Delegation with Override
+
+```kotlin
+interface Service {
+    fun process(data: String): String
+    fun validate(data: String): Boolean
+}
+
+class BasicService : Service {
+    override fun process(data: String): String = "Processed: $data"
+    override fun validate(data: String): Boolean = data.isNotEmpty()
+}
+
+class EnhancedService(service: Service) : Service by service {
+    // Override specific methods while delegating others
+    override fun validate(data: String): Boolean {
+        println("Enhanced validation for: $data")
+        return data.length > 3 && service.validate(data)
+    }
+    
+    // process() is still delegated to the service parameter
+}
+
+fun main() {
+    val basic = BasicService()
+    val enhanced = EnhancedService(basic)
+    
+    println(enhanced.process("test"))    // Processed: test
+    println(enhanced.validate("hi"))     // Enhanced validation for: hi, false
+    println(enhanced.validate("hello"))  // Enhanced validation for: hello, true
+}
+```
+
+You can override specific methods while still delegating others.
+
+## Property Delegation in Classes
+
+```kotlin
+interface ConfigProvider {
+    val timeout: Int
+    val retries: Int
+    fun getConfig(key: String): String
+}
+
+class DefaultConfig : ConfigProvider {
+    override val timeout: Int = 30
+    override val retries: Int = 3
+    override fun getConfig(key: String): String = "default-$key"
+}
+
+class ApplicationConfig(config: ConfigProvider) : ConfigProvider by config {
+    // Can add additional properties
+    val appName: String = "MyApp"
+    
+    // Can override properties
+    override val timeout: Int = 60
+    
+    // getConfig and retries are delegated
+}
+
+fun main() {
+    val defaultConfig = DefaultConfig()
+    val appConfig = ApplicationConfig(defaultConfig)
+    
+    println(appConfig.timeout)  // 60 (overridden)
+    println(appConfig.retries)  // 3 (delegated)
+    println(appConfig.getConfig("test")) // default-test (delegated)
+}
+```
+
+Both properties and methods can be delegated or overridden as needed.
+
+## Delegation with Generic Interfaces
+
+```kotlin
+interface Container<T> {
+    fun add(item: T)
+    fun get(): T?
+    fun size(): Int
+}
+
+class ListContainer<T> : Container<T> {
+    private val items = mutableListOf<T>()
+    
+    override fun add(item: T) { items.add(item) }
+    override fun get(): T? = items.firstOrNull()
+    override fun size(): Int = items.size
+}
+
+class LoggingContainer<T>(container: Container<T>) : Container<T> by container {
+    override fun add(item: T) {
+        println("Adding item: $item")
+        container.add(item)
+    }
+    
+    override fun get(): T? {
+        val item = container.get()
+        println("Retrieved item: $item")
+        return item
+    }
+}
+
+fun main() {
+    val listContainer = ListContainer<String>()
+    val loggingContainer = LoggingContainer(listContainer)
+    
+    loggingContainer.add("Hello")    // Adding item: Hello
+    println(loggingContainer.size()) // 1 (delegated)
+    loggingContainer.get()           // Retrieved item: Hello
+}
+```
+
+Delegation works with generic interfaces, maintaining type safety.
+
+## Complex Delegation Pattern
+
+```kotlin
+interface EventHandler {
+    fun handleEvent(event: String): Boolean
+}
+
+interface Logger {
+    fun log(message: String)
+}
+
+interface Validator {
+    fun isValid(data: String): Boolean
+}
+
+// Concrete implementations
+class ConsoleLogger : Logger {
+    override fun log(message: String) = println("LOG: $message")
+}
+
+class SimpleValidator : Validator {
+    override fun isValid(data: String): Boolean = data.isNotBlank()
+}
+
+class DefaultEventHandler : EventHandler {
+    override fun handleEvent(event: String): Boolean {
+        println("Handling: $event")
+        return true
+    }
+}
+
+// Complex service using multiple delegations
+class ServiceProcessor(
+    logger: Logger,
+    validator: Validator,
+    handler: EventHandler
+) : Logger by logger, Validator by validator, EventHandler by handler {
+    
+    fun processRequest(data: String): Boolean {
+        log("Processing request: $data")
+        
+        if (!isValid(data)) {
+            log("Invalid data received")
+            return false
+        }
+        
+        return handleEvent("PROCESS_$data")
+    }
+}
+
+fun main() {
+    val service = ServiceProcessor(
+        ConsoleLogger(),
+        SimpleValidator(),
+        DefaultEventHandler()
+    )
+    
+    service.processRequest("test")  // Uses all delegated functionality
+    service.processRequest("")      // Validation fails
+}
+```
+
+Complex services can combine multiple delegated interfaces for clean separation of concerns.
+
+## Delegation with Companion Objects
+
+```kotlin
+interface MathOperations {
+    fun add(a: Int, b: Int): Int
+    fun multiply(a: Int, b: Int): Int
+}
+
+object BasicMath : MathOperations {
+    override fun add(a: Int, b: Int): Int = a + b
+    override fun multiply(a: Int, b: Int): Int = a * b
+}
+
+class Calculator : MathOperations by BasicMath {
+    fun calculate(expression: String): Int {
+        // Uses delegated math operations
+        return when {
+            "+" in expression -> {
+                val parts = expression.split("+")
+                add(parts[0].trim().toInt(), parts[1].trim().toInt())
+            }
+            "*" in expression -> {
+                val parts = expression.split("*")
+                multiply(parts[0].trim().toInt(), parts[1].trim().toInt())
+            }
+            else -> 0
+        }
+    }
+}
+
+fun main() {
+    val calc = Calculator()
+    println(calc.calculate("5 + 3"))  // 8
+    println(calc.calculate("4 * 7"))  // 28
+    println(calc.add(10, 20))         // 30 (direct delegation)
+}
+```
+
+Delegation can work with companion objects or singletons for shared functionality.
+
+## Best Practices
+
+### 1. Prefer Composition Over Inheritance
+
+```kotlin
+// Instead of inheritance
+abstract class BaseService {
+    abstract fun process(data: String): String
+    fun log(message: String) = println(message)
+}
+
+// Use delegation
+interface Processor {
+    fun process(data: String): String
+}
+
+interface Logger {
+    fun log(message: String)
+}
+
+class Service(
+    processor: Processor,
+    logger: Logger
+) : Processor by processor, Logger by logger
+```
+
+### 2. Selective Override Pattern
+
+```kotlin
+interface DatabaseAccess {
+    fun connect(): Boolean
+    fun query(sql: String): List<String>
+    fun close()
+}
+
+class ProductionDatabase : DatabaseAccess {
+    override fun connect(): Boolean = true
+    override fun query(sql: String): List<String> = listOf("result")
+    override fun close() = println("Closed")
+}
+
+class TestDatabase(db: DatabaseAccess) : DatabaseAccess by db {
+    override fun query(sql: String): List<String> {
+        println("Test mode: $sql")
+        return listOf("test-result")
+    }
+    // connect() and close() are delegated
+}
+```
+
+### 3. Decorator Pattern with Delegation
+
+```kotlin
+interface DataProcessor {
+    fun process(data: String): String
+}
+
+class BasicProcessor : DataProcessor {
+    override fun process(data: String): String = data.uppercase()
+}
+
+class TimingDecorator(private val processor: DataProcessor) : DataProcessor by processor {
+    override fun process(data: String): String {
+        val start = System.currentTimeMillis()
+        val result = processor.process(data)
+        val time = System.currentTimeMillis() - start
+        println("Processing took ${time}ms")
+        return result
+    }
+}
+
+class CachingDecorator(private val processor: DataProcessor) : DataProcessor by processor {
+    private val cache = mutableMapOf<String, String>()
+    
+    override fun process(data: String): String {
+        return cache.getOrPut(data) { processor.process(data) }
+    }
+}
+```
+
+## Key Benefits
+
+1. **Composition over Inheritance**: More flexible than class inheritance
+2. **Single Responsibility**: Each delegated object has a specific purpose
+3. **Runtime Flexibility**: Can switch implementations at runtime
+4. **Code Reuse**: Share implementations across different classes
+5. **Clean Architecture**: Separates concerns effectively
+
+## When to Use Delegation
+
+- When you need to implement multiple interfaces
+- When you want to add behavior to existing classes without inheritance
+- When implementing decorator or adapter patterns
+- When you need flexible composition of behaviors
+- When you want to avoid deep inheritance hierarchies
