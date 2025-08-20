@@ -1,0 +1,412 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Scope Functions
+
+Scope functions are functions that execute a block of code within the context of an object. Kotlin provides five scope functions: `let`, `run`, `with`, `apply`, and `also`. Each has specific use cases and behaviors.
+
+## Quick Reference Table
+
+| Function | Object Reference | Return Value | Extension Function |
+|----------|------------------|--------------|-------------------|
+| `let` | `it` | Lambda result | Yes |
+| `run` | `this` | Lambda result | Yes |
+| `with` | `this` | Lambda result | No (takes object as argument) |
+| `apply` | `this` | Context object | Yes |
+| `also` | `it` | Context object | Yes |
+
+---
+
+## 1. `let`
+
+**Context object**: `it` (lambda parameter)  
+**Return value**: Lambda result  
+**Use case**: Execute code on non-null objects, transform objects
+
+### Basic Usage
+```kotlin
+val name = "Kotlin"
+val result = name.let {
+    println("Processing: $it")
+    it.uppercase()
+}
+println(result) // KOTLIN
+```
+
+### Null Safety
+```kotlin
+val nullableName: String? = "Kotlin"
+nullableName?.let {
+    println("Name length: ${it.length}")
+    println("Uppercase: ${it.uppercase()}")
+} // Only executes if nullableName is not null
+```
+
+### Chain Operations
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+val result = numbers
+    .filter { it > 2 }
+    .let { filteredList ->
+        println("Filtered numbers: $filteredList")
+        filteredList.sum()
+    }
+println("Sum: $result") // Sum: 12
+```
+
+### Transform Object
+```kotlin
+data class Person(val name: String, val age: Int)
+
+val person = Person("Alice", 30)
+val greeting = person.let {
+    "Hello, ${it.name}! You are ${it.age} years old."
+}
+println(greeting)
+```
+
+---
+
+## 2. `run`
+
+**Context object**: `this` (receiver)  
+**Return value**: Lambda result  
+**Use case**: Execute code block and return result, object configuration with computation
+
+### Basic Usage
+```kotlin
+val service = "https://api.example.com"
+val result = service.run {
+    println("Connecting to $this")
+    length > 10
+}
+println("URL is long: $result") // true
+```
+
+### Object Configuration with Computation
+```kotlin
+data class DatabaseConfig(var host: String = "", var port: Int = 0, var ssl: Boolean = false)
+
+val isValid = DatabaseConfig().run {
+    host = "localhost"
+    port = 5432
+    ssl = true
+    
+    // Return validation result
+    host.isNotEmpty() && port > 0
+}
+println("Config is valid: $isValid") // true
+```
+
+### Execute Code Block
+```kotlin
+val result = run {
+    val x = 10
+    val y = 20
+    println("Calculating...")
+    x + y
+}
+println("Result: $result") // Result: 30
+```
+
+### File Operations
+```kotlin
+import java.io.File
+
+val fileContent = File("example.txt").run {
+    if (exists()) {
+        println("Reading file: $name")
+        readText()
+    } else {
+        println("File not found: $name")
+        ""
+    }
+}
+```
+
+---
+
+## 3. `with`
+
+**Context object**: `this` (receiver)  
+**Return value**: Lambda result  
+**Use case**: Call multiple functions on an object, "with this object, do the following"
+
+### Basic Usage
+```kotlin
+data class Person(var name: String, var age: Int)
+
+val person = Person("Bob", 25)
+val description = with(person) {
+    name = name.uppercase()
+    age += 1
+    "Person: $name, Age: $age"
+}
+println(description) // Person: BOB, Age: 26
+```
+
+### Multiple Operations on Collections
+```kotlin
+val numbers = mutableListOf(1, 2, 3)
+val result = with(numbers) {
+    add(4)
+    add(5)
+    println("List size: $size")
+    sum()
+}
+println("Sum: $result") // Sum: 15
+```
+
+### StringBuilder Example
+```kotlin
+val html = with(StringBuilder()) {
+    append("<html>")
+    append("<body>")
+    append("<h1>Hello World</h1>")
+    append("</body>")
+    append("</html>")
+    toString()
+}
+println(html)
+```
+
+### Canvas Drawing (Android-style example)
+```kotlin
+// Pseudo-code for Android Canvas
+/*
+with(canvas) {
+    drawColor(Color.WHITE)
+    drawLine(0f, 0f, 100f, 100f, paint)
+    drawCircle(50f, 50f, 25f, paint)
+    save()
+}
+*/
+```
+
+---
+
+## 4. `apply`
+
+**Context object**: `this` (receiver)  
+**Return value**: Context object itself  
+**Use case**: Object configuration, "apply the following assignments to the object"
+
+### Object Configuration
+```kotlin
+data class Person(var name: String = "", var age: Int = 0, var email: String = "")
+
+val person = Person().apply {
+    name = "Charlie"
+    age = 35
+    email = "charlie@example.com"
+}
+println(person) // Person(name=Charlie, age=35, email=charlie@example.com)
+```
+
+### Builder Pattern
+```kotlin
+class HttpRequest {
+    var url: String = ""
+    var method: String = "GET"
+    var headers: MutableMap<String, String> = mutableMapOf()
+    var body: String = ""
+    
+    fun execute(): String = "Executing $method to $url"
+}
+
+val response = HttpRequest().apply {
+    url = "https://api.example.com/users"
+    method = "POST"
+    headers["Content-Type"] = "application/json"
+    headers["Authorization"] = "Bearer token123"
+    body = """{"name": "John", "age": 30}"""
+}.execute()
+
+println(response)
+```
+
+### File Configuration
+```kotlin
+import java.io.File
+
+val file = File("output.txt").apply {
+    createNewFile()
+    setReadable(true)
+    setWritable(true)
+}
+```
+
+### View Configuration (Android-style)
+```kotlin
+// Pseudo-code for Android View
+/*
+val textView = TextView(context).apply {
+    text = "Hello World"
+    textSize = 16f
+    setTextColor(Color.BLUE)
+    setPadding(16, 16, 16, 16)
+}
+*/
+```
+
+---
+
+## 5. `also`
+
+**Context object**: `it` (lambda parameter)  
+**Return value**: Context object itself  
+**Use case**: Additional actions, side effects, debugging
+
+### Basic Usage
+```kotlin
+val numbers = mutableListOf(1, 2, 3)
+    .also { println("Initial list: $it") }
+    .also { it.add(4) }
+    .also { println("After adding 4: $it") }
+
+println("Final list: $numbers")
+// Initial list: [1, 2, 3]
+// After adding 4: [1, 2, 3, 4]
+// Final list: [1, 2, 3, 4]
+```
+
+### Debugging and Logging
+```kotlin
+data class User(val id: Int, val name: String)
+
+fun processUser(user: User): User {
+    return user
+        .also { println("Processing user: ${it.name}") }
+        .also { println("User ID: ${it.id}") }
+        .also { println("Validation passed for: ${it.name}") }
+}
+
+val user = User(1, "Diana")
+val processedUser = processUser(user)
+```
+
+### Side Effects in Chains
+```kotlin
+val result = listOf("apple", "banana", "cherry")
+    .filter { it.length > 5 }
+    .also { println("Filtered items: $it") }
+    .map { it.uppercase() }
+    .also { println("Uppercased items: $it") }
+    .joinToString(", ")
+
+println("Final result: $result")
+```
+
+### Object Validation
+```kotlin
+data class Product(val name: String, val price: Double)
+
+fun createProduct(name: String, price: Double): Product {
+    return Product(name, price).also { product ->
+        require(product.name.isNotBlank()) { "Product name cannot be blank" }
+        require(product.price > 0) { "Product price must be positive" }
+        println("Created valid product: ${product.name}")
+    }
+}
+
+val product = createProduct("Laptop", 999.99)
+```
+
+---
+
+## Choosing the Right Scope Function
+
+### Decision Flow
+
+1. **Need the return value of lambda?**
+   - Yes → `let`, `run`, or `with`
+   - No → `apply` or `also`
+
+2. **Need to reference context object as `this` or `it`?**
+   - `this` → `run`, `with`, `apply`
+   - `it` → `let`, `also`
+
+3. **Extension function or regular function?**
+   - Extension → `let`, `run`, `apply`, `also`
+   - Regular → `with`
+
+### Common Use Cases
+
+| Scenario | Recommended Function | Reason |
+|----------|---------------------|--------|
+| Transform nullable object | `let` | Null-safe, returns result |
+| Configure object properties | `apply` | Returns object, uses `this` |
+| Execute code block with result | `run` | Returns result, uses `this` |
+| Perform multiple operations on object | `with` | Clean syntax for multiple calls |
+| Add side effects/debugging | `also` | Returns object, doesn't interfere |
+
+### Anti-patterns to Avoid
+
+```kotlin
+// ❌ Don't use apply when you need the lambda result
+val length = "Hello".apply {
+    length // This returns the String, not the length!
+}
+
+// ✅ Use let or run instead
+val length = "Hello".let { it.length }
+val length2 = "Hello".run { length }
+
+// ❌ Don't use let when you don't need the return value
+name?.let {
+    println(it)
+    it.length // Unused return value
+}
+
+// ✅ Use also for side effects
+name?.also {
+    println(it)
+}
+```
+
+## Real-World Examples
+
+### API Request Builder
+```kotlin
+class ApiRequestBuilder {
+    private var url: String = ""
+    private var headers: MutableMap<String, String> = mutableMapOf()
+    private var params: MutableMap<String, String> = mutableMapOf()
+    
+    fun build(): String = "Request to $url with $headers and $params"
+}
+
+val request = ApiRequestBuilder().apply {
+    url = "https://api.github.com/users"
+    headers["Authorization"] = "Bearer token"
+    headers["Accept"] = "application/json"
+}.also {
+    println("Built request: ${it.build()}")
+}.build()
+```
+
+### Data Processing Pipeline
+```kotlin
+data class Employee(val name: String, val department: String, val salary: Double)
+
+val employees = listOf(
+    Employee("Alice", "Engineering", 75000.0),
+    Employee("Bob", "Marketing", 65000.0),
+    Employee("Charlie", "Engineering", 80000.0)
+)
+
+val report = employees
+    .filter { it.department == "Engineering" }
+    .also { println("Engineering employees: ${it.size}") }
+    .let { engineeringEmployees ->
+        val avgSalary = engineeringEmployees.map { it.salary }.average()
+        "Engineering Department - Employees: ${engineeringEmployees.size}, Avg Salary: $avgSalary"
+    }
+    .also { println("Report: $it") }
+
+println(report)
+```
+
+This documentation covers all five scope functions with practical examples. Each function has its specific use case, and choosing the right one depends on whether you need the lambda result or the original object, and whether you prefer `this` or `it` for object reference.
