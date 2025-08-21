@@ -1,0 +1,981 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# RememberSaveable
+
+## Overview
+`rememberSaveable` is a composable function that stores a value across recompositions AND configuration changes (like screen rotation, theme changes, language changes). It uses the Android savedInstanceState mechanism to persist data when the activity or fragment is recreated.
+
+## Basic RememberSaveable Usage
+
+### Simple Value Persistence
+Store primitive values that survive configuration changes.
+
+```kotlin
+@Composable
+fun BasicSaveableExample() {
+    // Survives rotation and configuration changes
+    var counter by rememberSaveable { mutableIntStateOf(0) }
+    var userName by rememberSaveable { mutableStateOf("") }
+    var isEnabled by rememberSaveable { mutableStateOf(true) }
+    var selectedIndex by rememberSaveable { mutableIntStateOf(-1) }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Counter: $counter (survives rotation)")
+        Button(onClick = { counter++ }) {
+            Text("Increment")
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        TextField(
+            value = userName,
+            onValueChange = { userName = it },
+            label = { Text("Username (persistent)") }
+        )
+        
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = isEnabled,
+                onCheckedChange = { isEnabled = it }
+            )
+            Text("Enable feature")
+        }
+        
+        Text("Selected index: $selectedIndex")
+        Row {
+            repeat(3) { index ->
+                Button(
+                    onClick = { selectedIndex = index },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedIndex == index) 
+                            MaterialTheme.colorScheme.primary 
+                        else MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("$index")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+        }
+    }
+}
+```
+
+### Collections and Lists
+Persist collections across configuration changes.
+
+```kotlin
+@Composable
+fun SaveableCollectionsExample() {
+    // Persistent list of strings
+    var todoItems by rememberSaveable { 
+        mutableStateOf(listOf<String>()) 
+    }
+    
+    // Persistent set of selected items
+    var selectedItems by rememberSaveable { 
+        mutableStateOf(setOf<String>()) 
+    }
+    
+    // Persistent map of ratings
+    var itemRatings by rememberSaveable { 
+        mutableStateOf(mapOf<String, Int>()) 
+    }
+    
+    var newItem by rememberSaveable { mutableStateOf("") }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Todo Items (${todoItems.size})")
+        
+        Row {
+            TextField(
+                value = newItem,
+                onValueChange = { newItem = it },
+                label = { Text("New item") },
+                modifier = Modifier.weight(1f)
+            )
+            Button(
+                onClick = {
+                    if (newItem.isNotBlank()) {
+                        todoItems = todoItems + newItem
+                        itemRatings = itemRatings + (newItem to 0)
+                        newItem = ""
+                    }
+                }
+            ) {
+                Text("Add")
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        LazyColumn {
+            items(todoItems) { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = item in selectedItems,
+                            onCheckedChange = { checked ->
+                                selectedItems = if (checked) {
+                                    selectedItems + item
+                                } else {
+                                    selectedItems - item
+                                }
+                            }
+                        )
+                        Text(
+                            text = item,
+                            textDecoration = if (item in selectedItems) 
+                                TextDecoration.LineThrough else TextDecoration.None
+                        )
+                    }
+                    
+                    Text("★${itemRatings[item] ?: 0}")
+                }
+            }
+        }
+        
+        Text("Selected: ${selectedItems.size} items")
+    }
+}
+```
+
+## RememberSaveable with Keys
+
+### Key-Based Persistence
+Use keys to control when saved state should be invalidated.
+
+```kotlin
+@Composable
+fun KeyBasedSaveableExample(userId: String, sessionId: String) {
+    // Saved state tied to userId - cleared when user changes
+    var userPreferences by rememberSaveable(userId) {
+        mutableStateOf(UserPreferences())
+    }
+    
+    // Saved state tied to session - cleared when session changes
+    var sessionData by rememberSaveable(sessionId) {
+        mutableStateOf(SessionData())
+    }
+    
+    // Multiple keys - cleared when either changes
+    var contextualState by rememberSaveable(userId, sessionId) {
+        mutableStateOf(ContextualState())
+    }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("User: $userId")
+        Text("Session: $sessionId")
+        
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("User Preferences")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = userPreferences.darkMode,
+                        onCheckedChange = { 
+                            userPreferences = userPreferences.copy(darkMode = it)
+                        }
+                    )
+                    Text("Dark Mode")
+                }
+                
+                Text("Font Size")
+                Slider(
+                    value = userPreferences.fontSize,
+                    onValueChange = { 
+                        userPreferences = userPreferences.copy(fontSize = it)
+                    },
+                    valueRange = 12f..24f
+                )
+                Text("${userPreferences.fontSize.toInt()}sp")
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Session Data")
+                Text("Pages visited: ${sessionData.pagesVisited}")
+                Button(
+                    onClick = { 
+                        sessionData = sessionData.copy(
+                            pagesVisited = sessionData.pagesVisited + 1
+                        )
+                    }
+                ) {
+                    Text("Visit Page")
+                }
+            }
+        }
+    }
+}
+
+@Parcelize
+data class UserPreferences(
+    val darkMode: Boolean = false,
+    val fontSize: Float = 16f,
+    val language: String = "en"
+) : Parcelable
+
+@Parcelize
+data class SessionData(
+    val pagesVisited: Int = 0,
+    val startTime: Long = System.currentTimeMillis()
+) : Parcelable
+
+@Parcelize
+data class ContextualState(
+    val lastAction: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+) : Parcelable
+```
+
+## Custom Savers
+
+### Simple Custom Saver
+Create custom savers for non-Parcelable objects.
+
+```kotlin
+@Composable
+fun SimpleCustomSaverExample() {
+    // Custom saver for a simple data class
+    var theme by rememberSaveable(
+        saver = Saver(
+            save = { theme ->
+                mapOf(
+                    "name" to theme.name,
+                    "primary" to theme.primaryColor.toArgb(),
+                    "secondary" to theme.secondaryColor.toArgb(),
+                    "isDark" to theme.isDark
+                )
+            },
+            restore = { map ->
+                Theme(
+                    name = map["name"] as String,
+                    primaryColor = Color((map["primary"] as Int)),
+                    secondaryColor = Color((map["secondary"] as Int)),
+                    isDark = map["isDark"] as Boolean
+                )
+            }
+        )
+    ) { mutableStateOf(Theme.Default) }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Current Theme: ${theme.name}")
+        
+        Card {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Theme Preview")
+                Row {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(theme.primaryColor)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(theme.secondaryColor)
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text("Preset Themes:")
+        Theme.presets.forEach { preset ->
+            Button(
+                onClick = { theme = preset },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = preset.primaryColor
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(preset.name)
+            }
+        }
+    }
+}
+
+data class Theme(
+    val name: String,
+    val primaryColor: Color,
+    val secondaryColor: Color,
+    val isDark: Boolean
+) {
+    companion object {
+        val Default = Theme(
+            name = "Default",
+            primaryColor = Color.Blue,
+            secondaryColor = Color.LightGray,
+            isDark = false
+        )
+        
+        val presets = listOf(
+            Default,
+            Theme("Ocean", Color.Blue, Color.Cyan, false),
+            Theme("Forest", Color.Green, Color(0xFF8BC34A), false),
+            Theme("Sunset", Color.Red, Color.Yellow, false),
+            Theme("Night", Color.Black, Color.Gray, true)
+        )
+    }
+}
+```
+
+### Complex Custom Saver
+Advanced saver for complex objects with nested data.
+
+```kotlin
+@Composable
+fun ComplexCustomSaverExample() {
+    // Saver for complex shopping cart
+    val cartSaver = Saver<ShoppingCart, Map<String, Any>>(
+        save = { cart ->
+            mapOf(
+                "items" to cart.items.map { item ->
+                    mapOf(
+                        "id" to item.id,
+                        "name" to item.name,
+                        "price" to item.price,
+                        "quantity" to item.quantity,
+                        "category" to item.category
+                    )
+                },
+                "discountCode" to (cart.discountCode ?: ""),
+                "totalAmount" to cart.totalAmount
+            )
+        },
+        restore = { map ->
+            val items = (map["items"] as List<Map<String, Any>>).map { itemMap ->
+                CartItem(
+                    id = itemMap["id"] as String,
+                    name = itemMap["name"] as String,
+                    price = itemMap["price"] as Double,
+                    quantity = itemMap["quantity"] as Int,
+                    category = itemMap["category"] as String
+                )
+            }
+            ShoppingCart(
+                items = items,
+                discountCode = (map["discountCode"] as String).takeIf { it.isNotBlank() },
+                totalAmount = map["totalAmount"] as Double
+            )
+        }
+    )
+    
+    var cart by rememberSaveable(saver = cartSaver) {
+        mutableStateOf(ShoppingCart())
+    }
+    
+    var newItemName by rememberSaveable { mutableStateOf("") }
+    var newItemPrice by rememberSaveable { mutableStateOf("") }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Shopping Cart (${cart.items.size} items)")
+        Text("Total: $${String.format("%.2f", cart.totalAmount)}")
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Add Item")
+                TextField(
+                    value = newItemName,
+                    onValueChange = { newItemName = it },
+                    label = { Text("Item name") }
+                )
+                TextField(
+                    value = newItemPrice,
+                    onValueChange = { newItemPrice = it },
+                    label = { Text("Price") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                
+                Button(
+                    onClick = {
+                        val price = newItemPrice.toDoubleOrNull()
+                        if (newItemName.isNotBlank() && price != null) {
+                            val newItem = CartItem(
+                                id = "item_${System.currentTimeMillis()}",
+                                name = newItemName,
+                                price = price,
+                                quantity = 1,
+                                category = "General"
+                            )
+                            cart = cart.copy(
+                                items = cart.items + newItem,
+                                totalAmount = cart.totalAmount + price
+                            )
+                            newItemName = ""
+                            newItemPrice = ""
+                        }
+                    }
+                ) {
+                    Text("Add to Cart")
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        LazyColumn {
+            items(cart.items) { item ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(item.name, fontWeight = FontWeight.Bold)
+                            Text("$${String.format("%.2f", item.price)}")
+                        }
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = {
+                                    cart = cart.updateItemQuantity(item.id, item.quantity - 1)
+                                },
+                                enabled = item.quantity > 1
+                            ) {
+                                Text("-")
+                            }
+                            
+                            Text(
+                                text = "${item.quantity}",
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            
+                            Button(
+                                onClick = {
+                                    cart = cart.updateItemQuantity(item.id, item.quantity + 1)
+                                }
+                            ) {
+                                Text("+")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class CartItem(
+    val id: String,
+    val name: String,
+    val price: Double,
+    val quantity: Int,
+    val category: String
+)
+
+data class ShoppingCart(
+    val items: List<CartItem> = emptyList(),
+    val discountCode: String? = null,
+    val totalAmount: Double = 0.0
+) {
+    fun updateItemQuantity(itemId: String, newQuantity: Int): ShoppingCart {
+        val updatedItems = if (newQuantity <= 0) {
+            items.filter { it.id != itemId }
+        } else {
+            items.map { item ->
+                if (item.id == itemId) {
+                    item.copy(quantity = newQuantity)
+                } else {
+                    item
+                }
+            }
+        }
+        
+        val newTotal = updatedItems.sumOf { it.price * it.quantity }
+        return copy(items = updatedItems, totalAmount = newTotal)
+    }
+}
+```
+
+## List Savers
+
+### Handling List State
+Saving and restoring lists with custom savers.
+
+```kotlin
+@Composable
+fun ListSaverExample() {
+    // Custom saver for list of notes
+    val noteListSaver = listSaver<Note, Any>(
+        save = { note ->
+            listOf(note.id, note.title, note.content, note.timestamp, note.priority.ordinal)
+        },
+        restore = { list ->
+            Note(
+                id = list[0] as String,
+                title = list[1] as String,
+                content = list[2] as String,
+                timestamp = list[3] as Long,
+                priority = Priority.values()[list[4] as Int]
+            )
+        }
+    )
+    
+    var notes by rememberSaveable(saver = noteListSaver) {
+        mutableStateOf(listOf<Note>())
+    }
+    
+    var currentNote by rememberSaveable { mutableStateOf(Note.empty()) }
+    var isEditing by rememberSaveable { mutableStateOf(false) }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        if (isEditing) {
+            NoteEditor(
+                note = currentNote,
+                onNoteChange = { currentNote = it },
+                onSave = {
+                    notes = if (currentNote.id.isEmpty()) {
+                        // New note
+                        notes + currentNote.copy(
+                            id = "note_${System.currentTimeMillis()}",
+                            timestamp = System.currentTimeMillis()
+                        )
+                    } else {
+                        // Update existing
+                        notes.map { if (it.id == currentNote.id) currentNote else it }
+                    }
+                    currentNote = Note.empty()
+                    isEditing = false
+                },
+                onCancel = {
+                    currentNote = Note.empty()
+                    isEditing = false
+                }
+            )
+        } else {
+            // Notes list view
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Notes (${notes.size})", style = MaterialTheme.typography.headlineMedium)
+                Button(onClick = { isEditing = true }) {
+                    Text("Add Note")
+                }
+            }
+            
+            LazyColumn {
+                items(notes.sortedByDescending { it.timestamp }) { note ->
+                    NoteCard(
+                        note = note,
+                        onEdit = {
+                            currentNote = note
+                            isEditing = true
+                        },
+                        onDelete = {
+                            notes = notes.filter { it.id != note.id }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NoteEditor(
+    note: Note,
+    onNoteChange: (Note) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column {
+        TextField(
+            value = note.title,
+            onValueChange = { onNoteChange(note.copy(title = it)) },
+            label = { Text("Title") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        TextField(
+            value = note.content,
+            onValueChange = { onNoteChange(note.copy(content = it)) },
+            label = { Text("Content") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp),
+            maxLines = 10
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text("Priority")
+        Row {
+            Priority.values().forEach { priority ->
+                FilterChip(
+                    onClick = { onNoteChange(note.copy(priority = priority)) },
+                    label = { Text(priority.name) },
+                    selected = note.priority == priority
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Row {
+            Button(onClick = onSave) {
+                Text("Save")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedButton(onClick = onCancel) {
+                Text("Cancel")
+            }
+        }
+    }
+}
+
+@Composable
+fun NoteCard(
+    note: Note,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = note.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = note.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Priority: ${note.priority.name}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when (note.priority) {
+                            Priority.HIGH -> Color.Red
+                            Priority.MEDIUM -> Color.Orange
+                            Priority.LOW -> Color.Green
+                        }
+                    )
+                }
+                
+                Column {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class Note(
+    val id: String,
+    val title: String,
+    val content: String,
+    val timestamp: Long,
+    val priority: Priority
+) {
+    companion object {
+        fun empty() = Note("", "", "", 0L, Priority.MEDIUM)
+    }
+}
+
+enum class Priority {
+    LOW, MEDIUM, HIGH
+}
+```
+
+## Map Savers
+
+### Complex Map Structures
+Saving maps with complex key-value pairs.
+
+```kotlin
+@Composable
+fun MapSaverExample() {
+    // Custom saver for map with complex values
+    val settingsMapSaver = Saver<Map<String, AppSetting>, List<List<Any>>>(
+        save = { map ->
+            map.entries.map { entry ->
+                listOf(
+                    entry.key,
+                    entry.value.displayName,
+                    entry.value.value.toString(),
+                    entry.value.type.name,
+                    entry.value.isVisible
+                )
+            }
+        },
+        restore = { list ->
+            list.associate { item ->
+                val key = item[0] as String
+                val displayName = item[1] as String
+                val valueStr = item[2] as String
+                val typeName = item[3] as String
+                val isVisible = item[4] as Boolean
+                
+                val type = SettingType.valueOf(typeName)
+                val value: Any = when (type) {
+                    SettingType.STRING -> valueStr
+                    SettingType.BOOLEAN -> valueStr.toBoolean()
+                    SettingType.INTEGER -> valueStr.toInt()
+                    SettingType.FLOAT -> valueStr.toFloat()
+                }
+                
+                key to AppSetting(displayName, value, type, isVisible)
+            }
+        }
+    )
+    
+    var appSettings by rememberSaveable(saver = settingsMapSaver) {
+        mutableStateOf(getDefaultSettings())
+    }
+    
+    var selectedCategory by rememberSaveable { mutableStateOf("General") }
+    
+    val categories = appSettings.keys.map { key ->
+        key.split("_").first()
+    }.distinct()
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("App Settings", style = MaterialTheme.typography.headlineMedium)
+        
+        // Category tabs
+        ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
+            categories.forEachIndexed { index, category ->
+                Tab(
+                    selected = selectedCategory == category,
+                    onClick = { selectedCategory = category },
+                    text = { Text(category) }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Settings for selected category
+        val categorySettings = appSettings.filter { 
+            it.key.startsWith(selectedCategory) && it.value.isVisible 
+        }
+        
+        LazyColumn {
+            items(categorySettings.toList()) { (key, setting) ->
+                SettingItem(
+                    setting = setting,
+                    onValueChange = { newValue ->
+                        appSettings = appSettings.toMutableMap().apply {
+                            this[key] = setting.copy(value = newValue)
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Debug info
+        Text("Total settings: ${appSettings.size}")
+        Text("Visible settings: ${appSettings.count { it.value.isVisible }}")
+    }
+}
+
+@Composable
+fun SettingItem(
+    setting: AppSetting,
+    onValueChange: (Any) -> Unit
+) {
+    Card {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = setting.displayName,
+                style = MaterialTheme.typography.titleMedium
+            )
+            
+            when (setting.type) {
+                SettingType.BOOLEAN -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = setting.value as Boolean,
+                            onCheckedChange = onValueChange
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (setting.value as Boolean) "Enabled" else "Disabled")
+                    }
+                }
+                
+                SettingType.STRING -> {
+                    TextField(
+                        value = setting.value as String,
+                        onValueChange = onValueChange,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                SettingType.INTEGER -> {
+                    val value = setting.value as Int
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("$value")
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Slider(
+                            value = value.toFloat(),
+                            onValueChange = { onValueChange(it.toInt()) },
+                            valueRange = 0f..100f,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                
+                SettingType.FLOAT -> {
+                    val value = setting.value as Float
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("%.1f".format(value))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Slider(
+                            value = value,
+                            onValueChange = onValueChange,
+                            valueRange = 0f..1f,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class AppSetting(
+    val displayName: String,
+    val value: Any,
+    val type: SettingType,
+    val isVisible: Boolean = true
+)
+
+enum class SettingType {
+    STRING, BOOLEAN, INTEGER, FLOAT
+}
+
+private fun getDefaultSettings() = mapOf(
+    "General_theme" to AppSetting("Theme", "Light", SettingType.STRING),
+    "General_notifications" to AppSetting("Enable Notifications", true, SettingType.BOOLEAN),
+    "General_autoSave" to AppSetting("Auto Save", true, SettingType.BOOLEAN),
+    "Display_brightness" to AppSetting("Brightness", 80, SettingType.INTEGER),
+    "Display_fontSize" to AppSetting("Font Size", 16, SettingType.INTEGER),
+    "Display_contrast" to AppSetting("Contrast", 0.7f, SettingType.FLOAT),
+    "Audio_volume" to AppSetting("Volume", 75, SettingType.INTEGER),
+    "Audio_enableSound" to AppSetting("Enable Sound Effects", true, SettingType.BOOLEAN),
+    "Privacy_analytics" to AppSetting("Send Analytics", false, SettingType.BOOLEAN),
+    "Privacy_crashReports" to AppSetting("Send Crash Reports", true, SettingType.BOOLEAN)
+)
+```
+
+## Performance and Optimization
+
+### Efficient Saving Strategies
+Optimizing rememberSaveable for better performance.
+
+```kotlin
+@Composable
+fun OptimizedSaveableExample() {
+    // ✅ Good: Save only essential data
+    var essentialUserData by rememberSaveable(
+        saver = Saver(
+            save = { data ->
+                // Only save essential fields
+                mapOf(
+                    "id" to data.id,
+                    "name" to data.name,
+                    "lastActive" to data.lastActiveTime
+                )
+            },
+            restore = { map ->
+                EssentialUserData(
+                    id = map["id"] as String,
+                    name = map["name"] as String,
+                    lastActiveTime = map["lastActive"] as Long
+                )
+            }
+        )
+    ) { mutableStateOf(EssentialUserData()) }
+    
+    // ✅ Good: Use lazy initialization for expensive objects
+    val expensiveResource by rememberSaveable(
+        saver = Saver(
+            save = { resource -> resource.serialize() },
+            restore = { data -> ExpensiveResource.deserialize(data) }
+        )
+    ) {
+        mutableStateOf(lazy { ExpensiveResource.create() })
+    }
+    
+    // ✅ Good: Batch related state together
+    var formState by rememberSaveable(
+        saver = Saver(
+            save = { state ->
+                listOf(state.name, state.email, state.phone, state.isValid)
+            },
+            restore = { list ->
+                FormState(
+                    name = list[0] as String,
+                    email = list[1] as String,
+                    phone = list[2] as String,
+                    isValid = list[3] as Boolean
+                )
+            }
+        )
+    ) { mutableStateOf(FormState()) }
+    
+    // ❌ Avoid: Saving large, frequently changing data
+    // var largeCacheData by rememberSaveable { mutableStateOf(HugeDataSet()) }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("User: ${essentialUserData.name}")
+        Text("Last Active: ${essentialUserData.lastActiveTime}")
+        
+        TextField(
+            value = formState.name,
+            onValueChange = { 
+                formState = formState.copy(name = it)
+                essentialUserData = essentialUserData.copy(name = it)
+            },
+            label = { Text("Name") }
+        )
+        
+        TextField(
+            value = formState.email

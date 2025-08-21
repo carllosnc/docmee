@@ -6,7 +6,7 @@
 
 **Claude**
 
-[subject], give me a complete documentation about: "topic", focus on code examples with short description.
+[subject], give me a complete documentation about: "[topic]", focus on code examples with short description, use the latest version for examples.
 
 ---
 

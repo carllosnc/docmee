@@ -5,673 +5,270 @@ layout: ../../layout/main-layout.astro
 
 # State Management
 
-## Overview
-State management in Jetpack Compose is about handling data that can change over time and ensuring the UI reflects those changes. Compose uses a declarative approach where UI automatically updates when state changes.
+State management in Jetpack Compose is crucial for building reactive and dynamic UIs. Compose uses a declarative approach, where the UI is a function of state, and updates automatically when the state changes. This documentation focuses on practical code examples for managing state in Jetpack Compose, with brief descriptions of each approach.
 
-## Core Concepts
+## 1. Using `remember` for Local State
 
-### 1. remember() - Basic State Preservation
-Preserves state across recompositions but not configuration changes.
+The `remember` composable retains state across recompositions. It’s ideal for simple, local state within a composable.
 
 ```kotlin
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+
 @Composable
-fun CounterExample() {
-    var count by remember { mutableStateOf(0) }
+fun CounterScreen() {
+    var count by remember { mutableIntStateOf(0) }
     
-    Column {
+    Button(onClick = { count++ }) {
         Text("Count: $count")
-        Button(onClick = { count++ }) {
-            Text("Increment")
-        }
     }
 }
 ```
 
-### 2. rememberSaveable() - Configuration Change Survival
-Survives configuration changes like screen rotations using saved instance state.
+**Description**: The `count` variable is stored using `remember` with `mutableIntStateOf`, ensuring the state persists across recompositions. Clicking the button increments the count, triggering a UI update.
+
+## 2. Using `rememberSaveable` for Surviving Configuration Changes
+
+`rememberSaveable` preserves state across configuration changes (e.g., screen rotations) by saving state in a `Bundle`.
 
 ```kotlin
-@Composable
-fun PersistentCounter() {
-    var count by rememberSaveable { mutableStateOf(0) }
-    
-    Column {
-        Text("Persistent Count: $count")
-        Button(onClick = { count++ }) {
-            Text("Increment")
-        }
-    }
-}
-```
-
-### 3. MutableState vs MutableStateOf
-Direct state management with different approaches.
-
-```kotlin
-@Composable
-fun StateVariations() {
-    // Method 1: Using by delegate
-    var text by remember { mutableStateOf("") }
-    
-    // Method 2: Using MutableState directly
-    val textState = remember { mutableStateOf("") }
-    
-    Column {
-        TextField(
-            value = text,
-            onValueChange = { text = it }
-        )
-        
-        TextField(
-            value = textState.value,
-            onValueChange = { textState.value = it }
-        )
-    }
-}
-```
-
-## State Hoisting
-
-### Basic State Hoisting
-Moving state up to make composables stateless and reusable.
-
-```kotlin
-@Composable
-fun StatelessCounter(
-    count: Int,
-    onIncrement: () -> Unit
-) {
-    Column {
-        Text("Count: $count")
-        Button(onClick = onIncrement) {
-            Text("Increment")
-        }
-    }
-}
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.TextField
+import androidx.compose.material3.Text
 
 @Composable
-fun StatefulParent() {
-    var count by remember { mutableStateOf(0) }
+fun TextInputScreen() {
+    var text by rememberSaveable { mutableStateOf("") }
     
-    StatelessCounter(
-        count = count,
-        onIncrement = { count++ }
+    TextField(
+        value = text,
+        onValueChange = { text = it },
+        label = { Text("Enter text") }
     )
 }
 ```
 
-### Complex State Hoisting
-Managing multiple state variables in parent.
+**Description**: The `text` state is preserved using `rememberSaveable`, so it persists during configuration changes like rotation. The `TextField` updates the state as the user types.
+
+## 3. State Hoisting with Callbacks
+
+State hoisting moves state management to a higher level in the composable hierarchy, promoting reusability and testability.
 
 ```kotlin
-data class UserInput(
-    val name: String = "",
-    val email: String = "",
-    val isValid: Boolean = false
-)
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 
 @Composable
-fun UserForm(
-    userInput: UserInput,
-    onNameChange: (String) -> Unit,
-    onEmailChange: (String) -> Unit
-) {
-    Column {
-        TextField(
-            value = userInput.name,
-            onValueChange = onNameChange,
-            label = { Text("Name") }
-        )
-        
-        TextField(
-            value = userInput.email,
-            onValueChange = onEmailChange,
-            label = { Text("Email") }
-        )
-        
-        Text(
-            text = if (userInput.isValid) "Valid" else "Invalid",
-            color = if (userInput.isValid) Color.Green else Color.Red
-        )
-    }
+fun CounterScreen() {
+    var count by remember { mutableIntStateOf(0) }
+    CounterDisplay(count = count, onCountChange = { count++ })
 }
 
 @Composable
-fun UserFormContainer() {
-    var userInput by remember { mutableStateOf(UserInput()) }
-    
-    UserForm(
-        userInput = userInput,
-        onNameChange = { name ->
-            userInput = userInput.copy(
-                name = name,
-                isValid = name.isNotBlank() && userInput.email.contains("@")
-            )
-        },
-        onEmailChange = { email ->
-            userInput = userInput.copy(
-                email = email,
-                isValid = userInput.name.isNotBlank() && email.contains("@")
-            )
-        }
-    )
+fun CounterDisplay(count: Int, onCountChange: () -> Unit) {
+    Button(onClick = onCountChange) {
+        Text("Count: $count")
+    }
 }
 ```
 
-## ViewModel Integration
+**Description**: The `count` state is managed in `CounterScreen`, while `CounterDisplay` is a stateless composable that receives the state and a callback to modify it. This approach makes `CounterDisplay` reusable.
 
-### Basic ViewModel Usage
-Connecting Compose with ViewModels for business logic separation.
+## 4. Using ViewModel for Persistent State
+
+`ViewModel` manages UI-related data across configuration changes and process death, suitable for complex state logic.
 
 ```kotlin
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+
 class CounterViewModel : ViewModel() {
-    private val _count = MutableLiveData(0)
-    val count: LiveData<Int> = _count
+    var count by mutableStateOf(0)
+        private set
     
     fun increment() {
-        _count.value = (_count.value ?: 0) + 1
-    }
-    
-    fun decrement() {
-        _count.value = (_count.value ?: 0) - 1
+        count++
     }
 }
 
 @Composable
-fun CounterWithViewModel(viewModel: CounterViewModel = viewModel()) {
-    val count by viewModel.count.observeAsState(0)
-    
-    Column {
-        Text("Count: $count")
-        Row {
-            Button(onClick = { viewModel.increment() }) {
-                Text("+")
-            }
-            Button(onClick = { viewModel.decrement() }) {
-                Text("-")
-            }
-        }
+fun CounterScreen(viewModel: CounterViewModel = CounterViewModel()) {
+    Button(onClick = { viewModel.increment() }) {
+        Text("Count: ${viewModel.count}")
     }
 }
 ```
 
-### StateFlow with ViewModel
-Using StateFlow for reactive state management.
+**Description**: The `CounterViewModel` holds the `count` state and exposes an `increment` function. The composable observes the state and updates the UI when the count changes, surviving configuration changes.
+
+## 5. Using StateFlow for Reactive State
+
+`StateFlow` is used for reactive state management, often in conjunction with `ViewModel`, to handle asynchronous data streams.
 
 ```kotlin
-class UserViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(UserUiState())
-    val uiState: StateFlow<UserUiState> = _uiState.asStateFlow()
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+class TimerViewModel : ViewModel() {
+    private val _seconds = MutableStateFlow(0)
+    val seconds: StateFlow<Int> = _seconds
     
-    fun updateName(name: String) {
-        _uiState.value = _uiState.value.copy(name = name)
-    }
-    
-    fun updateEmail(email: String) {
-        _uiState.value = _uiState.value.copy(email = email)
-    }
-}
-
-data class UserUiState(
-    val name: String = "",
-    val email: String = "",
-    val isLoading: Boolean = false
-)
-
-@Composable
-fun UserScreen(viewModel: UserViewModel = viewModel()) {
-    val uiState by viewModel.uiState.collectAsState()
-    
-    Column {
-        TextField(
-            value = uiState.name,
-            onValueChange = viewModel::updateName,
-            label = { Text("Name") }
-        )
-        
-        TextField(
-            value = uiState.email,
-            onValueChange = viewModel::updateEmail,
-            label = { Text("Email") }
-        )
-        
-        if (uiState.isLoading) {
-            CircularProgressIndicator()
-        }
-    }
-}
-```
-
-## Advanced State Patterns
-
-### Custom State Holders
-Creating reusable state management logic.
-
-```kotlin
-class SearchState(
-    initialQuery: String = ""
-) {
-    var query by mutableStateOf(initialQuery)
-        private set
-    
-    var isSearching by mutableStateOf(false)
-        private set
-    
-    var results by mutableStateOf<List<String>>(emptyList())
-        private set
-    
-    fun updateQuery(newQuery: String) {
-        query = newQuery
-    }
-    
-    suspend fun performSearch() {
-        isSearching = true
-        // Simulate search
-        delay(1000)
-        results = listOf("Result 1", "Result 2", "Result 3")
-            .filter { it.contains(query, ignoreCase = true) }
-        isSearching = false
-    }
-}
-
-@Composable
-fun rememberSearchState(initialQuery: String = ""): SearchState {
-    return remember { SearchState(initialQuery) }
-}
-
-@Composable
-fun SearchScreen() {
-    val searchState = rememberSearchState()
-    val scope = rememberCoroutineScope()
-    
-    Column {
-        TextField(
-            value = searchState.query,
-            onValueChange = searchState::updateQuery,
-            label = { Text("Search") }
-        )
-        
-        Button(
-            onClick = { scope.launch { searchState.performSearch() } }
-        ) {
-            Text("Search")
-        }
-        
-        if (searchState.isSearching) {
-            CircularProgressIndicator()
-        } else {
-            LazyColumn {
-                items(searchState.results) { result ->
-                    Text(result)
-                }
-            }
-        }
-    }
-}
-```
-
-### Derived State
-Computing state from other state values automatically.
-
-```kotlin
-@Composable
-fun ShoppingCart() {
-    var items by remember { mutableStateOf(listOf<CartItem>()) }
-    
-    // Derived state - automatically recalculated when items change
-    val totalPrice by remember {
-        derivedStateOf {
-            items.sumOf { it.price * it.quantity }
-        }
-    }
-    
-    val itemCount by remember {
-        derivedStateOf { items.sumOf { it.quantity } }
-    }
-    
-    Column {
-        Text("Items: $itemCount")
-        Text("Total: $${totalPrice}")
-        
-        Button(
-            onClick = {
-                items = items + CartItem("New Item", 10.0, 1)
-            }
-        ) {
-            Text("Add Item")
-        }
-    }
-}
-
-data class CartItem(
-    val name: String,
-    val price: Double,
-    val quantity: Int
-)
-```
-
-### State with Side Effects
-Managing state that triggers side effects.
-
-```kotlin
-@Composable
-fun NetworkStatusExample() {
-    var isConnected by remember { mutableStateOf(true) }
-    
-    // Side effect that runs when isConnected changes
-    LaunchedEffect(isConnected) {
-        if (!isConnected) {
-            // Show offline message after delay
-            delay(2000)
-            // Perform offline actions
-        }
-    }
-    
-    Column {
-        Text(
-            text = if (isConnected) "Online" else "Offline",
-            color = if (isConnected) Color.Green else Color.Red
-        )
-        
-        Button(
-            onClick = { isConnected = !isConnected }
-        ) {
-            Text("Toggle Connection")
-        }
-    }
-}
-```
-
-## List State Management
-
-### Dynamic List Operations
-Managing lists with add, remove, and update operations.
-
-```kotlin
-@Composable
-fun TaskList() {
-    var tasks by remember { mutableStateOf(listOf<Task>()) }
-    var newTaskText by remember { mutableStateOf("") }
-    
-    Column {
-        Row {
-            TextField(
-                value = newTaskText,
-                onValueChange = { newTaskText = it },
-                label = { Text("New Task") }
-            )
-            
-            Button(
-                onClick = {
-                    if (newTaskText.isNotBlank()) {
-                        tasks = tasks + Task(
-                            id = tasks.size + 1,
-                            text = newTaskText,
-                            isCompleted = false
-                        )
-                        newTaskText = ""
-                    }
-                }
-            ) {
-                Text("Add")
-            }
-        }
-        
-        LazyColumn {
-            items(tasks, key = { it.id }) { task ->
-                TaskItem(
-                    task = task,
-                    onToggle = { taskId ->
-                        tasks = tasks.map { 
-                            if (it.id == taskId) it.copy(isCompleted = !it.isCompleted) 
-                            else it 
-                        }
-                    },
-                    onDelete = { taskId ->
-                        tasks = tasks.filter { it.id != taskId }
-                    }
-                )
+    fun startTimer() {
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(1000)
+                _seconds.value++
             }
         }
     }
 }
 
 @Composable
-fun TaskItem(
-    task: Task,
-    onToggle: (Int) -> Unit,
-    onDelete: (Int) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row {
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = { onToggle(task.id) }
-            )
-            Text(
-                text = task.text,
-                textDecoration = if (task.isCompleted) 
-                    TextDecoration.LineThrough else TextDecoration.None
-            )
-        }
-        
-        Button(onClick = { onDelete(task.id) }) {
-            Text("Delete")
-        }
-    }
-}
-
-data class Task(
-    val id: Int,
-    val text: String,
-    val isCompleted: Boolean
-)
-```
-
-## State Restoration
-
-### Custom Saver for Complex Objects
-Implementing custom state savers for complex data types.
-
-```kotlin
-data class User(
-    val name: String,
-    val email: String,
-    val age: Int
-)
-
-val UserSaver = Saver<User, Map<String, Any>>(
-    save = { user ->
-        mapOf(
-            "name" to user.name,
-            "email" to user.email,
-            "age" to user.age
-        )
-    },
-    restore = { map ->
-        User(
-            name = map["name"] as String,
-            email = map["email"] as String,
-            age = map["age"] as Int
-        )
-    }
-)
-
-@Composable
-fun UserProfile() {
-    var user by rememberSaveable(saver = UserSaver) {
-        mutableStateOf(User("", "", 0))
-    }
+fun TimerScreen(viewModel: TimerViewModel = viewModel()) {
+    val seconds by viewModel.seconds.collectAsState()
     
-    Column {
-        TextField(
-            value = user.name,
-            onValueChange = { user = user.copy(name = it) },
-            label = { Text("Name") }
-        )
-        
-        TextField(
-            value = user.email,
-            onValueChange = { user = user.copy(email = it) },
-            label = { Text("Email") }
-        )
-        
-        TextField(
-            value = user.age.toString(),
-            onValueChange = { 
-                user = user.copy(age = it.toIntOrNull() ?: 0)
-            },
-            label = { Text("Age") }
-        )
+    Button(onClick = { viewModel.startTimer() }) {
+        Text("Seconds: $seconds")
     }
 }
 ```
 
-## Best Practices
+**Description**: The `TimerViewModel` uses `StateFlow` to emit seconds. The composable collects the flow using `collectAsState`, updating the UI reactively as the timer increments.
 
-### 1. State Scope Management
-Keep state as close to where it's used as possible.
+## 6. Using LiveData with Compose
+
+`LiveData` can be used for state management, especially when integrating with legacy code or libraries.
 
 ```kotlin
-// ❌ Bad: State too high up
-@Composable
-fun App() {
-    var dialogVisible by remember { mutableStateOf(false) }
-    var buttonText by remember { mutableStateOf("Click me") }
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.MutableLiveData
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+class SwitchViewModel : ViewModel() {
+    private val _isEnabled = MutableLiveData(false)
+    val isEnabled: LiveData<Boolean> = _isEnabled
     
-    MainScreen(
-        dialogVisible = dialogVisible,
-        onDialogDismiss = { dialogVisible = false },
-        buttonText = buttonText,
-        onButtonClick = { dialogVisible = true }
+    fun toggle() {
+        _isEnabled.value = !(_isEnabled.value ?: false)
+    }
+}
+
+@Composable
+fun SwitchScreen(viewModel: SwitchViewModel = viewModel()) {
+    val isEnabled by viewModel.isEnabled.observeAsState(false)
+    
+    Button(onClick = { viewModel.toggle() }) {
+        Text(if (isEnabled) "ON" else "OFF")
+    }
+}
+```
+
+**Description**: The `SwitchViewModel` uses `LiveData` to manage a boolean state. The composable observes it with `observeAsState`, updating the UI when the state toggles.
+
+## 7. Managing State with CompositionLocal
+
+`CompositionLocal` provides a way to pass data implicitly through the composable tree, useful for app-wide state like themes.
+
+```kotlin
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+
+val LocalTheme = compositionLocalOf { false }
+
+@Composable
+fun ThemeApp() {
+    var isDarkTheme by remember { mutableStateOf(false) }
+    
+    CompositionLocalProvider(LocalTheme provides isDarkTheme) {
+        ThemeConsumer()
+    }
+}
+
+@Composable
+fun ThemeConsumer() {
+    val isDarkTheme = LocalTheme.current
+    
+    Button(onClick = { /* Toggle theme */ }) {
+        Text(if (isDarkTheme) "Dark Theme" else "Light Theme")
+    }
+}
+```
+
+**Description**: `LocalTheme` provides a boolean to indicate the theme. `CompositionLocalProvider` sets the theme value, which `ThemeConsumer` reads implicitly, avoiding prop drilling.
+
+## 8. Snapshot State with `derivedStateOf`
+
+`derivedStateOf` creates a state derived from other states, recomputing only when dependencies change.
+
+```kotlin
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.material3.TextField
+import androidx.compose.material3.Text
+
+@Composable
+fun FormScreen() {
+    var name by remember { mutableStateOf("") }
+    val isValid by remember { derivedStateOf { name.length >= 3 } }
+    
+    TextField(
+        value = name,
+        onValueChange = { name = it },
+        label = { Text("Name") }
     )
-}
-
-// ✅ Good: State at appropriate level
-@Composable
-fun MainScreen() {
-    var dialogVisible by remember { mutableStateOf(false) }
-    
-    Column {
-        Button(onClick = { dialogVisible = true }) {
-            Text("Click me")
-        }
-        
-        if (dialogVisible) {
-            AlertDialog(
-                onDismissRequest = { dialogVisible = false },
-                confirmButton = {
-                    TextButton(onClick = { dialogVisible = false }) {
-                        Text("OK")
-                    }
-                },
-                text = { Text("Dialog content") }
-            )
-        }
-    }
+    Text(if (isValid) "Valid name" else "Name too short")
 }
 ```
 
-### 2. Unidirectional Data Flow
-Always pass data down and events up.
+**Description**: The `isValid` state is derived from `name` using `derivedStateOf`. It updates only when `name` changes, optimizing recomposition.
 
-```kotlin
-@Composable
-fun ParentComponent() {
-    var items by remember { mutableStateOf(listOf<String>()) }
-    
-    // Data flows down, events flow up
-    ChildComponent(
-        items = items,  // Data down
-        onAddItem = { newItem ->  // Events up
-            items = items + newItem
-        }
-    )
-}
+## Key Points
 
-@Composable
-fun ChildComponent(
-    items: List<String>,
-    onAddItem: (String) -> Unit
-) {
-    // Use the provided data and callbacks
-    Column {
-        items.forEach { item ->
-            Text(item)
-        }
-        Button(onClick = { onAddItem("New Item") }) {
-            Text("Add Item")
-        }
-    }
-}
-```
+- **Use `remember`** for simple, local state.
+- **Use `rememberSaveable`** for state that needs to survive configuration changes.
+- **Hoist state** to make composables reusable and testable.
+- **Use ViewModel** for complex logic and process-death survival.
+- **Use StateFlow** for reactive streams, and `LiveData` for legacy integration.
+- **Use CompositionLocal** for implicit state passing.
+- **Use `derivedStateOf`** for computed state to optimize performance.
 
-### 3. Performance Optimization
-Use keys and stable references for better performance.
-
-```kotlin
-@Composable
-fun OptimizedList() {
-    var items by remember { mutableStateOf(listOf<Item>()) }
-    
-    // Stable callback reference
-    val onItemClick = remember {
-        { itemId: Int ->
-            items = items.map { 
-                if (it.id == itemId) it.copy(selected = !it.selected) 
-                else it 
-            }
-        }
-    }
-    
-    LazyColumn {
-        items(
-            items = items,
-            key = { it.id }  // Stable key for recomposition optimization
-        ) { item ->
-            ItemRow(
-                item = item,
-                onClick = onItemClick  // Stable reference
-            )
-        }
-    }
-}
-
-@Composable
-fun ItemRow(
-    item: Item,
-    onClick: (Int) -> Unit
-) {
-    Row(
-        modifier = Modifier.clickable { onClick(item.id) }
-    ) {
-        Text(item.name)
-        if (item.selected) {
-            Text("✓", color = Color.Green)
-        }
-    }
-}
-
-data class Item(
-    val id: Int,
-    val name: String,
-    val selected: Boolean = false
-)
-```
-
-## Summary
-
-State management in Jetpack Compose follows these key principles:
-
-1. **remember()** for local state preservation
-2. **rememberSaveable()** for configuration change survival
-3. **State hoisting** for reusable components
-4. **ViewModel integration** for business logic
-5. **Derived state** for computed values
-6. **Custom savers** for complex objects
-7. **Unidirectional data flow** for predictable updates
-
-Choose the appropriate state management approach based on your data's scope, lifecycle, and complexity requirements.
+These examples demonstrate practical state management techniques in Jetpack Compose, balancing simplicity and scalability.

@@ -1,0 +1,850 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Remember
+
+## Overview
+`remember` is a composable function that stores a value across recompositions. It's essential for maintaining state and expensive computations in Compose. The value is recalculated only when its keys change or the composable leaves the composition tree.
+
+## Basic Remember Usage
+
+### Simple Value Remembering
+Store primitive values and simple objects across recompositions.
+
+```kotlin
+@Composable
+fun BasicRememberExample() {
+    // Remember a simple counter value
+    val count = remember { mutableIntStateOf(0) }
+    
+    // Remember a string value
+    val text = remember { mutableStateOf("Hello World") }
+    
+    // Remember a boolean state
+    val isVisible = remember { mutableStateOf(true) }
+    
+    Column {
+        Text("Count: ${count.intValue}")
+        Button(onClick = { count.intValue++ }) {
+            Text("Increment")
+        }
+        
+        if (isVisible.value) {
+            TextField(
+                value = text.value,
+                onValueChange = { text.value = it }
+            )
+        }
+        
+        Button(onClick = { isVisible.value = !isVisible.value }) {
+            Text(if (isVisible.value) "Hide" else "Show")
+        }
+    }
+}
+```
+
+### Remember with Delegation
+Using `by` delegate for cleaner syntax.
+
+```kotlin
+@Composable
+fun DelegationExample() {
+    // Using by delegate for cleaner code
+    var counter by remember { mutableIntStateOf(0) }
+    var name by remember { mutableStateOf("") }
+    var isChecked by remember { mutableStateOf(false) }
+    
+    Column {
+        Text("Counter: $counter")
+        Button(onClick = { counter++ }) {
+            Text("Increment")
+        }
+        
+        TextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") }
+        )
+        
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = isChecked,
+                onCheckedChange = { isChecked = it }
+            )
+            Text("Enable notifications")
+        }
+    }
+}
+```
+
+## Remember with Keys
+
+### Single Key Dependency
+Recalculate remembered value when a specific key changes.
+
+```kotlin
+@Composable
+fun SingleKeyExample(userId: String) {
+    // Recalculate when userId changes
+    val userProfile = remember(userId) {
+        UserProfile(
+            id = userId,
+            name = "User $userId",
+            lastLogin = System.currentTimeMillis()
+        )
+    }
+    
+    // Remember expensive calculation based on userId
+    val userHash = remember(userId) {
+        userId.hashCode().toString()
+    }
+    
+    Column {
+        Text("Profile: ${userProfile.name}")
+        Text("Hash: $userHash")
+        Text("Last Login: ${userProfile.lastLogin}")
+    }
+}
+
+data class UserProfile(
+    val id: String,
+    val name: String,
+    val lastLogin: Long
+)
+```
+
+### Multiple Key Dependencies
+Remember values that depend on multiple inputs.
+
+```kotlin
+@Composable
+fun MultipleKeysExample(width: Int, height: Int, color: Color) {
+    // Recalculate when any of the keys change
+    val drawableSpec = remember(width, height, color) {
+        DrawableSpec(
+            width = width,
+            height = height,
+            color = color,
+            area = width * height
+        )
+    }
+    
+    // Remember a complex calculation
+    val formattedInfo = remember(width, height, color) {
+        "Size: ${width}x$height, Color: $color, Area: ${width * height}"
+    }
+    
+    Column {
+        Text(formattedInfo)
+        Box(
+            modifier = Modifier
+                .size(width.dp, height.dp)
+                .background(color)
+        )
+    }
+}
+
+data class DrawableSpec(
+    val width: Int,
+    val height: Int,
+    val color: Color,
+    val area: Int
+)
+```
+
+### Key with Null Safety
+Handling nullable keys properly.
+
+```kotlin
+@Composable
+fun NullableKeyExample(user: User?) {
+    // Only recalculate when non-null user changes
+    val welcomeMessage = remember(user?.id) {
+        user?.let { "Welcome, ${it.name}!" } ?: "Please log in"
+    }
+    
+    // Remember user preferences only when user exists
+    val preferences = remember(user) {
+        user?.let { 
+            UserPreferences(
+                theme = "dark",
+                language = "en",
+                notifications = true
+            )
+        }
+    }
+    
+    Column {
+        Text(welcomeMessage)
+        preferences?.let { prefs ->
+            Text("Theme: ${prefs.theme}")
+            Text("Language: ${prefs.language}")
+        }
+    }
+}
+
+data class User(val id: String, val name: String)
+data class UserPreferences(val theme: String, val language: String, val notifications: Boolean)
+```
+
+## Expensive Computations
+
+### Heavy Calculations
+Remember results of expensive operations.
+
+```kotlin
+@Composable
+fun ExpensiveComputationExample(numbers: List<Int>) {
+    // Remember expensive calculation result
+    val statistics = remember(numbers) {
+        Statistics(
+            sum = numbers.sum(),
+            average = numbers.average(),
+            max = numbers.maxOrNull() ?: 0,
+            min = numbers.minOrNull() ?: 0,
+            variance = calculateVariance(numbers)
+        )
+    }
+    
+    // Remember formatted string (avoid recreation on recomposition)
+    val summaryText = remember(statistics) {
+        "Sum: ${statistics.sum}, Avg: ${"%.2f".format(statistics.average)}, " +
+        "Range: ${statistics.min}-${statistics.max}"
+    }
+    
+    Column {
+        Text("Numbers: ${numbers.joinToString()}")
+        Text(summaryText)
+        Text("Variance: ${"%.2f".format(statistics.variance)}")
+    }
+}
+
+private fun calculateVariance(numbers: List<Int>): Double {
+    if (numbers.isEmpty()) return 0.0
+    val mean = numbers.average()
+    return numbers.map { (it - mean) * (it - mean) }.average()
+}
+
+data class Statistics(
+    val sum: Int,
+    val average: Double,
+    val max: Int,
+    val min: Int,
+    val variance: Double
+)
+```
+
+### Object Creation
+Remember expensive object instantiation.
+
+```kotlin
+@Composable
+fun ObjectCreationExample(config: AppConfig) {
+    // Remember expensive object creation
+    val imageProcessor = remember(config.quality, config.format) {
+        ImageProcessor(
+            quality = config.quality,
+            format = config.format,
+            compressionLevel = calculateCompressionLevel(config)
+        )
+    }
+    
+    // Remember complex data structure
+    val filterChain = remember(config) {
+        buildList {
+            if (config.enableBlur) add(BlurFilter())
+            if (config.enableSharpen) add(SharpenFilter())
+            if (config.enableContrast) add(ContrastFilter(config.contrastLevel))
+        }
+    }
+    
+    Column {
+        Text("Processor: ${imageProcessor.format}")
+        Text("Filters: ${filterChain.size}")
+        Text("Quality: ${config.quality}")
+    }
+}
+
+data class AppConfig(
+    val quality: Int,
+    val format: String,
+    val enableBlur: Boolean,
+    val enableSharpen: Boolean,
+    val enableContrast: Boolean,
+    val contrastLevel: Float
+)
+
+class ImageProcessor(val quality: Int, val format: String, val compressionLevel: Int)
+interface Filter
+class BlurFilter : Filter
+class SharpenFilter : Filter
+class ContrastFilter(val level: Float) : Filter
+
+private fun calculateCompressionLevel(config: AppConfig): Int = config.quality / 10
+```
+
+## Collections and Data Structures
+
+### List Operations
+Remember processed lists and collections.
+
+```kotlin
+@Composable
+fun ListOperationsExample(items: List<String>, filter: String) {
+    // Remember filtered list
+    val filteredItems = remember(items, filter) {
+        items.filter { it.contains(filter, ignoreCase = true) }
+    }
+    
+    // Remember sorted list
+    val sortedItems = remember(filteredItems) {
+        filteredItems.sortedBy { it.lowercase() }
+    }
+    
+    // Remember grouped data
+    val groupedItems = remember(sortedItems) {
+        sortedItems.groupBy { it.first().uppercase() }
+    }
+    
+    Column {
+        Text("Total: ${items.size}, Filtered: ${filteredItems.size}")
+        
+        LazyColumn {
+            groupedItems.forEach { (letter, groupItems) ->
+                item {
+                    Text(
+                        text = "--- $letter ---",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+                items(groupItems) { item ->
+                    Text(
+                        text = item,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+```
+
+### Map Transformations
+Remember transformed map operations.
+
+```kotlin
+@Composable
+fun MapTransformationsExample(userScores: Map<String, Int>) {
+    // Remember top performers
+    val topPerformers = remember(userScores) {
+        userScores.entries
+            .sortedByDescending { it.value }
+            .take(3)
+            .associate { it.key to it.value }
+    }
+    
+    // Remember score statistics
+    val scoreStats = remember(userScores) {
+        val scores = userScores.values
+        ScoreStatistics(
+            highest = scores.maxOrNull() ?: 0,
+            lowest = scores.minOrNull() ?: 0,
+            average = scores.average().toInt(),
+            total = scores.sum()
+        )
+    }
+    
+    // Remember performance categories
+    val categories = remember(userScores) {
+        userScores.entries.groupBy { entry ->
+            when {
+                entry.value >= 90 -> "Excellent"
+                entry.value >= 70 -> "Good"
+                entry.value >= 50 -> "Average"
+                else -> "Needs Improvement"
+            }
+        }
+    }
+    
+    Column {
+        Text("Score Statistics:")
+        Text("Highest: ${scoreStats.highest}")
+        Text("Average: ${scoreStats.average}")
+        Text("Total Players: ${userScores.size}")
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text("Top Performers:")
+        topPerformers.forEach { (name, score) ->
+            Text("$name: $score")
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text("Categories:")
+        categories.forEach { (category, users) ->
+            Text("$category: ${users.size} users")
+        }
+    }
+}
+
+data class ScoreStatistics(
+    val highest: Int,
+    val lowest: Int,
+    val average: Int,
+    val total: Int
+)
+```
+
+## Advanced Remember Patterns
+
+### Conditional Remember
+Remember values conditionally based on state.
+
+```kotlin
+@Composable
+fun ConditionalRememberExample(mode: String, data: String) {
+    // Conditionally remember different processors
+    val processor = remember(mode, data) {
+        when (mode) {
+            "json" -> JsonProcessor(data)
+            "xml" -> XmlProcessor(data)
+            "csv" -> CsvProcessor(data)
+            else -> PlainTextProcessor(data)
+        }
+    }
+    
+    // Remember validation result only if data is not empty
+    val validationResult = remember(data) {
+        if (data.isNotBlank()) {
+            ValidationResult(
+                isValid = data.length > 5,
+                errors = buildList {
+                    if (data.length <= 5) add("Data too short")
+                    if (!data.contains("@")) add("Missing @ symbol")
+                }
+            )
+        } else null
+    }
+    
+    Column {
+        Text("Mode: $mode")
+        Text("Processor: ${processor.type}")
+        
+        validationResult?.let { result ->
+            Text(
+                text = if (result.isValid) "Valid" else "Invalid",
+                color = if (result.isValid) Color.Green else Color.Red
+            )
+            result.errors.forEach { error ->
+                Text(error, color = Color.Red, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+abstract class DataProcessor(val data: String) {
+    abstract val type: String
+}
+class JsonProcessor(data: String) : DataProcessor(data) { override val type = "JSON" }
+class XmlProcessor(data: String) : DataProcessor(data) { override val type = "XML" }
+class CsvProcessor(data: String) : DataProcessor(data) { override val type = "CSV" }
+class PlainTextProcessor(data: String) : DataProcessor(data) { override val type = "Plain Text" }
+
+data class ValidationResult(val isValid: Boolean, val errors: List<String>)
+```
+
+### Remember with Side Effects
+Combining remember with effect handlers.
+
+```kotlin
+@Composable
+fun RememberWithEffectsExample(url: String) {
+    // Remember loading state
+    var loadingState by remember { mutableStateOf<LoadingState>(LoadingState.Idle) }
+    
+    // Remember cached data
+    val cache = remember { mutableMapOf<String, String>() }
+    
+    // Remember the current data for this URL
+    val currentData = remember(url) {
+        cache[url] ?: ""
+    }
+    
+    // Effect to load data when URL changes
+    LaunchedEffect(url) {
+        if (url.isNotBlank() && !cache.containsKey(url)) {
+            loadingState = LoadingState.Loading
+            try {
+                delay(2000) // Simulate network call
+                val data = "Data for $url loaded at ${System.currentTimeMillis()}"
+                cache[url] = data
+                loadingState = LoadingState.Success(data)
+            } catch (e: Exception) {
+                loadingState = LoadingState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+    
+    Column {
+        Text("URL: $url")
+        
+        when (val state = loadingState) {
+            is LoadingState.Idle -> Text("Enter a URL to load data")
+            is LoadingState.Loading -> {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                Text("Loading...")
+            }
+            is LoadingState.Success -> Text("Data: ${state.data}")
+            is LoadingState.Error -> Text("Error: ${state.message}", color = Color.Red)
+        }
+        
+        Text("Cache size: ${cache.size}")
+    }
+}
+
+sealed class LoadingState {
+    object Idle : LoadingState()
+    object Loading : LoadingState()
+    data class Success(val data: String) : LoadingState()
+    data class Error(val message: String) : LoadingState()
+}
+```
+
+## Performance Optimizations
+
+### Stable References
+Remember stable references for better performance.
+
+```kotlin
+@Composable
+fun StableReferencesExample(items: List<String>) {
+    var selectedItems by remember { mutableStateOf(setOf<String>()) }
+    
+    // Remember stable callback references
+    val onItemClick = remember {
+        { item: String ->
+            selectedItems = if (item in selectedItems) {
+                selectedItems - item
+            } else {
+                selectedItems + item
+            }
+        }
+    }
+    
+    val onClearAll = remember {
+        { selectedItems = emptySet() }
+    }
+    
+    val onSelectAll = remember(items) {
+        { selectedItems = items.toSet() }
+    }
+    
+    // Remember derived state
+    val selectionSummary = remember(selectedItems, items) {
+        "${selectedItems.size} of ${items.size} selected"
+    }
+    
+    Column {
+        Row {
+            Button(onClick = onSelectAll) { Text("Select All") }
+            Button(onClick = onClearAll) { Text("Clear") }
+        }
+        
+        Text(selectionSummary)
+        
+        LazyColumn {
+            items(items) { item ->
+                SelectableItem(
+                    text = item,
+                    isSelected = item in selectedItems,
+                    onClick = onItemClick // Stable reference
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectableItem(
+    text: String,
+    isSelected: Boolean,
+    onClick: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(text) }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = isSelected,
+            onCheckedChange = { onClick(text) }
+        )
+        Text(text)
+    }
+}
+```
+
+### Lazy Computations
+Remember expensive computations that are computed lazily.
+
+```kotlin
+@Composable
+fun LazyComputationsExample(inputSize: Int) {
+    // Remember lazy computation that's only executed when needed
+    val expensiveComputation = remember(inputSize) {
+        lazy {
+            // This will only run when .value is accessed
+            (1..inputSize).map { 
+                ComplexObject(
+                    id = it,
+                    data = generateComplexData(it),
+                    hash = it.toString().hashCode()
+                )
+            }
+        }
+    }
+    
+    var showResults by remember { mutableStateOf(false) }
+    
+    Column {
+        Text("Input size: $inputSize")
+        
+        Button(onClick = { showResults = !showResults }) {
+            Text(if (showResults) "Hide Results" else "Show Results")
+        }
+        
+        if (showResults) {
+            // Computation happens only here when accessed
+            val results = expensiveComputation.value
+            Text("Generated ${results.size} objects")
+            
+            LazyColumn {
+                items(results.take(5)) { obj ->
+                    Text("Object ${obj.id}: ${obj.data}")
+                }
+            }
+        }
+    }
+}
+
+data class ComplexObject(
+    val id: Int,
+    val data: String,
+    val hash: Int
+)
+
+private fun generateComplexData(id: Int): String {
+    return "ComplexData_$id_${System.currentTimeMillis()}"
+}
+```
+
+## Memory Management
+
+### Remember Cleanup
+Handling cleanup of remembered resources.
+
+```kotlin
+@Composable
+fun ResourceManagementExample(isActive: Boolean) {
+    // Remember resource that needs cleanup
+    val resource = remember(isActive) {
+        if (isActive) {
+            ManagedResource().apply {
+                initialize()
+            }
+        } else null
+    }
+    
+    // Cleanup effect when resource changes or composable leaves composition
+    DisposableEffect(resource) {
+        onDispose {
+            resource?.cleanup()
+        }
+    }
+    
+    // Remember disposable state
+    val disposableState = remember {
+        object : DisposableState {
+            private var isDisposed = false
+            
+            override fun use(): String {
+                return if (!isDisposed) "Resource is active" else "Resource disposed"
+            }
+            
+            override fun dispose() {
+                isDisposed = true
+            }
+        }
+    }
+    
+    DisposableEffect(Unit) {
+        onDispose {
+            disposableState.dispose()
+        }
+    }
+    
+    Column {
+        Text("Active: $isActive")
+        Text(resource?.status() ?: "No resource")
+        Text(disposableState.use())
+    }
+}
+
+class ManagedResource {
+    private var isInitialized = false
+    
+    fun initialize() {
+        isInitialized = true
+    }
+    
+    fun status(): String = if (isInitialized) "Initialized" else "Not initialized"
+    
+    fun cleanup() {
+        isInitialized = false
+    }
+}
+
+interface DisposableState {
+    fun use(): String
+    fun dispose()
+}
+```
+
+## Best Practices
+
+### Optimal Key Usage
+Best practices for using keys effectively.
+
+```kotlin
+@Composable
+fun OptimalKeyUsageExample(user: User, settings: Settings) {
+    // ✅ Good: Use specific properties as keys
+    val userDisplayName = remember(user.id, user.name) {
+        "${user.name} (${user.id})"
+    }
+    
+    // ✅ Good: Use relevant properties only
+    val themeConfig = remember(settings.isDarkMode, settings.accentColor) {
+        ThemeConfig(
+            isDark = settings.isDarkMode,
+            primary = settings.accentColor,
+            surface = if (settings.isDarkMode) Color.Black else Color.White
+        )
+    }
+    
+    // ❌ Avoid: Using entire object as key (may cause unnecessary recalculations)
+    // val badExample = remember(user) { ... }
+    
+    // ✅ Good: Use computed properties when needed
+    val isVipUser = remember(user.points, user.subscriptionLevel) {
+        user.points > 1000 && user.subscriptionLevel == "premium"
+    }
+    
+    Column {
+        Text(userDisplayName)
+        Text("VIP: $isVipUser")
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(themeConfig.primary)
+        )
+    }
+}
+
+data class User(
+    val id: String,
+    val name: String,
+    val points: Int,
+    val subscriptionLevel: String
+)
+
+data class Settings(
+    val isDarkMode: Boolean,
+    val accentColor: Color,
+    val fontSize: Int,
+    val language: String
+)
+
+data class ThemeConfig(
+    val isDark: Boolean,
+    val primary: Color,
+    val surface: Color
+)
+```
+
+### Avoiding Common Pitfalls
+Common mistakes and how to avoid them.
+
+```kotlin
+@Composable
+fun AvoidingPitfallsExample(text: String) {
+    // ❌ Wrong: Creating new object on every recomposition
+    // val processor = TextProcessor(text)
+    
+    // ✅ Correct: Remember the object
+    val processor = remember(text) { TextProcessor(text) }
+    
+    // ❌ Wrong: Unnecessary key (primitive values are compared by value)
+    // val uppercased = remember(text.hashCode()) { text.uppercase() }
+    
+    // ✅ Correct: Use the value directly as key
+    val uppercased = remember(text) { text.uppercase() }
+    
+    // ❌ Wrong: Using mutable objects as keys
+    // val mutableList = mutableListOf<String>()
+    // val result = remember(mutableList) { ... }
+    
+    // ✅ Correct: Use immutable keys or create stable snapshots
+    var items by remember { mutableStateOf(listOf<String>()) }
+    val processedItems = remember(items) {
+        items.map { it.trim().lowercase() }
+    }
+    
+    // ❌ Wrong: Side effects in remember block
+    // val data = remember {
+    //     performNetworkCall() // Wrong! Side effects should be in effects
+    // }
+    
+    // ✅ Correct: Use LaunchedEffect for side effects
+    var data by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(text) {
+        data = performNetworkCall(text)
+    }
+    
+    Column {
+        Text("Original: $text")
+        Text("Processed: ${processor.process()}")
+        Text("Uppercase: $uppercased")
+        Text("Items: ${processedItems.joinToString()}")
+        data?.let { Text("Data: $it") }
+    }
+}
+
+class TextProcessor(private val text: String) {
+    fun process(): String = text.reversed()
+}
+
+private suspend fun performNetworkCall(text: String): String {
+    delay(1000)
+    return "Network result for: $text"
+}
+```
+
+## Summary
+
+Key principles for using `remember` effectively:
+
+1. **Use appropriate keys**: Include only relevant dependencies that should trigger recalculation
+2. **Avoid expensive operations**: Remember results of heavy computations and object creations
+3. **Maintain stable references**: Remember callback functions and complex objects
+4. **Handle lifecycle properly**: Use `DisposableEffect` for cleanup when needed
+5. **Optimize performance**: Use specific properties as keys instead of entire objects
+6. **Avoid side effects**: Keep `remember` blocks pure, use effects for side effects
+
+Remember is fundamental to Compose performance - use it wisely to prevent unnecessary recalculations while ensuring your UI stays responsive to relevant changes.
