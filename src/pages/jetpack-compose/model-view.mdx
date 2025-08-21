@@ -1,0 +1,664 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Model-View
+
+## Table of Contents
+1. [Overview](#overview)
+2. [State Management](#state-management)
+3. [ViewModel Integration](#viewmodel-integration)
+4. [Data Classes as Models](#data-classes-as-models)
+5. [State Hoisting](#state-hoisting)
+6. [Repository Pattern](#repository-pattern)
+7. [Best Practices](#best-practices)
+
+## Overview
+
+In Jetpack Compose, the Model-View pattern emphasizes **unidirectional data flow** where:
+- **Model**: Holds the application state and business logic
+- **View**: Composable functions that display the UI based on the model state
+
+The key principle is that the UI is a function of state: `UI = f(state)`
+
+## State Management
+
+### Basic State with remember
+
+```kotlin
+@Composable
+fun CounterView() {
+    // Model: Simple state
+    var count by remember { mutableStateOf(0) }
+    
+    // View: UI representation
+    Column {
+        Text("Count: $count")
+        Button(onClick = { count++ }) {
+            Text("Increment")
+        }
+    }
+}
+```
+
+**Description**: Uses `remember` to preserve state across recompositions. The model is the `count` variable, and the view renders it.
+
+### Complex State with Data Classes
+
+```kotlin
+data class UserProfile(
+    val name: String = "",
+    val email: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+@Composable
+fun UserProfileView() {
+    // Model: Complex state object
+    var userState by remember { 
+        mutableStateOf(UserProfile()) 
+    }
+    
+    // View: Conditional rendering based on state
+    Column(modifier = Modifier.padding(16.dp)) {
+        if (userState.isLoading) {
+            CircularProgressIndicator()
+        } else {
+            TextField(
+                value = userState.name,
+                onValueChange = { newName ->
+                    userState = userState.copy(name = newName)
+                },
+                label = { Text("Name") }
+            )
+            
+            TextField(
+                value = userState.email,
+                onValueChange = { newEmail ->
+                    userState = userState.copy(email = newEmail)
+                },
+                label = { Text("Email") }
+            )
+            
+            userState.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+```
+
+**Description**: Uses immutable data classes as models. State updates create new instances using `copy()`, ensuring predictable state management.
+
+## ViewModel Integration
+
+### Basic ViewModel
+
+```kotlin
+class CounterViewModel : ViewModel() {
+    // Model: Private mutable state
+    private val _count = MutableLiveData(0)
+    val count: LiveData<Int> = _count
+    
+    // Business logic
+    fun increment() {
+        _count.value = (_count.value ?: 0) + 1
+    }
+    
+    fun decrement() {
+        _count.value = (_count.value ?: 0) - 1
+    }
+}
+
+@Composable
+fun CounterScreen(viewModel: CounterViewModel = viewModel()) {
+    // Observe model state
+    val count by viewModel.count.observeAsState(0)
+    
+    // View: UI that reacts to model changes
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Text(
+            text = "Count: $count",
+            style = MaterialTheme.typography.headlineMedium
+        )
+        
+        Row {
+            Button(onClick = { viewModel.decrement() }) {
+                Text("-")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { viewModel.increment() }) {
+                Text("+")
+            }
+        }
+    }
+}
+```
+
+**Description**: ViewModel holds the model state and business logic. Composables observe state changes and trigger actions through ViewModel methods.
+
+### StateFlow ViewModel
+
+```kotlin
+data class TodoItem(
+    val id: Int,
+    val text: String,
+    val isCompleted: Boolean = false
+)
+
+data class TodoState(
+    val items: List<TodoItem> = emptyList(),
+    val isLoading: Boolean = false
+)
+
+class TodoViewModel : ViewModel() {
+    // Model: StateFlow for reactive state
+    private val _state = MutableStateFlow(TodoState())
+    val state: StateFlow<TodoState> = _state.asStateFlow()
+    
+    fun addTodo(text: String) {
+        val currentItems = _state.value.items
+        val newItem = TodoItem(
+            id = currentItems.size + 1,
+            text = text
+        )
+        _state.value = _state.value.copy(
+            items = currentItems + newItem
+        )
+    }
+    
+    fun toggleTodo(id: Int) {
+        _state.value = _state.value.copy(
+            items = _state.value.items.map { item ->
+                if (item.id == id) {
+                    item.copy(isCompleted = !item.isCompleted)
+                } else item
+            }
+        )
+    }
+}
+
+@Composable
+fun TodoScreen(viewModel: TodoViewModel = viewModel()) {
+    // Collect StateFlow as Compose State
+    val state by viewModel.state.collectAsState()
+    var newTodoText by remember { mutableStateOf("") }
+    
+    // View: Reactive UI
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Input section
+        Row(modifier = Modifier.fillMaxWidth()) {
+            TextField(
+                value = newTodoText,
+                onValueChange = { newTodoText = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Add new todo") }
+            )
+            Button(
+                onClick = {
+                    if (newTodoText.isNotBlank()) {
+                        viewModel.addTodo(newTodoText)
+                        newTodoText = ""
+                    }
+                }
+            ) {
+                Text("Add")
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Todo list
+        LazyColumn {
+            items(state.items) { todo ->
+                TodoItemView(
+                    todo = todo,
+                    onToggle = { viewModel.toggleTodo(todo.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TodoItemView(
+    todo: TodoItem,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = todo.isCompleted,
+            onCheckedChange = { onToggle() }
+        )
+        Text(
+            text = todo.text,
+            modifier = Modifier.padding(start = 8.dp),
+            textDecoration = if (todo.isCompleted) {
+                TextDecoration.LineThrough
+            } else TextDecoration.None
+        )
+    }
+}
+```
+
+**Description**: Uses StateFlow for reactive state management. The model encapsulates both data and loading states, while the view reacts to state changes.
+
+## Data Classes as Models
+
+### Nested State Models
+
+```kotlin
+data class Address(
+    val street: String = "",
+    val city: String = "",
+    val zipCode: String = ""
+)
+
+data class User(
+    val id: Int = 0,
+    val name: String = "",
+    val email: String = "",
+    val address: Address = Address()
+)
+
+data class UserFormState(
+    val user: User = User(),
+    val isEditing: Boolean = false,
+    val validationErrors: Map<String, String> = emptyMap()
+)
+
+@Composable
+fun UserFormView() {
+    var formState by remember { mutableStateOf(UserFormState()) }
+    
+    fun updateUser(updater: (User) -> User) {
+        formState = formState.copy(user = updater(formState.user))
+    }
+    
+    Column(modifier = Modifier.padding(16.dp)) {
+        TextField(
+            value = formState.user.name,
+            onValueChange = { name ->
+                updateUser { it.copy(name = name) }
+            },
+            label = { Text("Name") },
+            isError = formState.validationErrors.containsKey("name")
+        )
+        
+        TextField(
+            value = formState.user.email,
+            onValueChange = { email ->
+                updateUser { it.copy(email = email) }
+            },
+            label = { Text("Email") },
+            isError = formState.validationErrors.containsKey("email")
+        )
+        
+        // Address fields
+        Text("Address", style = MaterialTheme.typography.headlineSmall)
+        
+        TextField(
+            value = formState.user.address.street,
+            onValueChange = { street ->
+                updateUser { user ->
+                    user.copy(address = user.address.copy(street = street))
+                }
+            },
+            label = { Text("Street") }
+        )
+        
+        TextField(
+            value = formState.user.address.city,
+            onValueChange = { city ->
+                updateUser { user ->
+                    user.copy(address = user.address.copy(city = city))
+                }
+            },
+            label = { Text("City") }
+        )
+    }
+}
+```
+
+**Description**: Demonstrates nested data models with immutable updates. Helper functions like `updateUser` simplify complex state updates.
+
+## State Hoisting
+
+### Child-Parent State Communication
+
+```kotlin
+data class SearchState(
+    val query: String = "",
+    val results: List<String> = emptyList(),
+    val isSearching: Boolean = false
+)
+
+@Composable
+fun SearchScreen() {
+    // Parent holds the model
+    var searchState by remember { mutableStateOf(SearchState()) }
+    
+    fun performSearch(query: String) {
+        searchState = searchState.copy(
+            query = query,
+            isSearching = true
+        )
+        
+        // Simulate search
+        // In real app, this would be in ViewModel
+        LaunchedEffect(query) {
+            delay(1000)
+            searchState = searchState.copy(
+                results = listOf("Result 1", "Result 2", "Result 3")
+                    .filter { it.contains(query, ignoreCase = true) },
+                isSearching = false
+            )
+        }
+    }
+    
+    Column {
+        // Child component receives state and callback
+        SearchBar(
+            query = searchState.query,
+            onQueryChange = { query ->
+                performSearch(query)
+            }
+        )
+        
+        SearchResults(
+            results = searchState.results,
+            isLoading = searchState.isSearching
+        )
+    }
+}
+
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text("Search") },
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+fun SearchResults(
+    results: List<String>,
+    isLoading: Boolean
+) {
+    when {
+        isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        results.isEmpty() -> {
+            Text("No results found")
+        }
+        else -> {
+            LazyColumn {
+                items(results) { result ->
+                    Text(
+                        text = result,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+```
+
+**Description**: State hoisting pattern where parent component manages the model state and passes it down to children along with event callbacks.
+
+## Repository Pattern
+
+### ViewModel with Repository
+
+```kotlin
+data class Product(
+    val id: Int,
+    val name: String,
+    val price: Double,
+    val description: String
+)
+
+data class ProductsState(
+    val products: List<Product> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+// Repository interface
+interface ProductRepository {
+    suspend fun getProducts(): List<Product>
+    suspend fun getProduct(id: Int): Product?
+}
+
+// Fake repository implementation
+class FakeProductRepository : ProductRepository {
+    private val products = listOf(
+        Product(1, "Laptop", 999.99, "High-performance laptop"),
+        Product(2, "Mouse", 29.99, "Wireless mouse"),
+        Product(3, "Keyboard", 79.99, "Mechanical keyboard")
+    )
+    
+    override suspend fun getProducts(): List<Product> {
+        delay(1000) // Simulate network delay
+        return products
+    }
+    
+    override suspend fun getProduct(id: Int): Product? {
+        delay(500)
+        return products.find { it.id == id }
+    }
+}
+
+class ProductsViewModel(
+    private val repository: ProductRepository = FakeProductRepository()
+) : ViewModel() {
+    
+    private val _state = MutableStateFlow(ProductsState())
+    val state: StateFlow<ProductsState> = _state.asStateFlow()
+    
+    init {
+        loadProducts()
+    }
+    
+    fun loadProducts() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            
+            try {
+                val products = repository.getProducts()
+                _state.value = _state.value.copy(
+                    products = products,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductsScreen(viewModel: ProductsViewModel = viewModel()) {
+    val state by viewModel.state.collectAsState()
+    
+    Column {
+        when {
+            state.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            
+            state.error != null -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Text(
+                        text = "Error: ${state.error}",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Button(onClick = { viewModel.loadProducts() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+            
+            else -> {
+                LazyColumn {
+                    items(state.products) { product ->
+                        ProductItemView(product = product)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductItemView(product: Product) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = product.name,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = "$${product.price}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = product.description,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+```
+
+**Description**: Repository pattern separates data access logic from ViewModel. The ViewModel manages UI state while Repository handles data operations.
+
+## Best Practices
+
+### 1. Immutable State Updates
+
+```kotlin
+// ❌ Don't mutate state directly
+data class AppState(val items: MutableList<String>)
+
+// ✅ Use immutable collections
+data class AppState(val items: List<String> = emptyList())
+
+@Composable
+fun GoodStateExample() {
+    var state by remember { mutableStateOf(AppState()) }
+    
+    // ✅ Create new state instances
+    fun addItem(item: String) {
+        state = state.copy(items = state.items + item)
+    }
+}
+```
+
+### 2. State Validation
+
+```kotlin
+data class FormState(
+    val email: String = "",
+    val password: String = "",
+    val errors: Map<String, String> = emptyMap()
+) {
+    fun validate(): FormState {
+        val newErrors = mutableMapOf<String, String>()
+        
+        if (!email.contains("@")) {
+            newErrors["email"] = "Invalid email format"
+        }
+        
+        if (password.length < 6) {
+            newErrors["password"] = "Password must be at least 6 characters"
+        }
+        
+        return copy(errors = newErrors)
+    }
+    
+    val isValid: Boolean
+        get() = errors.isEmpty() && email.isNotBlank() && password.isNotBlank()
+}
+```
+
+### 3. Loading States
+
+```kotlin
+sealed class UiState<out T> {
+    object Loading : UiState<Nothing>()
+    data class Success<T>(val data: T) : UiState<T>()
+    data class Error(val exception: Throwable) : UiState<Nothing>()
+}
+
+@Composable
+fun <T> UiStateHandler(
+    uiState: UiState<T>,
+    onLoading: @Composable () -> Unit = { 
+        CircularProgressIndicator() 
+    },
+    onError: @Composable (Throwable) -> Unit = { error ->
+        Text("Error: ${error.message}")
+    },
+    onSuccess: @Composable (T) -> Unit
+) {
+    when (uiState) {
+        is UiState.Loading -> onLoading()
+        is UiState.Error -> onError(uiState.exception)
+        is UiState.Success -> onSuccess(uiState.data)
+    }
+}
+```
+
+**Description**: These patterns ensure predictable state management, proper validation, and consistent handling of async operations in Compose applications.
+
+## Key Takeaways
+
+1. **Unidirectional Data Flow**: Data flows down, events flow up
+2. **Immutable State**: Always create new state instances instead of mutating existing ones
+3. **Single Source of Truth**: Keep state in the lowest common ancestor
+4. **State Hoisting**: Move state up when it needs to be shared
+5. **Separation of Concerns**: ViewModels handle business logic, Composables handle UI
+6. **Reactive Updates**: UI automatically updates when state changes

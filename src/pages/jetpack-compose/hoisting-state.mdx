@@ -1,0 +1,1001 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# State Hoisting
+
+## Overview
+State hoisting is a pattern in Jetpack Compose where you move state from a composable to its caller to make the composable stateless. This makes components more reusable, testable, and follows the unidirectional data flow principle. State is "hoisted" up the composition tree while events flow down.
+
+## Basic State Hoisting
+
+### Simple Hoisting Pattern
+Converting a stateful composable to a stateless one.
+
+```kotlin
+// ❌ Stateful composable (harder to reuse and test)
+@Composable
+fun StatefulCounter() {
+    var count by remember { mutableIntStateOf(0) }
+    
+    Column {
+        Text("Count: $count")
+        Button(onClick = { count++ }) {
+            Text("Increment")
+        }
+    }
+}
+
+// ✅ Stateless composable (reusable and testable)
+@Composable
+fun StatelessCounter(
+    count: Int,
+    onIncrement: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text("Count: $count")
+        Button(onClick = onIncrement) {
+            Text("Increment")
+        }
+    }
+}
+
+// ✅ State hoisted to parent
+@Composable
+fun CounterScreen() {
+    var count by remember { mutableIntStateOf(0) }
+    
+    StatelessCounter(
+        count = count,
+        onIncrement = { count++ }
+    )
+}
+```
+
+### Multiple State Variables
+Hoisting multiple related state variables.
+
+```kotlin
+// ❌ Stateful form component
+@Composable
+fun StatefulUserForm() {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var isValid by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(name, email) {
+        isValid = name.isNotBlank() && email.contains("@")
+    }
+    
+    UserFormContent(
+        name = name,
+        onNameChange = { name = it },
+        email = email,
+        onEmailChange = { email = it },
+        isValid = isValid
+    )
+}
+
+// ✅ Stateless form component
+@Composable
+fun StatelessUserForm(
+    name: String,
+    onNameChange: (String) -> Unit,
+    email: String,
+    onEmailChange: (String) -> Unit,
+    isValid: Boolean,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(16.dp)) {
+        TextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        TextField(
+            value = email,
+            onValueChange = onEmailChange,
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onSubmit,
+            enabled = isValid,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Submit")
+        }
+        
+        if (!isValid && (name.isNotBlank() || email.isNotBlank())) {
+            Text(
+                text = "Please fill all fields correctly",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+// ✅ State hoisted to parent with validation logic
+@Composable
+fun UserFormScreen() {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var submitMessage by remember { mutableStateOf("") }
+    
+    // Derived state
+    val isValid by remember(name, email) {
+        derivedStateOf {
+            name.isNotBlank() && email.contains("@") && email.length > 5
+        }
+    }
+    
+    Column {
+        StatelessUserForm(
+            name = name,
+            onNameChange = { name = it },
+            email = email,
+            onEmailChange = { email = it },
+            isValid = isValid,
+            onSubmit = {
+                submitMessage = "Form submitted for $name"
+            }
+        )
+        
+        if (submitMessage.isNotBlank()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = submitMessage,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+```
+
+## Data Classes for State
+
+### Grouping Related State
+Using data classes to manage related state variables together.
+
+```kotlin
+data class SearchState(
+    val query: String = "",
+    val isLoading: Boolean = false,
+    val results: List<SearchResult> = emptyList(),
+    val error: String? = null,
+    val selectedFilters: Set<String> = emptySet()
+)
+
+data class SearchResult(
+    val id: String,
+    val title: String,
+    val description: String,
+    val category: String
+)
+
+// ✅ Stateless search component
+@Composable
+fun SearchComponent(
+    searchState: SearchState,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onFilterToggle: (String) -> Unit,
+    onResultClick: (SearchResult) -> Unit,
+    availableFilters: List<String>,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(16.dp)) {
+        // Search input
+        TextField(
+            value = searchState.query,
+            onValueChange = onQueryChange,
+            label = { Text("Search") },
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                if (searchState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                } else {
+                    IconButton(onClick = onSearch) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                }
+            }
+        )
+        
+        // Filters
+        LazyRow(
+            modifier = Modifier.padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(availableFilters) { filter ->
+                FilterChip(
+                    onClick = { onFilterToggle(filter) },
+                    label = { Text(filter) },
+                    selected = filter in searchState.selectedFilters
+                )
+            }
+        }
+        
+        // Error state
+        searchState.error?.let { error ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = error,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+        
+        // Results
+        LazyColumn {
+            items(searchState.results) { result ->
+                SearchResultItem(
+                    result = result,
+                    onClick = { onResultClick(result) },
+                    isHighlighted = result.category in searchState.selectedFilters
+                )
+            }
+        }
+        
+        // Empty state
+        if (!searchState.isLoading && searchState.results.isEmpty() && searchState.query.isNotBlank()) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No results found for \"${searchState.query}\"",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchResultItem(
+    result: SearchResult,
+    onClick: () -> Unit,
+    isHighlighted: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHighlighted) 
+                MaterialTheme.colorScheme.primaryContainer 
+            else MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = result.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = result.description,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = result.category,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+// ✅ State hoisted to parent with business logic
+@Composable
+fun SearchScreen() {
+    var searchState by remember { mutableStateOf(SearchState()) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    val availableFilters = remember {
+        listOf("Technology", "Science", "Business", "Health", "Sports")
+    }
+    
+    SearchComponent(
+        searchState = searchState,
+        onQueryChange = { query ->
+            searchState = searchState.copy(query = query, error = null)
+        },
+        onSearch = {
+            coroutineScope.launch {
+                searchState = searchState.copy(isLoading = true, error = null)
+                try {
+                    delay(2000) // Simulate API call
+                    val results = performSearch(searchState.query, searchState.selectedFilters)
+                    searchState = searchState.copy(
+                        isLoading = false,
+                        results = results
+                    )
+                } catch (e: Exception) {
+                    searchState = searchState.copy(
+                        isLoading = false,
+                        error = e.message ?: "Search failed"
+                    )
+                }
+            }
+        },
+        onFilterToggle = { filter ->
+            val newFilters = if (filter in searchState.selectedFilters) {
+                searchState.selectedFilters - filter
+            } else {
+                searchState.selectedFilters + filter
+            }
+            searchState = searchState.copy(selectedFilters = newFilters)
+        },
+        onResultClick = { result ->
+            // Handle result click
+        },
+        availableFilters = availableFilters
+    )
+}
+
+private suspend fun performSearch(query: String, filters: Set<String>): List<SearchResult> {
+    // Simulate search logic
+    return listOf(
+        SearchResult("1", "Result 1 for $query", "Description 1", "Technology"),
+        SearchResult("2", "Result 2 for $query", "Description 2", "Science"),
+        SearchResult("3", "Result 3 for $query", "Description 3", "Business")
+    ).filter { result ->
+        filters.isEmpty() || result.category in filters
+    }
+}
+```
+
+## List State Hoisting
+
+### Managing List Operations
+Hoisting state for dynamic list management.
+
+```kotlin
+data class TodoItem(
+    val id: String,
+    val text: String,
+    val isCompleted: Boolean = false,
+    val priority: Priority = Priority.MEDIUM,
+    val dueDate: Long? = null
+)
+
+enum class Priority { LOW, MEDIUM, HIGH }
+
+// ✅ Stateless todo list component
+@Composable
+fun TodoList(
+    items: List<TodoItem>,
+    onItemToggle: (String) -> Unit,
+    onItemDelete: (String) -> Unit,
+    onItemEdit: (String, String) -> Unit,
+    onItemPriorityChange: (String, Priority) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(modifier = modifier) {
+        items(items, key = { it.id }) { item ->
+            TodoItemCard(
+                item = item,
+                onToggle = { onItemToggle(item.id) },
+                onDelete = { onItemDelete(item.id) },
+                onEdit = { newText -> onItemEdit(item.id, newText) },
+                onPriorityChange = { priority -> onItemPriorityChange(item.id, priority) }
+            )
+        }
+    }
+}
+
+@Composable
+fun TodoItemCard(
+    item: TodoItem,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: (String) -> Unit,
+    onPriorityChange: (Priority) -> Unit
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    var editText by remember(item.text) { mutableStateOf(item.text) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        if (isEditing) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                TextField(
+                    value = editText,
+                    onValueChange = { editText = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row {
+                    Button(
+                        onClick = {
+                            onEdit(editText)
+                            isEditing = false
+                        }
+                    ) {
+                        Text("Save")
+                    }
+                    TextButton(
+                        onClick = {
+                            editText = item.text
+                            isEditing = false
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = item.isCompleted,
+                    onCheckedChange = { onToggle() }
+                )
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.text,
+                        textDecoration = if (item.isCompleted) 
+                            TextDecoration.LineThrough else TextDecoration.None,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = {
+                                val nextPriority = when (item.priority) {
+                                    Priority.LOW -> Priority.MEDIUM
+                                    Priority.MEDIUM -> Priority.HIGH
+                                    Priority.HIGH -> Priority.LOW
+                                }
+                                onPriorityChange(nextPriority)
+                            },
+                            label = { Text(item.priority.name) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = when (item.priority) {
+                                    Priority.LOW -> Color.Green.copy(alpha = 0.2f)
+                                    Priority.MEDIUM -> Color.Orange.copy(alpha = 0.2f)
+                                    Priority.HIGH -> Color.Red.copy(alpha = 0.2f)
+                                }
+                            )
+                        )
+                        
+                        item.dueDate?.let { date ->
+                            Text(
+                                text = "Due: ${java.text.SimpleDateFormat("MMM dd", java.util.Locale.getDefault()).format(java.util.Date(date))}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                IconButton(onClick = { isEditing = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                }
+                
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
+            }
+        }
+    }
+}
+
+// ✅ Stateless add todo component
+@Composable
+fun AddTodoSection(
+    newTodoText: String,
+    onTextChange: (String) -> Unit,
+    onAddTodo: () -> Unit,
+    selectedPriority: Priority,
+    onPriorityChange: (Priority) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            TextField(
+                value = newTodoText,
+                onValueChange = onTextChange,
+                label = { Text("New todo") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onAddTodo() })
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Priority:")
+                Row {
+                    Priority.values().forEach { priority ->
+                        FilterChip(
+                            onClick = { onPriorityChange(priority) },
+                            label = { Text(priority.name) },
+                            selected = selectedPriority == priority
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Button(
+                onClick = onAddTodo,
+                enabled = newTodoText.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Add Todo")
+            }
+        }
+    }
+}
+
+// ✅ State hoisted to parent with all business logic
+@Composable
+fun TodoScreen() {
+    var todoItems by remember { mutableStateOf(getSampleTodos()) }
+    var newTodoText by remember { mutableStateOf("") }
+    var selectedPriority by remember { mutableStateOf(Priority.MEDIUM) }
+    var filterCompleted by remember { mutableStateOf(false) }
+    var sortBy by remember { mutableStateOf(SortBy.DATE_ADDED) }
+    
+    val filteredAndSortedItems = remember(todoItems, filterCompleted, sortBy) {
+        val filtered = if (filterCompleted) {
+            todoItems.filter { !it.isCompleted }
+        } else {
+            todoItems
+        }
+        
+        when (sortBy) {
+            SortBy.DATE_ADDED -> filtered
+            SortBy.PRIORITY -> filtered.sortedBy { it.priority }
+            SortBy.ALPHABETICAL -> filtered.sortedBy { it.text }
+            SortBy.COMPLETION -> filtered.sortedBy { it.isCompleted }
+        }
+    }
+    
+    Column {
+        // Filter and sort controls
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = filterCompleted,
+                        onCheckedChange = { filterCompleted = it }
+                    )
+                    Text("Hide completed")
+                }
+                
+                DropdownMenuBox(
+                    selectedValue = sortBy,
+                    onValueChange = { sortBy = it },
+                    options = SortBy.values().toList(),
+                    optionLabel = { it.displayName }
+                )
+            }
+        }
+        
+        // Add todo section
+        AddTodoSection(
+            newTodoText = newTodoText,
+            onTextChange = { newTodoText = it },
+            onAddTodo = {
+                val newTodo = TodoItem(
+                    id = "todo_${System.currentTimeMillis()}",
+                    text = newTodoText,
+                    priority = selectedPriority,
+                    dueDate = System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000) // Due in a week
+                )
+                todoItems = todoItems + newTodo
+                newTodoText = ""
+                selectedPriority = Priority.MEDIUM
+            },
+            selectedPriority = selectedPriority,
+            onPriorityChange = { selectedPriority = it }
+        )
+        
+        // Todo list
+        TodoList(
+            items = filteredAndSortedItems,
+            onItemToggle = { itemId ->
+                todoItems = todoItems.map { item ->
+                    if (item.id == itemId) {
+                        item.copy(isCompleted = !item.isCompleted)
+                    } else {
+                        item
+                    }
+                }
+            },
+            onItemDelete = { itemId ->
+                todoItems = todoItems.filter { it.id != itemId }
+            },
+            onItemEdit = { itemId, newText ->
+                todoItems = todoItems.map { item ->
+                    if (item.id == itemId) {
+                        item.copy(text = newText)
+                    } else {
+                        item
+                    }
+                }
+            },
+            onItemPriorityChange = { itemId, priority ->
+                todoItems = todoItems.map { item ->
+                    if (item.id == itemId) {
+                        item.copy(priority = priority)
+                    } else {
+                        item
+                    }
+                }
+            }
+        )
+        
+        // Statistics
+        val completedCount = todoItems.count { it.isCompleted }
+        val totalCount = todoItems.size
+        
+        if (totalCount > 0) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Progress: $completedCount/$totalCount completed (${(completedCount * 100 / totalCount)}%)",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun <T> DropdownMenuBox(
+    selectedValue: T,
+    onValueChange: (T) -> Unit,
+    options: List<T>,
+    optionLabel: (T) -> String,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Box(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = true }
+        ) {
+            Text(optionLabel(selectedValue))
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+        }
+        
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(optionLabel(option)) },
+                    onClick = {
+                        onValueChange(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+enum class SortBy(val displayName: String) {
+    DATE_ADDED("Date Added"),
+    PRIORITY("Priority"),
+    ALPHABETICAL("Alphabetical"),
+    COMPLETION("Completion Status")
+}
+
+private fun getSampleTodos() = listOf(
+    TodoItem("1", "Complete project documentation", false, Priority.HIGH),
+    TodoItem("2", "Review code changes", true, Priority.MEDIUM),
+    TodoItem("3", "Update dependencies", false, Priority.LOW),
+    TodoItem("4", "Write unit tests", false, Priority.HIGH),
+    TodoItem("5", "Fix UI bugs", true, Priority.MEDIUM)
+)
+```
+
+## Complex State Hoisting
+
+### Multi-Level State Hoisting
+Managing state across multiple composition levels.
+
+```kotlin
+// Top-level application state
+data class AppState(
+    val user: User? = null,
+    val theme: AppTheme = AppTheme.LIGHT,
+    val notifications: List<Notification> = emptyList(),
+    val isOnline: Boolean = true
+)
+
+data class User(
+    val id: String,
+    val name: String,
+    val email: String,
+    val preferences: UserPreferences
+)
+
+data class UserPreferences(
+    val language: String = "en",
+    val autoSave: Boolean = true,
+    val notificationsEnabled: Boolean = true
+)
+
+data class Notification(
+    val id: String,
+    val title: String,
+    val message: String,
+    val timestamp: Long,
+    val isRead: Boolean = false
+)
+
+enum class AppTheme { LIGHT, DARK, SYSTEM }
+
+// ✅ Top-level stateless app
+@Composable
+fun App(
+    appState: AppState,
+    onUserLogin: (User) -> Unit,
+    onUserLogout: () -> Unit,
+    onThemeChange: (AppTheme) -> Unit,
+    onNotificationRead: (String) -> Unit,
+    onNotificationDismiss: (String) -> Unit,
+    onPreferencesUpdate: (UserPreferences) -> Unit
+) {
+    MaterialTheme(
+        colorScheme = when (appState.theme) {
+            AppTheme.LIGHT -> lightColorScheme()
+            AppTheme.DARK -> darkColorScheme()
+            AppTheme.SYSTEM -> if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+        }
+    ) {
+        Surface {
+            if (appState.user == null) {
+                LoginScreen(onUserLogin = onUserLogin)
+            } else {
+                MainAppContent(
+                    user = appState.user,
+                    notifications = appState.notifications,
+                    currentTheme = appState.theme,
+                    isOnline = appState.isOnline,
+                    onUserLogout = onUserLogout,
+                    onThemeChange = onThemeChange,
+                    onNotificationRead = onNotificationRead,
+                    onNotificationDismiss = onNotificationDismiss,
+                    onPreferencesUpdate = onPreferencesUpdate
+                )
+            }
+        }
+    }
+}
+
+// ✅ Stateless main app content
+@Composable
+fun MainAppContent(
+    user: User,
+    notifications: List<Notification>,
+    currentTheme: AppTheme,
+    isOnline: Boolean,
+    onUserLogout: () -> Unit,
+    onThemeChange: (AppTheme) -> Unit,
+    onNotificationRead: (String) -> Unit,
+    onNotificationDismiss: (String) -> Unit,
+    onPreferencesUpdate: (UserPreferences) -> Unit
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    
+    Column {
+        // Top app bar with notifications
+        TopAppBar(
+            title = { Text("Welcome, ${user.name}") },
+            actions = {
+                if (!isOnline) {
+                    Icon(
+                        Icons.Default.CloudOff,
+                        contentDescription = "Offline",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                NotificationButton(
+                    notifications = notifications,
+                    onNotificationRead = onNotificationRead,
+                    onNotificationDismiss = onNotificationDismiss
+                )
+                
+                IconButton(onClick = onUserLogout) {
+                    Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+                }
+            }
+        )
+        
+        // Tab navigation
+        TabRow(selectedTabIndex = selectedTab) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("Home") }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("Profile") }
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text("Settings") }
+            )
+        }
+        
+        // Tab content
+        when (selectedTab) {
+            0 -> HomeTab(user = user, isOnline = isOnline)
+            1 -> ProfileTab(
+                user = user,
+                onPreferencesUpdate = onPreferencesUpdate
+            )
+            2 -> SettingsTab(
+                currentTheme = currentTheme,
+                preferences = user.preferences,
+                onThemeChange = onThemeChange,
+                onPreferencesUpdate = onPreferencesUpdate
+            )
+        }
+    }
+}
+
+// ✅ Stateless notification component
+@Composable
+fun NotificationButton(
+    notifications: List<Notification>,
+    onNotificationRead: (String) -> Unit,
+    onNotificationDismiss: (String) -> Unit
+) {
+    var showDropdown by remember { mutableStateOf(false) }
+    val unreadCount = notifications.count { !it.isRead }
+    
+    Box {
+        BadgedBox(
+            badge = {
+                if (unreadCount > 0) {
+                    Badge {
+                        Text(unreadCount.toString())
+                    }
+                }
+            }
+        ) {
+            IconButton(onClick = { showDropdown = true }) {
+                Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+            }
+        }
+        
+        DropdownMenu(
+            expanded = showDropdown,
+            onDismissRequest = { showDropdown = false }
+        ) {
+            if (notifications.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No notifications") },
+                    onClick = { }
+                )
+            } else {
+                notifications.take(5).forEach { notification ->
+                    NotificationItem(
+                        notification = notification,
+                        onRead = { 
+                            onNotificationRead(notification.id)
+                            showDropdown = false
+                        },
+                        onDismiss = {
+                            onNotificationDismiss(notification.id)
+                        }
+                    )
+                }
+                
+                if (notifications.size > 5) {
+                    DropdownMenuItem(
+                        text = { Text("View all notifications") },
+                        onClick = { showDropdown = false }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NotificationItem(
+    notification: Notification,
+    onRead: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    DropdownMenuItem(
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = notification.title,
+                        fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(16.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = notification.message,
+                    style
