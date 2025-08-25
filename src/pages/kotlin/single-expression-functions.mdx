@@ -1,0 +1,330 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Single-Expression Functions
+
+## Overview
+
+Single-expression functions in Kotlin are a concise way to define functions that consist of only one expression. They eliminate the need for curly braces and explicit return statements, making code more readable and compact.
+
+## Basic Syntax
+
+### Traditional Function vs Single-Expression Function
+
+```kotlin
+// Traditional function
+fun add(a: Int, b: Int): Int {
+    return a + b
+}
+
+// Single-expression function
+fun add(a: Int, b: Int): Int = a + b
+
+// Type inference - return type can be omitted
+fun add(a: Int, b: Int) = a + b
+```
+
+## Type Inference
+
+Kotlin can automatically infer the return type for single-expression functions:
+
+```kotlin
+// Explicit return type
+fun multiply(x: Int, y: Int): Int = x * y
+
+// Inferred return type (recommended)
+fun multiply(x: Int, y: Int) = x * y
+
+// String example
+fun greet(name: String) = "Hello, $name!"
+
+// Boolean example
+fun isEven(number: Int) = number % 2 == 0
+```
+
+## Mathematical Operations
+
+```kotlin
+// Basic arithmetic
+fun square(x: Int) = x * x
+fun cube(x: Int) = x * x * x
+fun average(a: Double, b: Double) = (a + b) / 2
+
+// More complex calculations
+fun circleArea(radius: Double) = Math.PI * radius * radius
+fun pythagoras(a: Double, b: Double) = Math.sqrt(a * a + b * b)
+fun factorial(n: Int) = if (n <= 1) 1 else n * factorial(n - 1)
+```
+
+## String Operations
+
+```kotlin
+// String manipulation
+fun capitalize(str: String) = str.uppercase()
+fun reverse(str: String) = str.reversed()
+fun initials(firstName: String, lastName: String) = "${firstName.first()}.${lastName.first()}."
+
+// String validation
+fun isValidEmail(email: String) = email.contains("@") && email.contains(".")
+fun isEmpty(str: String?) = str.isNullOrEmpty()
+fun hasMinLength(str: String, minLength: Int) = str.length >= minLength
+```
+
+## Collection Operations
+
+```kotlin
+// List operations
+fun firstElement(list: List<String>) = list.firstOrNull()
+fun lastElement(list: List<String>) = list.lastOrNull()
+fun listSize(list: List<Any>) = list.size
+
+// Filtering and mapping
+fun evenNumbers(numbers: List<Int>) = numbers.filter { it % 2 == 0 }
+fun doubleValues(numbers: List<Int>) = numbers.map { it * 2 }
+fun sumOfSquares(numbers: List<Int>) = numbers.map { it * it }.sum()
+
+// Collection checks
+fun containsValue(list: List<Int>, value: Int) = list.contains(value)
+fun isEmpty(list: List<Any>) = list.isEmpty()
+fun hasAnyNegative(numbers: List<Int>) = numbers.any { it < 0 }
+```
+
+## Conditional Expressions
+
+```kotlin
+// Simple conditionals
+fun absoluteValue(x: Int) = if (x < 0) -x else x
+fun maxValue(a: Int, b: Int) = if (a > b) a else b
+fun minValue(a: Int, b: Int) = if (a < b) a else b
+
+// Grade calculation
+fun getGrade(score: Int) = when {
+    score >= 90 -> "A"
+    score >= 80 -> "B"
+    score >= 70 -> "C"
+    score >= 60 -> "D"
+    else -> "F"
+}
+
+// Status determination
+fun getStatus(age: Int) = when {
+    age < 13 -> "Child"
+    age < 20 -> "Teenager"
+    age < 65 -> "Adult"
+    else -> "Senior"
+}
+```
+
+## Object Property Access
+
+```kotlin
+data class Person(val name: String, val age: Int)
+data class Point(val x: Double, val y: Double)
+
+// Property accessors
+fun personName(person: Person) = person.name
+fun personAge(person: Person) = person.age
+fun isAdult(person: Person) = person.age >= 18
+
+// Calculated properties
+fun distanceFromOrigin(point: Point) = Math.sqrt(point.x * point.x + point.y * point.y)
+fun personInfo(person: Person) = "${person.name} is ${person.age} years old"
+```
+
+## Nullable Types and Safe Calls
+
+```kotlin
+// Null safety
+fun safeLength(str: String?) = str?.length ?: 0
+fun safeUppercase(str: String?) = str?.uppercase() ?: ""
+fun isNotNull(value: Any?) = value != null
+
+// Elvis operator usage
+fun defaultName(name: String?) = name ?: "Unknown"
+fun nonEmptyString(str: String?) = str?.takeIf { it.isNotEmpty() } ?: "Empty"
+```
+
+## Extension Functions as Single Expressions
+
+```kotlin
+// String extensions
+fun String.isEmail() = this.contains("@") && this.contains(".")
+fun String.wordCount() = this.split("\\s+".toRegex()).size
+fun String.removeSpaces() = this.replace(" ", "")
+
+// List extensions
+fun <T> List<T>.secondOrNull() = if (this.size >= 2) this[1] else null
+fun List<Int>.sumOfEvens() = this.filter { it % 2 == 0 }.sum()
+fun <T> List<T>.isNotEmpty() = this.size > 0
+
+// Number extensions
+fun Int.isPositive() = this > 0
+fun Double.roundToTwoDecimals() = Math.round(this * 100.0) / 100.0
+```
+
+## Higher-Order Functions
+
+```kotlin
+// Functions that take functions as parameters
+fun <T> applyTwice(value: T, operation: (T) -> T) = operation(operation(value))
+fun <T> applyIf(value: T, condition: Boolean, operation: (T) -> T) = if (condition) operation(value) else value
+
+// Function composition
+fun <A, B, C> compose(f: (B) -> C, g: (A) -> B): (A) -> C = { a -> f(g(a)) }
+
+// Practical examples
+fun doubleIfPositive(x: Int) = applyIf(x, x > 0) { it * 2 }
+fun processString(str: String) = applyTwice(str) { it.trim().uppercase() }
+```
+
+## Lambda Expressions in Single-Expression Functions
+
+```kotlin
+// Returning lambdas
+fun createMultiplier(factor: Int) = { x: Int -> x * factor }
+fun createGreeter(greeting: String) = { name: String -> "$greeting, $name!" }
+fun createValidator(minLength: Int) = { str: String -> str.length >= minLength }
+
+// Usage examples
+val double = createMultiplier(2)
+val hello = createGreeter("Hello")
+val isValidPassword = createValidator(8)
+
+// Result: double(5) = 10, hello("World") = "Hello, World!"
+```
+
+## Generic Single-Expression Functions
+
+```kotlin
+// Generic functions
+fun <T> identity(value: T) = value
+fun <T> firstOf(a: T, b: T, predicate: (T) -> Boolean) = if (predicate(a)) a else b
+fun <T> swap(pair: Pair<T, T>) = Pair(pair.second, pair.first)
+
+// Generic collection functions
+fun <T> List<T>.head() = this.firstOrNull()
+fun <T> List<T>.tail() = this.drop(1)
+fun <T, R> List<T>.mapNotNull(transform: (T) -> R?) = this.mapNotNull(transform)
+```
+
+## Advanced Examples
+
+### Working with Data Classes
+
+```kotlin
+data class User(val id: Int, val name: String, val email: String, val isActive: Boolean)
+data class Order(val id: Int, val userId: Int, val amount: Double, val isPaid: Boolean)
+
+// User operations
+fun isValidUser(user: User) = user.name.isNotEmpty() && user.email.contains("@")
+fun activeUserName(user: User) = if (user.isActive) user.name else "Inactive User"
+fun userDisplayName(user: User) = "${user.name} (${user.email})"
+
+// Order operations
+fun orderTotal(orders: List<Order>) = orders.sumOf { it.amount }
+fun paidOrders(orders: List<Order>) = orders.filter { it.isPaid }
+fun unpaidAmount(orders: List<Order>) = orders.filterNot { it.isPaid }.sumOf { it.amount }
+```
+
+### Date and Time Operations
+
+```kotlin
+import java.time.LocalDate
+import java.time.Period
+
+fun isWeekend(date: LocalDate) = date.dayOfWeek.value >= 6
+fun ageInYears(birthDate: LocalDate) = Period.between(birthDate, LocalDate.now()).years
+fun isLeapYear(year: Int) = LocalDate.of(year, 1, 1).isLeapYear
+fun daysBetween(start: LocalDate, end: LocalDate) = Period.between(start, end).days
+```
+
+### Validation Functions
+
+```kotlin
+// Input validation
+fun isValidAge(age: Int) = age in 0..150
+fun isValidPassword(password: String) = password.length >= 8 && password.any { it.isDigit() }
+fun isValidPhoneNumber(phone: String) = phone.matches(Regex("\\+?[1-9]\\d{1,14}"))
+fun isValidUrl(url: String) = url.startsWith("http://") || url.startsWith("https://")
+
+// Business logic validation
+fun canVote(age: Int) = age >= 18
+fun canRetire(age: Int) = age >= 65
+fun isDiscountEligible(age: Int) = age >= 60 || age <= 12
+```
+
+## Best Practices
+
+### When to Use Single-Expression Functions
+
+✅ **Good use cases:**
+- Simple calculations
+- Property accessors
+- Basic transformations
+- Validation functions
+- Simple conditional logic
+
+```kotlin
+// ✅ Excellent for simple operations
+fun tax(amount: Double) = amount * 0.08
+fun fullName(first: String, last: String) = "$first $last"
+fun isAdult(age: Int) = age >= 18
+```
+
+### When NOT to Use Single-Expression Functions
+
+❌ **Avoid for:**
+- Complex logic requiring multiple steps
+- Functions with side effects
+- Error handling with try-catch
+- Functions that need debugging
+
+```kotlin
+// ❌ Better as regular function
+fun processUserData(user: User): String {
+    validateUser(user)
+    logUserAccess(user.id)
+    return formatUserInfo(user)
+}
+```
+
+### Style Guidelines
+
+```kotlin
+// ✅ Good: Clear and readable
+fun discount(price: Double, rate: Double) = price * (1 - rate)
+
+// ✅ Good: Appropriate line breaks for longer expressions
+fun isValidInput(input: String?) = 
+    input != null && input.isNotEmpty() && input.length <= 100
+
+// ❌ Avoid: Too complex for single expression
+fun complexCalculation(a: Int, b: Int) = 
+    if (a > 0) (a * b + Math.sqrt(a.toDouble()) * Math.PI).toInt() 
+    else factorial(Math.abs(a)) * b
+```
+
+## Performance Considerations
+
+Single-expression functions have the same performance characteristics as regular functions. The Kotlin compiler optimizes them equally well:
+
+```kotlin
+// Both compile to identical bytecode
+fun regularAdd(a: Int, b: Int): Int {
+    return a + b
+}
+
+fun expressionAdd(a: Int, b: Int) = a + b
+```
+
+## Conclusion
+
+Single-expression functions are a powerful feature in Kotlin that promotes:
+- **Conciseness**: Less boilerplate code
+- **Readability**: Clear intent with minimal syntax
+- **Functional style**: Encourages immutable, side-effect-free functions
+- **Type safety**: Leverage Kotlin's type inference
+
+Use them for simple, pure functions where the logic can be expressed clearly in a single expression. For complex operations, stick with traditional function syntax for better maintainability.

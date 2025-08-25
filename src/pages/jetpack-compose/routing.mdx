@@ -1,0 +1,462 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Navigation Routing
+
+## Overview
+Navigation in Jetpack Compose is handled by the Navigation Compose library, which provides a declarative way to navigate between composables. This documentation covers routing concepts with practical examples using the latest version (2.7.x).
+
+## Setup
+
+Add the dependency to your `build.gradle` file:
+
+```kotlin
+implementation "androidx.navigation:navigation-compose:2.7.6"
+```
+
+## Basic Navigation Setup
+
+### 1. Creating a NavController
+
+```kotlin
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        composable("home") { HomeScreen(navController) }
+        composable("profile") { ProfileScreen(navController) }
+    }
+}
+```
+
+**Description**: `rememberNavController()` creates and remembers a NavController instance across recompositions.
+
+### 2. Simple Navigation Between Screens
+
+```kotlin
+@Composable
+fun HomeScreen(navController: NavController) {
+    Column {
+        Text("Home Screen")
+        Button(onClick = { navController.navigate("profile") }) {
+            Text("Go to Profile")
+        }
+    }
+}
+
+@Composable
+fun ProfileScreen(navController: NavController) {
+    Column {
+        Text("Profile Screen")
+        Button(onClick = { navController.popBackStack() }) {
+            Text("Back")
+        }
+    }
+}
+```
+
+**Description**: Use `navigate()` to move forward and `popBackStack()` to go back.
+
+## Route Parameters
+
+### 3. Passing Simple Arguments
+
+```kotlin
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        composable("home") { 
+            HomeScreen { userId ->
+                navController.navigate("profile/$userId")
+            }
+        }
+        composable(
+            route = "profile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ProfileScreen(userId = userId, navController = navController)
+        }
+    }
+}
+
+@Composable
+fun HomeScreen(onNavigateToProfile: (String) -> Unit) {
+    Column {
+        Text("Home Screen")
+        Button(onClick = { onNavigateToProfile("user123") }) {
+            Text("Go to Profile")
+        }
+    }
+}
+
+@Composable
+fun ProfileScreen(userId: String, navController: NavController) {
+    Column {
+        Text("Profile Screen for: $userId")
+        Button(onClick = { navController.popBackStack() }) {
+            Text("Back")
+        }
+    }
+}
+```
+
+**Description**: Define route parameters with curly braces `{param}` and specify argument types for type safety.
+
+### 4. Optional Parameters with Default Values
+
+```kotlin
+composable(
+    route = "settings?theme={theme}",
+    arguments = listOf(
+        navArgument("theme") {
+            type = NavType.StringType
+            defaultValue = "light"
+            nullable = false
+        }
+    )
+) { backStackEntry ->
+    val theme = backStackEntry.arguments?.getString("theme") ?: "light"
+    SettingsScreen(theme = theme)
+}
+
+// Navigation with optional parameter
+navController.navigate("settings") // Uses default
+navController.navigate("settings?theme=dark") // Explicit value
+```
+
+**Description**: Use `?param={value}` syntax for optional parameters and set default values in navArgument.
+
+### 5. Multiple Parameters
+
+```kotlin
+composable(
+    route = "product/{productId}/reviews?rating={rating}&sortBy={sortBy}",
+    arguments = listOf(
+        navArgument("productId") { type = NavType.StringType },
+        navArgument("rating") { 
+            type = NavType.IntType
+            defaultValue = 0
+        },
+        navArgument("sortBy") { 
+            type = NavType.StringType
+            defaultValue = "newest"
+        }
+    )
+) { backStackEntry ->
+    val productId = backStackEntry.arguments?.getString("productId") ?: ""
+    val rating = backStackEntry.arguments?.getInt("rating") ?: 0
+    val sortBy = backStackEntry.arguments?.getString("sortBy") ?: "newest"
+    
+    ProductReviewsScreen(
+        productId = productId,
+        rating = rating,
+        sortBy = sortBy
+    )
+}
+
+// Navigate with multiple parameters
+navController.navigate("product/abc123/reviews?rating=5&sortBy=oldest")
+```
+
+**Description**: Combine required path parameters with optional query parameters for complex routing scenarios.
+
+## Advanced Navigation Patterns
+
+### 6. Nested Navigation (Bottom Navigation)
+
+```kotlin
+@Composable
+fun MainScreen() {
+    val navController = rememberNavController()
+    
+    Scaffold(
+        bottomBar = {
+            BottomNavigation {
+                BottomNavigationItem(
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    label = { Text("Home") },
+                    selected = false,
+                    onClick = { 
+                        navController.navigate("home") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+                BottomNavigationItem(
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    label = { Text("Profile") },
+                    selected = false,
+                    onClick = { 
+                        navController.navigate("profile") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        }
+    ) { paddingValues ->
+        NavHost(
+            navController = navController,
+            startDestination = "home",
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            composable("home") { HomeScreen() }
+            composable("profile") { ProfileScreen() }
+        }
+    }
+}
+```
+
+**Description**: Use `popUpTo`, `launchSingleTop`, and `restoreState` for proper bottom navigation behavior.
+
+### 7. Navigation with Object Arguments (Type-Safe)
+
+```kotlin
+// Define a serializable data class
+@Serializable
+data class User(val id: String, val name: String, val email: String)
+
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        composable("home") {
+            HomeScreen { user ->
+                // Navigate with complex object
+                val userJson = Json.encodeToString(user)
+                val encodedUserJson = URLEncoder.encode(userJson, StandardCharsets.UTF_8.toString())
+                navController.navigate("userDetails/$encodedUserJson")
+            }
+        }
+        composable(
+            route = "userDetails/{userJson}",
+            arguments = listOf(navArgument("userJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userJson = backStackEntry.arguments?.getString("userJson") ?: ""
+            val decodedUserJson = URLDecoder.decode(userJson, StandardCharsets.UTF_8.toString())
+            val user = Json.decodeFromString<User>(decodedUserJson)
+            UserDetailsScreen(user = user)
+        }
+    }
+}
+```
+
+**Description**: For complex objects, serialize to JSON and encode for URL safety. Consider using a navigation library like Destinations for better type safety.
+
+### 8. Conditional Navigation and Deep Links
+
+```kotlin
+composable(
+    route = "profile/{userId}",
+    arguments = listOf(navArgument("userId") { type = NavType.StringType }),
+    deepLinks = listOf(navDeepLink { uriPattern = "myapp://profile/{userId}" })
+) { backStackEntry ->
+    val userId = backStackEntry.arguments?.getString("userId") ?: ""
+    ProfileScreen(userId = userId)
+}
+
+// Handle conditional navigation
+@Composable
+fun ConditionalNavigation(isLoggedIn: Boolean, navController: NavController) {
+    LaunchedEffect(isLoggedIn) {
+        if (!isLoggedIn) {
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+}
+```
+
+**Description**: Define deep links for external app navigation and use `LaunchedEffect` for conditional navigation based on state changes.
+
+### 9. Navigation with Animation
+
+```kotlin
+@OptIn(ExperimentalAnimationApi::class)
+NavHost(
+    navController = navController,
+    startDestination = "home"
+) {
+    composable(
+        "home",
+        enterTransition = { slideInHorizontally(initialOffsetX = { -1000 }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -1000 }) }
+    ) {
+        HomeScreen()
+    }
+    composable(
+        "profile",
+        enterTransition = { slideInHorizontally(initialOffsetX = { 1000 }) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { 1000 }) }
+    ) {
+        ProfileScreen()
+    }
+}
+```
+
+**Description**: Add custom enter/exit animations to composable destinations for better user experience.
+
+### 10. Navigation State and Back Stack Management
+
+```kotlin
+@Composable
+fun NavigationStateExample() {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    
+    // Clear back stack when navigating to login
+    fun navigateToLogin() {
+        navController.navigate("login") {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+    
+    // Navigate and clear specific destination from back stack
+    fun navigateAndClearProfile() {
+        navController.navigate("home") {
+            popUpTo("profile") { inclusive = true }
+        }
+    }
+    
+    // Check if can navigate back
+    val canNavigateBack = navController.previousBackStackEntry != null
+    
+    Text("Current route: $currentRoute")
+}
+```
+
+**Description**: Monitor navigation state, manage back stack, and control navigation behavior with various `popUpTo` configurations.
+
+## Best Practices
+
+### 11. Centralized Navigation Routes
+
+```kotlin
+object NavigationRoutes {
+    const val HOME = "home"
+    const val PROFILE = "profile/{userId}"
+    const val SETTINGS = "settings"
+    
+    fun profileRoute(userId: String) = "profile/$userId"
+}
+
+// Usage
+navController.navigate(NavigationRoutes.profileRoute("user123"))
+
+composable(NavigationRoutes.PROFILE) { backStackEntry ->
+    val userId = backStackEntry.arguments?.getString("userId") ?: ""
+    ProfileScreen(userId = userId)
+}
+```
+
+**Description**: Define routes as constants to avoid typos and make navigation more maintainable.
+
+### 12. Navigation Extensions
+
+```kotlin
+fun NavController.navigateSingleTopTo(route: String) =
+    this.navigate(route) {
+        popUpTo(this@navigateSingleTopTo.graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+
+// Usage
+navController.navigateSingleTopTo("profile")
+```
+
+**Description**: Create extension functions for common navigation patterns to reduce code duplication.
+
+## Common Navigation Arguments Types
+
+```kotlin
+// String argument
+navArgument("name") { type = NavType.StringType }
+
+// Integer argument
+navArgument("count") { type = NavType.IntType }
+
+// Boolean argument
+navArgument("isEnabled") { type = NavType.BoolType }
+
+// Float argument
+navArgument("price") { type = NavType.FloatType }
+
+// Long argument
+navArgument("timestamp") { type = NavType.LongType }
+
+// Custom Parcelable (requires custom NavType)
+val CustomNavType = object : NavType<CustomObject>(isNullableAllowed = false) {
+    override fun get(bundle: Bundle, key: String): CustomObject? {
+        return bundle.getParcelable(key)
+    }
+    
+    override fun parseValue(value: String): CustomObject {
+        return Json.decodeFromString<CustomObject>(value)
+    }
+    
+    override fun put(bundle: Bundle, key: String, value: CustomObject) {
+        bundle.putParcelable(key, value)
+    }
+}
+```
+
+**Description**: Overview of supported argument types and how to create custom types for complex objects.
+
+## Navigation Testing
+
+```kotlin
+@Test
+fun testNavigation() {
+    val navController = TestNavHostController(ApplicationProvider.getApplicationContext())
+    
+    composeTestRule.setContent {
+        navController.navigatorProvider.addNavigator(ComposeNavigator())
+        NavHost(navController = navController, startDestination = "home") {
+            composable("home") { HomeScreen() }
+            composable("profile") { ProfileScreen() }
+        }
+    }
+    
+    // Verify initial destination
+    assertEquals("home", navController.currentDestination?.route)
+    
+    // Navigate and verify
+    navController.navigate("profile")
+    assertEquals("profile", navController.currentDestination?.route)
+}
+```
+
+**Description**: Use `TestNavHostController` for unit testing navigation logic in your composables.
+
+---
+
+This documentation covers the essential routing concepts in Jetpack Compose Navigation. For more complex scenarios, consider using libraries like Navigation Compose Destinations for type-safe navigation or implementing custom navigation solutions based on your app's specific needs.
