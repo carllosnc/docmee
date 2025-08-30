@@ -1,0 +1,568 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/">← Home </a> <br /> <br />
+
+# Infix Functions
+
+## Overview
+
+Infix functions in Kotlin allow you to call functions using infix notation, making code more readable and expressive. An infix function can be called without using parentheses and the dot notation, creating a more natural, mathematical-like syntax.
+
+## Basic Syntax
+
+```kotlin
+infix fun Type.functionName(parameter: Type): ReturnType {
+    // function body
+}
+```
+
+## Requirements for Infix Functions
+
+1. Must be member functions or extension functions
+2. Must have exactly one parameter
+3. Parameter cannot be a vararg or have a default value
+4. Must be marked with the `infix` modifier
+
+## Basic Usage
+
+### Simple Infix Extension Function
+
+```kotlin
+infix fun Int.pow(exponent: Int): Int {
+    var result = 1
+    repeat(exponent) {
+        result *= this
+    }
+    return result
+}
+
+fun main() {
+    // Traditional call
+    println(2.pow(3))  // 8
+    
+    // Infix notation
+    println(2 pow 3)   // 8
+    println(5 pow 2)   // 25
+}
+```
+
+### String Operations with Infix
+
+```kotlin
+infix fun String.startsWith(prefix: String): Boolean {
+    return this.startsWith(prefix, ignoreCase = true)
+}
+
+infix fun String.contains(substring: String): Boolean {
+    return this.contains(substring, ignoreCase = true)
+}
+
+fun main() {
+    val text = "Hello World"
+    
+    println(text startsWith "hello")  // true
+    println(text contains "WORLD")    // true
+    println("Kotlin" startsWith "kot") // true
+}
+```
+
+## Built-in Infix Functions
+
+### Common Kotlin Infix Functions
+
+```kotlin
+fun main() {
+    // Pair creation with 'to'
+    val pair = "name" to "John"
+    val coordinates = 10 to 20
+    println(pair)        // (name, John)
+    println(coordinates) // (10, 20)
+    
+    // Range creation with 'until' and '..'
+    val range1 = 1..10      // 1 to 10 inclusive
+    val range2 = 1 until 10 // 1 to 9 exclusive
+    println("Range1: $range1") // Range1: 1..10
+    println("Range2: $range2") // Range2: 1..9
+    
+    // Logical operations
+    val condition1 = true
+    val condition2 = false
+    println(condition1 and condition2) // false
+    println(condition1 or condition2)  // true
+    println(condition1 xor condition2) // true
+    
+    // Bitwise operations
+    val a = 5  // 101 in binary
+    val b = 3  // 011 in binary
+    println(a and b) // 1 (001)
+    println(a or b)  // 7 (111)
+    println(a xor b) // 6 (110)
+    println(a shl 1) // 10 (left shift)
+    println(a shr 1) // 2 (right shift)
+}
+```
+
+## Advanced Usage Patterns
+
+### Mathematical Operations
+
+```kotlin
+class Matrix(private val data: Array<IntArray>) {
+    infix fun plus(other: Matrix): Matrix {
+        val result = Array(data.size) { IntArray(data[0].size) }
+        for (i in data.indices) {
+            for (j in data[i].indices) {
+                result[i][j] = data[i][j] + other.data[i][j]
+            }
+        }
+        return Matrix(result)
+    }
+    
+    infix fun times(scalar: Int): Matrix {
+        val result = Array(data.size) { IntArray(data[0].size) }
+        for (i in data.indices) {
+            for (j in data[i].indices) {
+                result[i][j] = data[i][j] * scalar
+            }
+        }
+        return Matrix(result)
+    }
+    
+    override fun toString(): String {
+        return data.joinToString("\n") { it.contentToString() }
+    }
+}
+
+fun main() {
+    val matrix1 = Matrix(arrayOf(intArrayOf(1, 2), intArrayOf(3, 4)))
+    val matrix2 = Matrix(arrayOf(intArrayOf(5, 6), intArrayOf(7, 8)))
+    
+    val sum = matrix1 plus matrix2
+    val scaled = matrix1 times 3
+    
+    println("Sum:\n$sum")
+    println("\nScaled:\n$scaled")
+}
+```
+
+### Collection Operations
+
+```kotlin
+infix fun <T> List<T>.intersect(other: List<T>): List<T> {
+    return this.filter { it in other }
+}
+
+infix fun <T> List<T>.union(other: List<T>): List<T> {
+    return (this + other).distinct()
+}
+
+infix fun <T> List<T>.except(other: List<T>): List<T> {
+    return this.filter { it !in other }
+}
+
+fun main() {
+    val list1 = listOf(1, 2, 3, 4, 5)
+    val list2 = listOf(4, 5, 6, 7, 8)
+    
+    println("Intersection: ${list1 intersect list2}") // [4, 5]
+    println("Union: ${list1 union list2}")            // [1, 2, 3, 4, 5, 6, 7, 8]
+    println("Except: ${list1 except list2}")          // [1, 2, 3]
+}
+```
+
+### DSL-Style Operations
+
+```kotlin
+class Duration(val value: Long, val unit: String) {
+    override fun toString() = "$value $unit"
+}
+
+infix fun Int.seconds(unit: String): Duration = Duration(this.toLong() * 1000, "milliseconds")
+infix fun Int.minutes(unit: String): Duration = Duration(this.toLong() * 60 * 1000, "milliseconds")
+infix fun Int.hours(unit: String): Duration = Duration(this.toLong() * 60 * 60 * 1000, "milliseconds")
+
+// Simplified version for readability
+infix fun Int.sec(dummy: Unit = Unit): Duration = Duration(this.toLong(), "seconds")
+infix fun Int.min(dummy: Unit = Unit): Duration = Duration(this.toLong(), "minutes")
+infix fun Int.hr(dummy: Unit = Unit): Duration = Duration(this.toLong(), "hours")
+
+fun main() {
+    val duration1 = 30 sec Unit
+    val duration2 = 5 min Unit
+    val duration3 = 2 hr Unit
+    
+    println(duration1) // 30 seconds
+    println(duration2) // 5 minutes  
+    println(duration3) // 2 hours
+}
+```
+
+## Practical Examples
+
+### Validation DSL
+
+```kotlin
+class ValidationBuilder<T>(private val value: T) {
+    private val errors = mutableListOf<String>()
+    
+    infix fun must(condition: (T) -> Boolean): ValidationBuilder<T> {
+        return this
+    }
+    
+    infix fun be(condition: (T) -> Boolean): ValidationBuilder<T> {
+        if (!condition(value)) {
+            errors.add("Validation failed")
+        }
+        return this
+    }
+    
+    infix fun have(condition: (T) -> Boolean): ValidationBuilder<T> {
+        if (!condition(value)) {
+            errors.add("Requirement not met")
+        }
+        return this
+    }
+    
+    infix fun otherwise(message: String): ValidationBuilder<T> {
+        if (errors.isNotEmpty()) {
+            errors[errors.size - 1] = message
+        }
+        return this
+    }
+    
+    fun validate(): List<String> = errors.toList()
+}
+
+infix fun <T> T.should(validation: ValidationBuilder<T>.() -> ValidationBuilder<T>): List<String> {
+    return ValidationBuilder(this).validation().validate()
+}
+
+fun main() {
+    val email = "invalid-email"
+    val errors = email should {
+        must be { it.contains("@") } otherwise "Email must contain @"
+        must have { it.length > 5 } otherwise "Email must be longer than 5 characters"
+    }
+    
+    println("Validation errors: $errors")
+    // Validation errors: [Email must contain @]
+}
+```
+
+### Query Builder DSL
+
+```kotlin
+class QueryBuilder {
+    private var table = ""
+    private var conditions = mutableListOf<String>()
+    private var columns = mutableListOf<String>()
+    
+    infix fun from(tableName: String): QueryBuilder {
+        table = tableName
+        return this
+    }
+    
+    infix fun select(column: String): QueryBuilder {
+        columns.add(column)
+        return this
+    }
+    
+    infix fun where(condition: String): QueryBuilder {
+        conditions.add(condition)
+        return this
+    }
+    
+    infix fun and(condition: String): QueryBuilder {
+        if (conditions.isNotEmpty()) {
+            conditions.add("AND $condition")
+        }
+        return this
+    }
+    
+    fun build(): String {
+        val selectClause = if (columns.isEmpty()) "*" else columns.joinToString(", ")
+        val whereClause = if (conditions.isEmpty()) "" else " WHERE " + conditions.joinToString(" ")
+        return "SELECT $selectClause FROM $table$whereClause"
+    }
+}
+
+fun query(): QueryBuilder = QueryBuilder()
+
+fun main() {
+    val sql = query() from "users" select "name" select "email" where "age > 18" and "status = 'active'"
+    println(sql.build())
+    // SELECT name, email FROM users WHERE age > 18 AND status = 'active'
+}
+```
+
+### Configuration DSL
+
+```kotlin
+class ServerConfig {
+    var host = "localhost"
+    var port = 8080
+    var ssl = false
+    
+    infix fun on(hostPort: String): ServerConfig {
+        val parts = hostPort.split(":")
+        host = parts[0]
+        if (parts.size > 1) {
+            port = parts[1].toInt()
+        }
+        return this
+    }
+    
+    infix fun with(protocol: String): ServerConfig {
+        ssl = protocol.lowercase() == "https"
+        return this
+    }
+    
+    override fun toString() = "Server($host:$port, SSL: $ssl)"
+}
+
+fun server(): ServerConfig = ServerConfig()
+
+fun main() {
+    val config1 = server() on "example.com:9000" with "https"
+    val config2 = server() on "localhost:3000" with "http"
+    
+    println(config1) // Server(example.com:9000, SSL: true)
+    println(config2) // Server(localhost:3000, SSL: false)
+}
+```
+
+## Working with Data Classes
+
+### Comparison Operations
+
+```kotlin
+data class Version(val major: Int, val minor: Int, val patch: Int) {
+    infix fun isNewerThan(other: Version): Boolean {
+        return when {
+            major > other.major -> true
+            major < other.major -> false
+            minor > other.minor -> true
+            minor < other.minor -> false
+            patch > other.patch -> true
+            else -> false
+        }
+    }
+    
+    infix fun isCompatibleWith(other: Version): Boolean {
+        return major == other.major
+    }
+}
+
+fun main() {
+    val version1 = Version(2, 1, 0)
+    val version2 = Version(2, 0, 5)
+    val version3 = Version(3, 0, 0)
+    
+    println(version1 isNewerThan version2)      // true
+    println(version1 isCompatibleWith version2) // true
+    println(version1 isCompatibleWith version3) // false
+}
+```
+
+### Builder Pattern with Infix
+
+```kotlin
+data class User(
+    val name: String,
+    val email: String,
+    val age: Int,
+    val roles: List<String> = emptyList()
+)
+
+class UserBuilder {
+    private var name = ""
+    private var email = ""
+    private var age = 0
+    private var roles = mutableListOf<String>()
+    
+    infix fun named(userName: String): UserBuilder {
+        name = userName
+        return this
+    }
+    
+    infix fun withEmail(userEmail: String): UserBuilder {
+        email = userEmail
+        return this
+    }
+    
+    infix fun aged(userAge: Int): UserBuilder {
+        age = userAge
+        return this
+    }
+    
+    infix fun hasRole(role: String): UserBuilder {
+        roles.add(role)
+        return this
+    }
+    
+    fun build(): User = User(name, email, age, roles.toList())
+}
+
+fun createUser(): UserBuilder = UserBuilder()
+
+fun main() {
+    val user = createUser() named "Alice Johnson" withEmail "alice@example.com" aged 30 hasRole "admin" hasRole "user"
+    println(user.build())
+    // User(name=Alice Johnson, email=alice@example.com, age=30, roles=[admin, user])
+}
+```
+
+## Testing DSL with Infix Functions
+
+### Assertion Framework
+
+```kotlin
+class Assertion<T>(private val actual: T) {
+    infix fun shouldBe(expected: T) {
+        if (actual != expected) {
+            throw AssertionError("Expected $expected but was $actual")
+        }
+    }
+    
+    infix fun shouldNotBe(expected: T) {
+        if (actual == expected) {
+            throw AssertionError("Expected not to be $expected but was $actual")
+        }
+    }
+    
+    infix fun shouldBeGreaterThan(expected: T) where T : Comparable<T> {
+        if (actual <= expected) {
+            throw AssertionError("Expected $actual to be greater than $expected")
+        }
+    }
+}
+
+infix fun <T> T.should(dummy: Unit): Assertion<T> = Assertion(this)
+
+fun main() {
+    try {
+        val result = 5 + 3
+        result should Unit shouldBe 8
+        result should Unit shouldBeGreaterThan 5
+        
+        val text = "Hello"
+        text should Unit shouldNotBe "World"
+        
+        println("All assertions passed!")
+    } catch (e: AssertionError) {
+        println("Assertion failed: ${e.message}")
+    }
+}
+```
+
+## Performance and Best Practices
+
+### Infix vs Regular Function Calls
+
+```kotlin
+class Point(val x: Int, val y: Int) {
+    // Regular function
+    fun distanceTo(other: Point): Double {
+        return kotlin.math.sqrt(((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y)).toDouble())
+    }
+    
+    // Infix function for readability
+    infix fun distanceFrom(other: Point): Double {
+        return distanceTo(other)
+    }
+    
+    override fun toString() = "Point($x, $y)"
+}
+
+fun main() {
+    val p1 = Point(0, 0)
+    val p2 = Point(3, 4)
+    
+    // Regular call - more explicit but verbose
+    println("Distance (regular): ${p1.distanceTo(p2)}")
+    
+    // Infix call - more readable, natural language-like
+    println("Distance (infix): ${p1 distanceFrom p2}")
+}
+```
+
+## Important Rules and Limitations
+
+### Precedence and Associativity
+
+```kotlin
+infix fun Int.add(other: Int): Int = this + other
+infix fun Int.multiply(other: Int): Int = this * other
+
+fun main() {
+    // Infix functions have the same precedence
+    // Left-to-right evaluation
+    val result1 = 2 add 3 multiply 4  // ((2 add 3) multiply 4) = 20
+    val result2 = 2 + 3 * 4           // 2 + (3 * 4) = 14
+    
+    println("Infix result: $result1")    // 20
+    println("Regular result: $result2")  // 14
+    
+    // Use parentheses for different precedence
+    val result3 = 2 add (3 multiply 4)   // 2 add 12 = 14
+    println("Parentheses result: $result3") // 14
+}
+```
+
+### Member vs Extension Functions
+
+```kotlin
+class Calculator {
+    private var value = 0
+    
+    // Member infix function
+    infix fun add(number: Int): Calculator {
+        value += number
+        return this
+    }
+    
+    // Member infix function
+    infix fun multiply(number: Int): Calculator {
+        value *= number
+        return this
+    }
+    
+    fun getValue() = value
+}
+
+// Extension infix function
+infix fun Calculator.subtract(number: Int): Calculator {
+    // Cannot access private members directly
+    return this.add(-number)
+}
+
+fun main() {
+    val calc = Calculator()
+    val result = calc add 10 multiply 2 subtract 5
+    println("Result: ${result.getValue()}") // Result: 15
+}
+```
+
+## Best Practices
+
+1. **Use for readability**: Only when it makes code more natural to read
+2. **Avoid overuse**: Don't make every function infix just because you can
+3. **Consider domain**: Great for DSLs, mathematical operations, and fluent APIs
+4. **Mind precedence**: Be aware of left-to-right evaluation
+5. **Documentation**: Clearly document infix functions for team understanding
+6. **Consistency**: Use consistent naming patterns across your infix functions
+
+## Common Use Cases
+
+- Domain-Specific Languages (DSLs)
+- Mathematical operations and formulas
+- Fluent configuration APIs
+- Test assertion frameworks
+- Query builders
+- Validation frameworks
+- Builder patterns
+- Collection operations
+
+This documentation provides comprehensive coverage of Kotlin's infix functions, from basic concepts to advanced DSL patterns, helping you create more expressive and readable code.

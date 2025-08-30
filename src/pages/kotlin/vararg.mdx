@@ -1,0 +1,318 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Variable Number of Arguments (`vararg`)
+
+## Overview
+
+The `vararg` modifier in Kotlin allows a function to accept a variable number of arguments of the same type. This feature provides flexibility when you don't know in advance how many arguments will be passed to a function.
+
+## Basic Syntax
+
+```kotlin
+fun functionName(vararg parameterName: Type) {
+    // function body
+}
+```
+
+## Basic Usage
+
+### Simple vararg Function
+
+```kotlin
+fun printNumbers(vararg numbers: Int) {
+    for (number in numbers) {
+        println(number)
+    }
+}
+
+fun main() {
+    printNumbers(1, 2, 3, 4, 5)
+    printNumbers(10, 20)
+    printNumbers() // No arguments - empty vararg
+}
+```
+
+### vararg with String Type
+
+```kotlin
+fun concatenateStrings(separator: String = " ", vararg strings: String): String {
+    return strings.joinToString(separator)
+}
+
+fun main() {
+    println(concatenateStrings(" - ", "Hello", "World", "Kotlin"))  // Hello - World - Kotlin
+    println(concatenateStrings(", ", "Apple", "Banana", "Cherry"))  // Apple, Banana, Cherry
+}
+```
+
+## Working with Arrays
+
+### Spreading Arrays with Spread Operator (`*`)
+
+```kotlin
+fun sum(vararg numbers: Int): Int {
+    return numbers.sum()
+}
+
+fun main() {
+    val array = intArrayOf(1, 2, 3, 4, 5)
+    
+    // Use spread operator to pass array elements as vararg
+    val result = sum(*array)
+    println("Sum: $result") // Sum: 15
+    
+    // Mixing array and individual arguments
+    val result2 = sum(*array, 6, 7, 8)
+    println("Sum with extra: $result2") // Sum with extra: 36
+}
+```
+
+### Converting vararg to Array
+
+```kotlin
+fun processNumbers(vararg numbers: Int) {
+    // vararg is accessible as an array inside the function
+    val array: IntArray = numbers
+    
+    println("Array size: ${array.size}")
+    println("Array contents: ${array.contentToString()}")
+    
+    // You can also convert to List
+    val list = numbers.toList()
+    println("As list: $list")
+}
+
+fun main() {
+    processNumbers(10, 20, 30, 40)
+}
+```
+
+## Advanced Usage Patterns
+
+### vararg with Generic Types
+
+```kotlin
+fun <T> createList(vararg elements: T): List<T> {
+    return elements.toList()
+}
+
+fun main() {
+    val intList = createList(1, 2, 3, 4)
+    val stringList = createList("A", "B", "C")
+    val mixedList = createList<Any>("Hello", 42, true)
+    
+    println(intList)    // [1, 2, 3, 4]
+    println(stringList) // [A, B, C]
+    println(mixedList)  // [Hello, 42, true]
+}
+```
+
+### vararg with Other Parameters
+
+```kotlin
+// vararg can be combined with other parameters
+fun logMessage(level: String, timestamp: Long, vararg messages: String) {
+    val combinedMessage = messages.joinToString(" ")
+    println("[$level] $timestamp: $combinedMessage")
+}
+
+fun main() {
+    logMessage("INFO", System.currentTimeMillis(), "User", "logged", "in", "successfully")
+    logMessage("ERROR", System.currentTimeMillis(), "Database", "connection", "failed")
+}
+```
+
+### Multiple Parameter Types with vararg
+
+```kotlin
+// When vararg is not the last parameter, named arguments must be used
+fun formatMessage(vararg parts: String, separator: String = " ", prefix: String = ""): String {
+    return prefix + parts.joinToString(separator)
+}
+
+fun main() {
+    // Using named arguments when vararg is not last
+    val message1 = formatMessage("Hello", "World", separator = "-", prefix = ">> ")
+    println(message1) // >> Hello-World
+    
+    val message2 = formatMessage("A", "B", "C", separator = "|")
+    println(message2) // A|B|C
+}
+```
+
+## Practical Examples
+
+### Building Dynamic SQL Queries
+
+```kotlin
+fun buildSelectQuery(table: String, vararg columns: String): String {
+    val columnList = if (columns.isEmpty()) "*" else columns.joinToString(", ")
+    return "SELECT $columnList FROM $table"
+}
+
+fun main() {
+    println(buildSelectQuery("users"))                           // SELECT * FROM users
+    println(buildSelectQuery("users", "id", "name", "email"))   // SELECT id, name, email FROM users
+    println(buildSelectQuery("products", "name", "price"))      // SELECT name, price FROM products
+}
+```
+
+### Mathematical Operations
+
+```kotlin
+fun average(vararg numbers: Double): Double {
+    require(numbers.isNotEmpty()) { "At least one number is required" }
+    return numbers.sum() / numbers.size
+}
+
+fun maximum(vararg numbers: Int): Int {
+    require(numbers.isNotEmpty()) { "At least one number is required" }
+    return numbers.maxOrNull() ?: 0
+}
+
+fun main() {
+    println("Average: ${average(1.5, 2.5, 3.5, 4.5)}")  // Average: 2.75
+    println("Maximum: ${maximum(10, 5, 25, 15, 30)}")    // Maximum: 30
+}
+```
+
+### String Formatting Utility
+
+```kotlin
+fun formatTemplate(template: String, vararg args: Any): String {
+    return template.format(*args)
+}
+
+fun main() {
+    val template = "Hello %s! You have %d new messages and %.2f%% battery remaining."
+    val formatted = formatTemplate(template, "Alice", 5, 87.5)
+    println(formatted) // Hello Alice! You have 5 new messages and 87.50% battery remaining.
+}
+```
+
+## Working with Collections
+
+### Creating Collections from vararg
+
+```kotlin
+fun createSet(vararg elements: String): Set<String> {
+    return elements.toSet()
+}
+
+fun createMutableList(vararg elements: Int): MutableList<Int> {
+    return elements.toMutableList()
+}
+
+fun main() {
+    val uniqueNames = createSet("Alice", "Bob", "Alice", "Charlie", "Bob")
+    println("Unique names: $uniqueNames") // Unique names: [Alice, Bob, Charlie]
+    
+    val numbers = createMutableList(1, 2, 3, 4, 5)
+    numbers.add(6)
+    println("Numbers: $numbers") // Numbers: [1, 2, 3, 4, 5, 6]
+}
+```
+
+### Processing Collections with vararg
+
+```kotlin
+fun processLists(operation: String, vararg lists: List<Int>): List<Int> {
+    return when (operation) {
+        "flatten" -> lists.flatten()
+        "concat" -> lists.fold(emptyList()) { acc, list -> acc + list }
+        "sizes" -> lists.map { it.size }
+        else -> emptyList()
+    }
+}
+
+fun main() {
+    val list1 = listOf(1, 2, 3)
+    val list2 = listOf(4, 5, 6)
+    val list3 = listOf(7, 8, 9, 10)
+    
+    val flattened = processLists("flatten", list1, list2, list3)
+    println("Flattened: $flattened") // Flattened: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    
+    val sizes = processLists("sizes", list1, list2, list3)
+    println("Sizes: $sizes") // Sizes: [3, 3, 4]
+}
+```
+
+## Important Rules and Limitations
+
+### Only One vararg per Function
+
+```kotlin
+// ❌ This is NOT allowed - only one vararg parameter per function
+// fun invalidFunction(vararg numbers: Int, vararg strings: String) { }
+
+// ✅ This is correct
+fun validFunction(vararg numbers: Int, suffix: String = "") {
+    println("Numbers: ${numbers.contentToString()} $suffix")
+}
+```
+
+### vararg Position and Named Arguments
+
+```kotlin
+// When vararg is not the last parameter, subsequent parameters must use named arguments
+fun complexFunction(prefix: String = "Result: ", vararg values: Int, suffix: String) {
+    println(prefix + values.joinToString(", ") + suffix)
+}
+
+fun main() {
+    // Must use named argument for suffix since vararg comes before it
+    complexFunction("Numbers: ", 1, 2, 3, 4, suffix = " (end)")
+    // Output: Numbers: 1, 2, 3, 4 (end)
+}
+```
+
+## Performance Considerations
+
+### Array Creation
+
+```kotlin
+// Each vararg call creates a new array
+fun measureArrayCreation(vararg items: String) {
+    println("Array created with ${items.size} items")
+    // items is an Array<out String> internally
+}
+
+// For better performance with known arrays, consider regular array parameters
+fun efficientProcessing(items: Array<String>) {
+    println("Processing ${items.size} items efficiently")
+}
+
+fun main() {
+    // Creates new array each time
+    measureArrayCreation("a", "b", "c")
+    
+    // More efficient when you already have an array
+    val existingArray = arrayOf("x", "y", "z")
+    efficientProcessing(existingArray)
+}
+```
+
+## Best Practices
+
+1. **Use vararg for flexible APIs**: When the number of arguments can reasonably vary
+2. **Provide meaningful defaults**: Consider empty vararg behavior
+3. **Document expected usage**: Clarify minimum/maximum argument expectations
+4. **Consider performance**: Be aware that vararg creates arrays
+5. **Use spread operator judiciously**: Only when you need to pass existing arrays
+6. **Combine with other parameters thoughtfully**: Place vararg appropriately in parameter lists
+
+## Common Use Cases
+
+- Logging functions with multiple message parts
+- Mathematical operations on variable data sets
+- Building collections dynamically
+- String formatting and concatenation
+- Configuration builders
+- Test data creation
+- SQL query builders
+
+This documentation covers the essential aspects of Kotlin's `vararg` feature, providing both theoretical understanding and practical examples for effective usage.
