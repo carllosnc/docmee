@@ -1,0 +1,884 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Expressions and Closures
+
+## Overview
+
+Lambda expressions in Kotlin are anonymous functions that can be used as expressions. They are first-class citizens and can be stored in variables, passed as arguments, and returned from functions. Closures allow lambda expressions to capture and access variables from their enclosing scope, creating powerful and flexible programming patterns.
+
+## Basic Lambda Syntax
+
+```kotlin
+// Basic lambda syntax
+val lambda = { parameters -> body }
+
+// Lambda with explicit types
+val typedLambda: (Int, Int) -> Int = { x, y -> x + y }
+
+// Lambda with single parameter (it)
+val singleParam: (String) -> String = { it.uppercase() }
+```
+
+## Basic Lambda Usage
+
+### Simple Lambda Expressions
+
+```kotlin
+fun main() {
+    // Basic lambda with two parameters
+    val add = { x: Int, y: Int -> x + y }
+    println("Add: ${add(5, 3)}")  // Add: 8
+    
+    // Lambda with type inference
+    val multiply: (Int, Int) -> Int = { x, y -> x * y }
+    println("Multiply: ${multiply(4, 6)}")  // Multiply: 24
+    
+    // Lambda with single parameter using 'it'
+    val square: (Int) -> Int = { it * it }
+    println("Square: ${square(7)}")  // Square: 49
+    
+    // Lambda with no parameters
+    val greeting = { "Hello, World!" }
+    println(greeting())  // Hello, World!
+}
+```
+
+### Lambda Parameter Types
+
+```kotlin
+fun main() {
+    // Explicit parameter types
+    val explicitTypes = { name: String, age: Int -> "Name: $name, Age: $age" }
+    
+    // Type inference from context
+    val inferredTypes: (String, Int) -> String = { name, age -> "Name: $name, Age: $age" }
+    
+    // Single parameter with 'it'
+    val upperCase: (String) -> String = { it.uppercase() }
+    
+    // Multiple parameters with destructuring
+    val pairProcessor: (Pair<Int, String>) -> String = { (number, text) -> "$text: $number" }
+    
+    println(explicitTypes("Alice", 30))         // Name: Alice, Age: 30
+    println(inferredTypes("Bob", 25))           // Name: Bob, Age: 25
+    println(upperCase("hello"))                 // HELLO
+    println(pairProcessor(42 to "Answer"))      // Answer: 42
+}
+```
+
+## Higher-Order Functions with Lambdas
+
+### Functions Taking Lambda Parameters
+
+```kotlin
+fun processNumbers(numbers: List<Int>, operation: (Int) -> Int): List<Int> {
+    return numbers.map(operation)
+}
+
+fun filterAndTransform(
+    numbers: List<Int>, 
+    filter: (Int) -> Boolean, 
+    transform: (Int) -> String
+): List<String> {
+    return numbers.filter(filter).map(transform)
+}
+
+fun main() {
+    val numbers = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    
+    // Using lambda expressions as arguments
+    val doubled = processNumbers(numbers) { it * 2 }
+    println("Doubled: $doubled")  // Doubled: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+    
+    // Multiple lambda parameters
+    val evenSquares = filterAndTransform(
+        numbers,
+        { it % 2 == 0 },        // filter lambda
+        { "Square: ${it * it}" } // transform lambda
+    )
+    println("Even squares: $evenSquares")  // Even squares: [Square: 4, Square: 16, Square: 36, Square: 64, Square: 100]
+}
+```
+
+### Functions Returning Lambdas
+
+```kotlin
+fun createMultiplier(factor: Int): (Int) -> Int {
+    return { number -> number * factor }
+}
+
+fun createValidator(minLength: Int): (String) -> Boolean {
+    return { text -> text.length >= minLength }
+}
+
+fun createFormatter(prefix: String, suffix: String): (String) -> String {
+    return { content -> "$prefix$content$suffix" }
+}
+
+fun main() {
+    val double = createMultiplier(2)
+    val triple = createMultiplier(3)
+    
+    println("Double 5: ${double(5)}")   // Double 5: 10
+    println("Triple 4: ${triple(4)}")   // Triple 4: 12
+    
+    val isValidPassword = createValidator(8)
+    println("Valid password: ${isValidPassword("mypassword123")}")  // Valid password: true
+    println("Invalid password: ${isValidPassword("short")}")        // Invalid password: false
+    
+    val htmlTag = createFormatter("<b>", "</b>")
+    println(htmlTag("Bold text"))  // <b>Bold text</b>
+}
+```
+
+## Closures: Capturing Variables
+
+### Basic Closure Behavior
+
+```kotlin
+fun main() {
+    var counter = 0
+    val incrementCounter = {
+        counter++  // Captures and modifies outer variable
+        counter
+    }
+    
+    println("Counter: ${incrementCounter()}")  // Counter: 1
+    println("Counter: ${incrementCounter()}")  // Counter: 2
+    println("Counter: ${incrementCounter()}")  // Counter: 3
+    
+    // The outer variable is modified
+    println("Final counter value: $counter")   // Final counter value: 3
+}
+```
+
+### Closure with Function Factory
+
+```kotlin
+fun createCounter(initialValue: Int = 0): () -> Int {
+    var count = initialValue
+    
+    return {
+        count++
+        count
+    }
+}
+
+fun createAccumulator(initial: Double = 0.0): (Double) -> Double {
+    var total = initial
+    
+    return { value ->
+        total += value
+        total
+    }
+}
+
+fun main() {
+    val counter1 = createCounter(10)
+    val counter2 = createCounter()
+    
+    println("Counter1: ${counter1()}")  // Counter1: 11
+    println("Counter1: ${counter1()}")  // Counter1: 12
+    println("Counter2: ${counter2()}")  // Counter2: 1
+    
+    val accumulator = createAccumulator(100.0)
+    println("Accumulator: ${accumulator(25.5)}")  // Accumulator: 125.5
+    println("Accumulator: ${accumulator(10.0)}")  // Accumulator: 135.5
+}
+```
+
+### Complex Closure Examples
+
+```kotlin
+fun createStatefulProcessor(): Pair<(String) -> Unit, () -> List<String>> {
+    val processedItems = mutableListOf<String>()
+    var processingCount = 0
+    
+    val processor = { item: String ->
+        processingCount++
+        val processed = "$processingCount: ${item.uppercase()}"
+        processedItems.add(processed)
+        println("Processed: $processed")
+    }
+    
+    val getResults = {
+        processedItems.toList() // Return immutable copy
+    }
+    
+    return processor to getResults
+}
+
+fun main() {
+    val (process, getResults) = createStatefulProcessor()
+    
+    process("hello")
+    process("world")
+    process("kotlin")
+    
+    println("All results: ${getResults()}")
+    // All results: [1: HELLO, 2: WORLD, 3: KOTLIN]
+}
+```
+
+## Lambda Expressions with Collections
+
+### Standard Library Functions
+
+```kotlin
+fun main() {
+    val numbers = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val words = listOf("apple", "banana", "cherry", "date", "elderberry")
+    
+    // map - transform each element
+    val squares = numbers.map { it * it }
+    println("Squares: $squares")  // Squares: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+    
+    // filter - select elements matching condition
+    val evenNumbers = numbers.filter { it % 2 == 0 }
+    println("Even numbers: $evenNumbers")  // Even numbers: [2, 4, 6, 8, 10]
+    
+    // reduce - combine elements
+    val sum = numbers.reduce { acc, n -> acc + n }
+    println("Sum: $sum")  // Sum: 55
+    
+    // fold - reduce with initial value
+    val product = numbers.fold(1) { acc, n -> acc * n }
+    println("Product: $product")  // Product: 3628800
+    
+    // any/all - boolean operations
+    val hasEven = numbers.any { it % 2 == 0 }
+    val allPositive = numbers.all { it > 0 }
+    println("Has even: $hasEven, All positive: $allPositive")  // Has even: true, All positive: true
+    
+    // find - first matching element
+    val firstLongWord = words.find { it.length > 6 }
+    println("First long word: $firstLongWord")  // First long word: elderberry
+}
+```
+
+### Advanced Collection Operations
+
+```kotlin
+data class Person(val name: String, val age: Int, val city: String)
+
+fun main() {
+    val people = listOf(
+        Person("Alice", 30, "New York"),
+        Person("Bob", 25, "London"),
+        Person("Charlie", 35, "New York"),
+        Person("Diana", 28, "London"),
+        Person("Eve", 32, "Paris")
+    )
+    
+    // groupBy - group elements by key
+    val peopleByCity = people.groupBy { it.city }
+    println("People by city: $peopleByCity")
+    
+    // partition - split into two lists
+    val (adults, nonAdults) = people.partition { it.age >= 30 }
+    println("Adults: ${adults.map { it.name }}")        // Adults: [Alice, Charlie, Eve]
+    println("Non-adults: ${nonAdults.map { it.name }}")  // Non-adults: [Bob, Diana]
+    
+    // sortedBy - sort by property
+    val sortedByAge = people.sortedBy { it.age }
+    println("Sorted by age: ${sortedByAge.map { "${it.name}(${it.age})" }}")
+    
+    // maxByOrNull - find maximum by property
+    val oldest = people.maxByOrNull { it.age }
+    println("Oldest person: $oldest")  // Oldest person: Person(name=Charlie, age=35, city=New York)
+    
+    // associate - create map from elements
+    val nameToAge = people.associate { it.name to it.age }
+    println("Name to age: $nameToAge")  // Name to age: {Alice=30, Bob=25, Charlie=35, Diana=28, Eve=32}
+}
+```
+
+## Functional Programming Patterns
+
+### Function Composition
+
+```kotlin
+fun <T, R, S> compose(f: (R) -> S, g: (T) -> R): (T) -> S {
+    return { x -> f(g(x)) }
+}
+
+fun <T> pipe(value: T, vararg functions: (T) -> T): T {
+    return functions.fold(value) { acc, function -> function(acc) }
+}
+
+fun main() {
+    // Function composition
+    val addFive: (Int) -> Int = { it + 5 }
+    val multiplyByTwo: (Int) -> Int = { it * 2 }
+    val toString: (Int) -> String = { it.toString() }
+    
+    val composed = compose(toString, compose(multiplyByTwo, addFive))
+    println("Composed result: ${composed(3)}")  // Composed result: 16
+    
+    // Pipeline processing
+    val result = pipe(
+        "  hello world  ",
+        { it.trim() },
+        { it.uppercase() },
+        { it.replace(" ", "_") }
+    )
+    println("Pipeline result: $result")  // Pipeline result: HELLO_WORLD
+}
+```
+
+### Currying and Partial Application
+
+```kotlin
+fun curry3<A, B, C, R>(f: (A, B, C) -> R): (A) -> (B) -> (C) -> R {
+    return { a -> { b -> { c -> f(a, b, c) } } }
+}
+
+fun partialApply<A, B, R>(f: (A, B) -> R, a: A): (B) -> R {
+    return { b -> f(a, b) }
+}
+
+fun main() {
+    // Currying example
+    val add3Numbers = { x: Int, y: Int, z: Int -> x + y + z }
+    val curriedAdd = curry3(add3Numbers)
+    
+    val add5 = curriedAdd(5)
+    val add5And3 = add5(3)
+    val result = add5And3(2)
+    
+    println("Curried result: $result")  // Curried result: 10
+    
+    // Partial application
+    val multiply = { x: Int, y: Int -> x * y }
+    val double = partialApply(multiply, 2)
+    val triple = partialApply(multiply, 3)
+    
+    println("Double 7: ${double(7)}")   // Double 7: 14
+    println("Triple 4: ${triple(4)}")   // Triple 4: 12
+}
+```
+
+## Lambda Expressions in DSLs
+
+### HTML DSL Example
+
+```kotlin
+class HtmlElement(val tag: String) {
+    private val children = mutableListOf<HtmlElement>()
+    private val attributes = mutableMapOf<String, String>()
+    var text: String = ""
+    
+    fun addChild(element: HtmlElement) {
+        children.add(element)
+    }
+    
+    fun attr(name: String, value: String) {
+        attributes[name] = value
+    }
+    
+    override fun toString(): String {
+        val attrString = if (attributes.isNotEmpty()) {
+            " " + attributes.map { "${it.key}=\"${it.value}\"" }.joinToString(" ")
+        } else ""
+        
+        return if (children.isEmpty() && text.isEmpty()) {
+            "<$tag$attrString/>"
+        } else {
+            "<$tag$attrString>$text${children.joinToString("")}</$tag>"
+        }
+    }
+}
+
+fun html(init: HtmlElement.() -> Unit): HtmlElement {
+    val element = HtmlElement("html")
+    element.init()
+    return element
+}
+
+fun HtmlElement.head(init: HtmlElement.() -> Unit) {
+    val head = HtmlElement("head")
+    head.init()
+    addChild(head)
+}
+
+fun HtmlElement.body(init: HtmlElement.() -> Unit) {
+    val body = HtmlElement("body")
+    body.init()
+    addChild(body)
+}
+
+fun HtmlElement.title(text: String) {
+    val title = HtmlElement("title")
+    title.text = text
+    addChild(title)
+}
+
+fun HtmlElement.div(cssClass: String? = null, init: HtmlElement.() -> Unit) {
+    val div = HtmlElement("div")
+    cssClass?.let { div.attr("class", it) }
+    div.init()
+    addChild(div)
+}
+
+fun HtmlElement.p(text: String) {
+    val p = HtmlElement("p")
+    p.text = text
+    addChild(p)
+}
+
+fun main() {
+    val page = html {
+        head {
+            title("My Page")
+        }
+        body {
+            div("container") {
+                p("Welcome to Kotlin!")
+                p("This is a DSL example.")
+            }
+        }
+    }
+    
+    println(page)
+}
+```
+
+### Configuration DSL
+
+```kotlin
+class DatabaseConfig {
+    var host: String = "localhost"
+    var port: Int = 3306
+    var database: String = ""
+    var username: String = ""
+    var password: String = ""
+    var maxConnections: Int = 10
+    var connectionTimeout: Long = 5000L
+    
+    fun connectionPool(init: ConnectionPoolConfig.() -> Unit) {
+        val poolConfig = ConnectionPoolConfig()
+        poolConfig.init()
+        maxConnections = poolConfig.maxSize
+        connectionTimeout = poolConfig.timeout
+    }
+    
+    override fun toString(): String {
+        return "DatabaseConfig(host='$host', port=$port, database='$database', " +
+                "username='$username', maxConnections=$maxConnections, timeout=$connectionTimeout)"
+    }
+}
+
+class ConnectionPoolConfig {
+    var maxSize: Int = 10
+    var timeout: Long = 5000L
+}
+
+fun database(init: DatabaseConfig.() -> Unit): DatabaseConfig {
+    val config = DatabaseConfig()
+    config.init()
+    return config
+}
+
+fun main() {
+    val dbConfig = database {
+        host = "production-server.com"
+        port = 5432
+        database = "myapp"
+        username = "app_user"
+        password = "secret123"
+        
+        connectionPool {
+            maxSize = 20
+            timeout = 10000L
+        }
+    }
+    
+    println(dbConfig)
+}
+```
+
+## Advanced Lambda Patterns
+
+### Lambda with Receivers
+
+```kotlin
+class StringBuilder {
+    private val content = mutableListOf<String>()
+    
+    fun append(text: String) {
+        content.add(text)
+    }
+    
+    fun appendLine(text: String = "") {
+        content.add(text + "\n")
+    }
+    
+    override fun toString() = content.joinToString("")
+}
+
+fun buildString(init: StringBuilder.() -> Unit): String {
+    val builder = StringBuilder()
+    builder.init()
+    return builder.toString()
+}
+
+// Extension function with lambda receiver
+inline fun <T> T.apply(block: T.() -> Unit): T {
+    block()
+    return this
+}
+
+fun main() {
+    val text = buildString {
+        append("Hello, ")
+        append("World!")
+        appendLine()
+        append("This is Kotlin.")
+    }
+    
+    println(text)
+    
+    // Using apply with lambda receiver
+    val person = Person("", 0, "").apply {
+        name = "John Doe"
+        age = 30
+        city = "New York"
+    }
+    
+    println(person)
+}
+```
+
+### Lambda Memoization
+
+```kotlin
+fun <T, R> memoize(fn: (T) -> R): (T) -> R {
+    val cache = mutableMapOf<T, R>()
+    return { input ->
+        cache.getOrPut(input) { fn(input) }
+    }
+}
+
+fun <T, U, R> memoize2(fn: (T, U) -> R): (T, U) -> R {
+    val cache = mutableMapOf<Pair<T, U>, R>()
+    return { input1, input2 ->
+        cache.getOrPut(input1 to input2) { fn(input1, input2) }
+    }
+}
+
+fun main() {
+    // Expensive fibonacci calculation
+    val fibonacci: (Int) -> Long = memoize { n ->
+        println("Calculating fibonacci($n)")
+        when (n) {
+            0 -> 0L
+            1 -> 1L
+            else -> {
+                val fib = memoize<Int, Long> { x ->
+                    when (x) {
+                        0 -> 0L
+                        1 -> 1L
+                        else -> fibonacci(x - 1) + fibonacci(x - 2)
+                    }
+                }
+                fib(n - 1) + fib(n - 2)
+            }
+        }
+    }
+    
+    println("Fibonacci 10: ${fibonacci(10)}")  // Calculates once
+    println("Fibonacci 10: ${fibonacci(10)}")  // Uses cached result
+    
+    // Memoized expensive string operation
+    val expensiveStringOp = memoize2 { s1: String, s2: String ->
+        println("Processing strings: $s1, $s2")
+        Thread.sleep(100) // Simulate expensive operation
+        s1.uppercase() + " " + s2.lowercase()
+    }
+    
+    println(expensiveStringOp("Hello", "WORLD"))  // Processes
+    println(expensiveStringOp("Hello", "WORLD"))  // Uses cache
+}
+```
+
+## Practical Examples
+
+### Event System with Lambdas
+
+```kotlin
+class EventSystem<T> {
+    private val listeners = mutableListOf<(T) -> Unit>()
+    
+    fun subscribe(listener: (T) -> Unit) {
+        listeners.add(listener)
+    }
+    
+    fun unsubscribe(listener: (T) -> Unit) {
+        listeners.remove(listener)
+    }
+    
+    fun emit(event: T) {
+        listeners.forEach { it(event) }
+    }
+}
+
+sealed class UserEvent {
+    data class Login(val username: String) : UserEvent()
+    data class Logout(val username: String) : UserEvent()
+    data class Purchase(val username: String, val amount: Double) : UserEvent()
+}
+
+fun main() {
+    val userEvents = EventSystem<UserEvent>()
+    
+    // Subscribe to events with lambdas
+    userEvents.subscribe { event ->
+        when (event) {
+            is UserEvent.Login -> println("User logged in: ${event.username}")
+            is UserEvent.Logout -> println("User logged out: ${event.username}")
+            is UserEvent.Purchase -> println("Purchase: ${event.username} spent $${event.amount}")
+        }
+    }
+    
+    val auditListener: (UserEvent) -> Unit = { event ->
+        println("AUDIT: Event occurred at ${System.currentTimeMillis()}: $event")
+    }
+    
+    userEvents.subscribe(auditListener)
+    
+    // Emit events
+    userEvents.emit(UserEvent.Login("alice"))
+    userEvents.emit(UserEvent.Purchase("alice", 99.99))
+    userEvents.emit(UserEvent.Logout("alice"))
+}
+```
+
+### Async Processing with Callbacks
+
+```kotlin
+import kotlinx.coroutines.*
+
+fun <T, R> asyncProcess(
+    data: T,
+    processor: (T) -> R,
+    onSuccess: (R) -> Unit,
+    onError: (Exception) -> Unit
+) {
+    try {
+        val result = processor(data)
+        onSuccess(result)
+    } catch (e: Exception) {
+        onError(e)
+    }
+}
+
+fun <T> retry(
+    maxAttempts: Int,
+    operation: () -> T,
+    onAttempt: (Int) -> Unit = {},
+    onSuccess: (T) -> Unit,
+    onFailure: (Exception) -> Unit
+) {
+    repeat(maxAttempts) { attempt ->
+        try {
+            onAttempt(attempt + 1)
+            val result = operation()
+            onSuccess(result)
+            return
+        } catch (e: Exception) {
+            if (attempt == maxAttempts - 1) {
+                onFailure(e)
+            }
+        }
+    }
+}
+
+fun main() = runBlocking {
+    val data = listOf(1, 2, 3, 4, 5)
+    
+    asyncProcess(
+        data = data,
+        processor = { numbers -> numbers.map { it * it }.sum() },
+        onSuccess = { result -> println("Processing successful: $result") },
+        onError = { error -> println("Processing failed: ${error.message}") }
+    )
+    
+    // Retry mechanism with lambdas
+    retry(
+        maxAttempts = 3,
+        operation = {
+            // Simulate unreliable operation
+            if (kotlin.random.Random.nextBoolean()) {
+                throw RuntimeException("Random failure")
+            }
+            "Success!"
+        },
+        onAttempt = { attempt -> println("Attempt $attempt") },
+        onSuccess = { result -> println("Operation succeeded: $result") },
+        onFailure = { error -> println("All attempts failed: ${error.message}") }
+    )
+}
+```
+
+## Performance Considerations
+
+### Lambda vs Function References
+
+```kotlin
+class StringProcessor {
+    fun process(text: String): String = text.uppercase()
+}
+
+fun main() {
+    val strings = List(1000) { "text$it" }
+    val processor = StringProcessor()
+    
+    // Lambda expression - creates new instance each time
+    val lambdaResults = strings.map { processor.process(it) }
+    
+    // Method reference - reuses the same instance
+    val methodRefResults = strings.map(processor::process)
+    
+    // Function reference
+    val functionRefResults = strings.map(String::uppercase)
+    
+    println("All approaches produce same results: ${lambdaResults == methodRefResults}")
+    
+    // For performance-critical code, method references are often better
+    // Lambda: { x -> function(x) }
+    // Method reference: ::function
+}
+```
+
+### Inline Functions and Lambda Performance
+
+```kotlin
+inline fun <T> measureTime(operation: () -> T): Pair<T, Long> {
+    val start = System.nanoTime()
+    val result = operation()
+    val end = System.nanoTime()
+    return result to (end - start)
+}
+
+// Non-inline version for comparison
+fun <T> measureTimeNonInline(operation: () -> T): Pair<T, Long> {
+    val start = System.nanoTime()
+    val result = operation()
+    val end = System.nanoTime()
+    return result to (end - start)
+}
+
+fun main() {
+    val numbers = (1..1000000).toList()
+    
+    // Inline function - lambda is inlined, reducing overhead
+    val (result1, time1) = measureTime {
+        numbers.filter { it % 2 == 0 }.sum()
+    }
+    
+    // Non-inline function - lambda creates function object
+    val (result2, time2) = measureTimeNonInline {
+        numbers.filter { it % 2 == 0 }.sum()
+    }
+    
+    println("Inline result: $result1, time: ${time1}ns")
+    println("Non-inline result: $result2, time: ${time2}ns")
+    println("Results equal: ${result1 == result2}")
+}
+```
+
+## Best Practices and Guidelines
+
+### When to Use Lambdas vs Function References
+
+```kotlin
+data class User(val name: String, val age: Int)
+
+fun main() {
+    val users = listOf(
+        User("Alice", 30),
+        User("Bob", 25),
+        User("Charlie", 35)
+    )
+    
+    // ✅ Good: Simple property access - use method reference
+    val names = users.map(User::name)
+    
+    // ✅ Good: Simple transformation - lambda is fine
+    val ages = users.map { it.age }
+    
+    // ✅ Good: Complex logic - use lambda
+    val descriptions = users.map { user ->
+        when {
+            user.age < 25 -> "${user.name} is young"
+            user.age > 30 -> "${user.name} is mature"
+            else -> "${user.name} is in their twenties"
+        }
+    }
+    
+    // ✅ Good: Existing function - use function reference
+    val upperNames = names.map(String::uppercase)
+    
+    println("Names: $names")
+    println("Descriptions: $descriptions")
+    println("Upper names: $upperNames")
+}
+```
+
+### Lambda Expression Style Guidelines
+
+```kotlin
+fun main() {
+    val numbers = (1..10).toList()
+    
+    // ✅ Good: Single expression lambda
+    val doubled = numbers.map { it * 2 }
+    
+    // ✅ Good: Multi-line lambda with proper formatting
+    val processed = numbers.map { number ->
+        val squared = number * number
+        val doubled = squared * 2
+        "Result: $doubled"
+    }
+    
+    // ✅ Good: Explicit parameter names for clarity
+    val combined = numbers.zip(doubled) { original, modified ->
+        "Original: $original, Modified: $modified"
+    }
+    
+    // ❌ Avoid: Overly complex lambdas - extract to function
+    // val complex = numbers.map { number ->
+    //     // 20+ lines of complex logic
+    //     // Better to extract this to a separate function
+    // }
+    
+    println("Doubled: $doubled")
+    println("Processed sample: ${processed.take(3)}")
+    println("Combined sample: ${combined.take(3)}")
+}
+```
+
+## Summary
+
+### Key Concepts
+
+1. **Lambda Expressions**: Anonymous functions that can be stored, passed, and returned
+2. **Closures**: Lambdas that capture variables from their enclosing scope
+3. **Higher-Order Functions**: Functions that take or return other functions
+4. **Function Composition**: Combining simple functions to create complex behavior
+5. **DSL Creation**: Using lambdas with receivers to create domain-specific languages
+
+### Best Practices
+
+1. Use method references for simple operations
+2. Keep lambdas concise and focused
+3. Extract complex logic to separate functions
+4. Leverage inline functions for performance-critical code
+5. Use meaningful parameter names in multi-parameter lambdas
+6. Consider closure implications for memory usage
+7. Use trailing lambda syntax for better readability
+
+Lambda expressions and closures are fundamental features in Kotlin that enable functional programming patterns, create more expressive APIs, and allow for powerful abstractions while maintaining code clarity and performance.

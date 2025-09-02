@@ -1,0 +1,510 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Function Types
+
+## Overview
+
+Function types in Kotlin represent the signature of functions - they define the parameter types and return type. Function types enable functional programming patterns, allowing functions to be treated as first-class citizens that can be stored in variables, passed as parameters, and returned from other functions.
+
+## Basic Function Type Syntax
+
+```kotlin
+// Basic syntax: (ParameterTypes) -> ReturnType
+val functionType: (Int, String) -> Boolean
+val simpleFunction: () -> Unit
+val singleParamFunction: (String) -> Int
+```
+
+## 1. Basic Function Types
+
+### Simple Function Types
+
+```kotlin
+// Function with no parameters returning Unit
+val greet: () -> Unit = { println("Hello!") }
+
+// Function with single parameter
+val square: (Int) -> Int = { x -> x * x }
+
+// Function with multiple parameters
+val add: (Int, Int) -> Int = { a, b -> a + b }
+
+// Function returning nullable type
+val safeDivide: (Int, Int) -> Int? = { a, b -> 
+    if (b != 0) a / b else null 
+}
+
+fun main() {
+    greet()                    // Hello!
+    println(square(5))         // 25
+    println(add(3, 7))         // 10
+    println(safeDivide(10, 2)) // 5
+}
+```
+
+### Function Types with Named Parameters
+
+```kotlin
+// Named parameters for better readability
+val calculateArea: (width: Int, height: Int) -> Int = { width, height ->
+    width * height
+}
+
+// Alternative syntax using it for single parameter
+val double: (Int) -> Int = { it * 2 }
+
+fun main() {
+    println(calculateArea(5, 10)) // 50
+    println(double(8))            // 16
+}
+```
+
+## 2. Higher-Order Functions
+
+### Functions as Parameters
+
+```kotlin
+// Function that takes another function as parameter
+fun operateOnNumbers(a: Int, b: Int, operation: (Int, Int) -> Int): Int {
+    return operation(a, b)
+}
+
+// Different operations
+val multiply: (Int, Int) -> Int = { x, y -> x * y }
+val subtract: (Int, Int) -> Int = { x, y -> x - y }
+
+fun main() {
+    println(operateOnNumbers(10, 5, multiply))  // 50
+    println(operateOnNumbers(10, 5, subtract))  // 5
+    
+    // Using lambda directly
+    println(operateOnNumbers(10, 5) { a, b -> a / b }) // 2
+}
+```
+
+### Functions Returning Functions
+
+```kotlin
+// Function that returns another function
+fun createMultiplier(factor: Int): (Int) -> Int {
+    return { number -> number * factor }
+}
+
+// Function returning different operations based on parameter
+fun getOperation(type: String): (Double, Double) -> Double {
+    return when (type) {
+        "add" -> { a, b -> a + b }
+        "multiply" -> { a, b -> a * b }
+        "divide" -> { a, b -> if (b != 0.0) a / b else 0.0 }
+        else -> { _, _ -> 0.0 }
+    }
+}
+
+fun main() {
+    val multiplyByThree = createMultiplier(3)
+    println(multiplyByThree(4)) // 12
+    
+    val addOperation = getOperation("add")
+    println(addOperation(2.5, 3.5)) // 6.0
+}
+```
+
+## 3. Extension Function Types
+
+```kotlin
+// Extension function type on String
+val String.isPalindrome: () -> Boolean
+    get() = { this == this.reversed() }
+
+// Extension function type with parameters
+val Int.power: (Int) -> Long = { exponent ->
+    var result = 1L
+    repeat(exponent) { result *= this }
+    result
+}
+
+// Function type as extension on collections
+val <T> List<T>.secondOrNull: () -> T?
+    get() = { if (size >= 2) this[1] else null }
+
+fun main() {
+    println("radar".isPalindrome()) // true
+    println("hello".isPalindrome()) // false
+    
+    println(2.power(3)) // 8
+    println(5.power(4)) // 625
+    
+    val numbers = listOf(1, 2, 3, 4, 5)
+    println(numbers.secondOrNull()) // 2
+}
+```
+
+## 4. Receiver Function Types
+
+### Function Types with Receivers
+
+```kotlin
+// Function type with receiver
+val stringBuilder: StringBuilder.() -> Unit = {
+    append("Hello ")
+    append("World!")
+    appendLine()
+    append("Kotlin is awesome!")
+}
+
+// Generic receiver function type
+fun <T> T.apply(block: T.() -> Unit): T {
+    block()
+    return this
+}
+
+// DSL-style function with receiver
+class HTMLBuilder {
+    private val elements = mutableListOf<String>()
+    
+    fun body(init: HTMLBuilder.() -> Unit) {
+        elements.add("<body>")
+        init()
+        elements.add("</body>")
+    }
+    
+    fun p(text: String) {
+        elements.add("<p>$text</p>")
+    }
+    
+    override fun toString() = elements.joinToString("\n")
+}
+
+fun html(init: HTMLBuilder.() -> Unit): HTMLBuilder {
+    return HTMLBuilder().apply(init)
+}
+
+fun main() {
+    val sb = StringBuilder()
+    sb.stringBuilder()
+    println(sb.toString())
+    
+    val htmlContent = html {
+        body {
+            p("Welcome to Kotlin!")
+            p("Function types are powerful!")
+        }
+    }
+    println(htmlContent)
+}
+```
+
+## 5. Suspend Function Types
+
+```kotlin
+import kotlinx.coroutines.*
+
+// Suspend function type for coroutines
+val fetchData: suspend () -> String = {
+    delay(1000) // Simulate network call
+    "Data fetched successfully!"
+}
+
+// Suspend function with parameters
+val processData: suspend (String) -> String = { data ->
+    delay(500)
+    "Processed: $data"
+}
+
+// Higher-order suspend function
+suspend fun executeAsync(operation: suspend () -> String): String {
+    return withContext(Dispatchers.IO) {
+        operation()
+    }
+}
+
+fun main() {
+    runBlocking {
+        val result = executeAsync(fetchData)
+        println(result) // Data fetched successfully!
+        
+        val processed = processData("sample data")
+        println(processed) // Processed: sample data
+    }
+}
+```
+
+## 6. Generic Function Types
+
+```kotlin
+// Generic function type
+fun <T, R> transform(items: List<T>, transformer: (T) -> R): List<R> {
+    return items.map(transformer)
+}
+
+// Multiple type parameters in function types
+fun <T, U, R> combine(
+    first: T,
+    second: U,
+    combiner: (T, U) -> R
+): R = combiner(first, second)
+
+// Bounded generic function types
+fun <T : Number> processNumbers(
+    numbers: List<T>,
+    processor: (T) -> Double
+): List<Double> = numbers.map(processor)
+
+fun main() {
+    val numbers = listOf(1, 2, 3, 4, 5)
+    val strings = transform(numbers) { it.toString() }
+    println(strings) // [1, 2, 3, 4, 5]
+    
+    val doubled = transform(numbers) { it * 2 }
+    println(doubled) // [2, 4, 6, 8, 10]
+    
+    val result = combine("Hello", 42) { str, num -> "$str $num!" }
+    println(result) // Hello 42!
+    
+    val doubles = listOf(1.5, 2.3, 3.7)
+    val processed = processNumbers(doubles) { it * 2 }
+    println(processed) // [3.0, 4.6, 7.4]
+}
+```
+
+## 7. Function Type Aliases
+
+```kotlin
+// Type aliases for complex function types
+typealias StringProcessor = (String) -> String
+typealias NumberValidator = (Int) -> Boolean
+typealias EventHandler<T> = (T) -> Unit
+typealias AsyncOperation<T> = suspend () -> T
+
+// Using type aliases
+val uppercaseProcessor: StringProcessor = { it.uppercase() }
+val evenValidator: NumberValidator = { it % 2 == 0 }
+val clickHandler: EventHandler<String> = { println("Clicked: $it") }
+
+// Complex type alias
+typealias ApiCall<T, R> = suspend (T) -> Result<R>
+
+val userApiCall: ApiCall<String, User> = { userId ->
+    try {
+        // Simulate API call
+        delay(100)
+        Result.success(User(userId, "John Doe"))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+}
+
+data class User(val id: String, val name: String)
+
+fun main() {
+    println(uppercaseProcessor("hello world")) // HELLO WORLD
+    println(evenValidator(4))  // true
+    println(evenValidator(7))  // false
+    clickHandler("Button A")   // Clicked: Button A
+    
+    runBlocking {
+        val result = userApiCall("123")
+        result.onSuccess { user ->
+            println("User: ${user.name}")
+        }.onFailure { error ->
+            println("Error: ${error.message}")
+        }
+    }
+}
+```
+
+## 8. Nullable Function Types
+
+```kotlin
+// Nullable function types
+var nullableFunction: ((Int) -> String)? = null
+
+// Safe calls with nullable function types
+fun processWithOptionalFormatter(
+    value: Int,
+    formatter: ((Int) -> String)? = null
+): String {
+    return formatter?.invoke(value) ?: value.toString()
+}
+
+// Elvis operator with function types
+fun calculateWithFallback(
+    a: Int,
+    b: Int,
+    operation: ((Int, Int) -> Int)?
+): Int {
+    return operation?.invoke(a, b) ?: (a + b)
+}
+
+fun main() {
+    println(processWithOptionalFormatter(42)) // 42
+    println(processWithOptionalFormatter(42) { "Value: $it" }) // Value: 42
+    
+    println(calculateWithFallback(5, 3, null)) // 8 (fallback sum)
+    println(calculateWithFallback(5, 3) { x, y -> x * y }) // 15
+    
+    // Assigning and calling nullable function
+    nullableFunction = { number -> "Number is $number" }
+    nullableFunction?.let { function ->
+        println(function(100)) // Number is 100
+    }
+}
+```
+
+## 9. Function Types with Default Parameters
+
+```kotlin
+// Function types don't support default parameters directly
+// But you can achieve similar behavior with overloading or nullable parameters
+
+class Calculator {
+    // Using nullable parameters for optional behavior
+    fun calculate(
+        a: Int,
+        b: Int,
+        operation: ((Int, Int) -> Int)? = null
+    ): Int {
+        val defaultOperation: (Int, Int) -> Int = { x, y -> x + y }
+        return (operation ?: defaultOperation)(a, b)
+    }
+    
+    // Multiple function signatures for flexibility
+    fun process(value: Int): Int = process(value) { it * 2 }
+    fun process(value: Int, transformer: (Int) -> Int): Int = transformer(value)
+}
+
+fun main() {
+    val calc = Calculator()
+    
+    println(calc.calculate(10, 5)) // 15 (default addition)
+    println(calc.calculate(10, 5) { a, b -> a - b }) // 5 (subtraction)
+    
+    println(calc.process(7)) // 14 (default doubling)
+    println(calc.process(7) { it * it }) // 49 (squaring)
+}
+```
+
+## 10. Advanced Function Type Patterns
+
+### Function Composition
+
+```kotlin
+// Function composition utilities
+infix fun <A, B, C> ((A) -> B).andThen(other: (B) -> C): (A) -> C {
+    return { a -> other(this(a)) }
+}
+
+infix fun <A, B, C> ((B) -> C).compose(other: (A) -> B): (A) -> C {
+    return { a -> this(other(a)) }
+}
+
+// Partial application
+fun <A, B, C> ((A, B) -> C).partial(a: A): (B) -> C {
+    return { b -> this(a, b) }
+}
+
+fun main() {
+    val addOne: (Int) -> Int = { it + 1 }
+    val double: (Int) -> Int = { it * 2 }
+    val square: (Int) -> Int = { it * it }
+    
+    // Function composition
+    val addThenDouble = addOne andThen double
+    val squareThenAdd = addOne compose square
+    
+    println(addThenDouble(5)) // (5 + 1) * 2 = 12
+    println(squareThenAdd(3)) // (3^2) + 1 = 10
+    
+    // Partial application
+    val multiply: (Int, Int) -> Int = { a, b -> a * b }
+    val multiplyByFive = multiply.partial(5)
+    
+    println(multiplyByFive(4)) // 20
+}
+```
+
+### Memoization with Function Types
+
+```kotlin
+// Memoization decorator
+fun <T, R> ((T) -> R).memoized(): (T) -> R {
+    val cache = mutableMapOf<T, R>()
+    return { input ->
+        cache.getOrPut(input) { this(input) }
+    }
+}
+
+// Expensive computation example
+val fibonacci: (Int) -> Long = { n ->
+    if (n <= 1) n.toLong()
+    else {
+        // Recursive implementation (expensive without memoization)
+        var a = 0L
+        var b = 1L
+        repeat(n - 1) {
+            val temp = a + b
+            a = b
+            b = temp
+        }
+        b
+    }
+}.memoized()
+
+fun main() {
+    println(fibonacci(10)) // 55
+    println(fibonacci(20)) // 6765
+    println(fibonacci(30)) // 832040
+}
+```
+
+## Best Practices
+
+### 1. Use Type Aliases for Complex Function Types
+```kotlin
+// Instead of: (String, Int, Boolean) -> Map<String, Any>
+typealias DataProcessor = (String, Int, Boolean) -> Map<String, Any>
+```
+
+### 2. Prefer Extension Functions for Receivers
+```kotlin
+// Good: Clear receiver context
+fun StringBuilder.buildHtml(init: StringBuilder.() -> Unit): String {
+    init()
+    return toString()
+}
+```
+
+### 3. Use Meaningful Parameter Names
+```kotlin
+// Good: Clear parameter purpose
+val processUser: (userId: String, isActive: Boolean) -> User = { userId, isActive ->
+    // Implementation
+    User(userId, isActive)
+}
+```
+
+### 4. Consider Performance for Hot Paths
+```kotlin
+// For frequently called functions, consider using inline functions
+inline fun <T> List<T>.customFilter(predicate: (T) -> Boolean): List<T> {
+    val result = mutableListOf<T>()
+    for (item in this) {
+        if (predicate(item)) result.add(item)
+    }
+    return result
+}
+```
+
+## Common Use Cases
+
+1. **Event Handling**: `(Event) -> Unit`
+2. **Data Transformation**: `(Input) -> Output`
+3. **Validation**: `(T) -> Boolean`
+4. **Asynchronous Operations**: `suspend () -> T`
+5. **DSL Building**: `Builder.() -> Unit`
+6. **Callback Patterns**: `(Result<T>) -> Unit`
+
+Function types in Kotlin provide powerful abstractions for functional programming, enabling clean, reusable, and expressive code patterns.
