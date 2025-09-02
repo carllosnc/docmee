@@ -1,0 +1,429 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Syntax Rules, Indentation, and Module Structure Guide
+
+## Table of Contents
+1. [Basic Syntax Rules](#basic-syntax-rules)
+2. [Indentation and Layout Rules](#indentation-and-layout-rules)
+3. [Module Structure](#module-structure)
+4. [Advanced Syntax Features](#advanced-syntax-features)
+5. [Modern Haskell Extensions](#modern-haskell-extensions)
+
+## Basic Syntax Rules
+
+### Comments
+```haskell
+-- Single line comment
+
+{- Multi-line comment
+   can span multiple lines -}
+
+{-# This is a pragma #-}
+```
+
+### Basic Declarations
+```haskell
+-- Function definition
+square :: Int -> Int
+square x = x * x
+
+-- Constant definition
+pi_approx :: Double
+pi_approx = 3.14159
+
+-- Pattern matching
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+```
+
+### Function Application and Operators
+```haskell
+-- Function application (highest precedence)
+result = square 5  -- No parentheses needed
+
+-- Infix operators
+sum_result = 3 + 4 * 5  -- Respects operator precedence
+custom_op = 10 `mod` 3  -- Backticks make functions infix
+
+-- Function composition
+double_square = square . (*2)  -- Compose functions with (.)
+```
+
+### Lists and Basic Data Types
+```haskell
+-- List syntax
+numbers = [1, 2, 3, 4, 5]
+empty_list = []
+range = [1..10]
+infinite = [1..]
+
+-- String is [Char]
+greeting = "Hello, World!"
+char_list = ['H', 'i']
+
+-- Tuples
+point = (3, 4)
+triple = (1, "hello", True)
+```
+
+## Indentation and Layout Rules
+
+### The Offside Rule
+Haskell uses indentation to determine code structure instead of braces.
+
+```haskell
+-- Correct indentation
+myFunction x y = 
+    let a = x + 1
+        b = y * 2
+    in a + b
+
+-- Alternative with where clause
+myFunction2 x y = a + b
+  where
+    a = x + 1
+    b = y * 2
+```
+
+### Let-In Expressions
+```haskell
+-- Nested let expressions
+complexCalc x = 
+    let a = x + 1
+        b = let c = a * 2
+                d = c + 3
+            in c + d
+        result = a + b
+    in result
+
+-- Single line let
+quickCalc x = let y = x * 2 in y + 1
+```
+
+### Where Clauses
+```haskell
+-- Where clause with proper indentation
+quadraticRoots a b c = (root1, root2)
+  where
+    discriminant = b^2 - 4*a*c
+    root1 = (-b + sqrt discriminant) / (2*a)
+    root2 = (-b - sqrt discriminant) / (2*a)
+```
+
+### Case Expressions
+```haskell
+-- Case expression indentation
+describeList :: [a] -> String
+describeList xs = case xs of
+    []     -> "Empty list"
+    [x]    -> "Single element"
+    [x,y]  -> "Two elements" 
+    _      -> "Many elements"
+
+-- Guards with proper indentation
+absoluteValue :: (Num a, Ord a) => a -> a
+absoluteValue x
+    | x >= 0    = x
+    | otherwise = -x
+```
+
+### Do Notation
+```haskell
+-- IO actions with do notation
+greetUser :: IO ()
+greetUser = do
+    putStrLn "What's your name?"
+    name <- getLine
+    putStrLn ("Hello, " ++ name ++ "!")
+
+-- List comprehension style
+listExample :: IO ()
+listExample = do
+    x <- [1,2,3]
+    y <- [4,5,6]
+    return (x * y)
+```
+
+### If-Then-Else
+```haskell
+-- If expression (must have else)
+maxValue :: (Ord a) => a -> a -> a
+maxValue x y = if x > y
+               then x
+               else y
+
+-- Nested if expressions
+classify :: Int -> String
+classify x = if x > 0
+             then if x > 100
+                  then "large positive"
+                  else "small positive"
+             else if x == 0
+                  then "zero"
+                  else "negative"
+```
+
+## Module Structure
+
+### Basic Module Declaration
+```haskell
+-- MyModule.hs
+module MyModule 
+    ( -- Export list
+      factorial,
+      fibonacci,
+      MyType(..)  -- Export type and all constructors
+    ) where
+
+-- Module imports
+import Data.List (sort, group)
+import qualified Data.Map as Map
+import Control.Monad hiding (when)
+
+-- Module content
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+data MyType = Constructor1 | Constructor2 Int
+```
+
+### Import Variations
+```haskell
+-- Different import styles
+import Data.List                    -- Import everything
+import Data.List (sort, reverse)    -- Import specific items
+import Data.List hiding (head)      -- Import everything except head
+import qualified Data.Map           -- Qualified import (use Data.Map.lookup)
+import qualified Data.Map as M      -- Qualified with alias (use M.lookup)
+import Data.Map (Map, lookup)       -- Import type and function
+```
+
+### Export Lists
+```haskell
+module MathUtils 
+    ( -- Functions
+      square,
+      cube,
+      -- Types with constructors
+      Shape(..),           -- Export all constructors
+      Point(Point),        -- Export specific constructor
+      Vector,              -- Export type only (abstract)
+      -- Type classes
+      Drawable(..),        -- Export class and all methods
+      -- Modules
+      module Data.List     -- Re-export entire module
+    ) where
+```
+
+### Hierarchical Modules
+```haskell
+-- File: Data/MyStructures/Tree.hs
+module Data.MyStructures.Tree
+    ( Tree(..)
+    , empty
+    , insert
+    , search
+    ) where
+
+data Tree a = Empty | Node a (Tree a) (Tree a)
+
+empty :: Tree a
+empty = Empty
+
+insert :: (Ord a) => a -> Tree a -> Tree a
+insert x Empty = Node x Empty Empty
+insert x (Node y left right)
+    | x <= y    = Node y (insert x left) right
+    | otherwise = Node y left (insert x right)
+```
+
+## Advanced Syntax Features
+
+### Pattern Matching
+```haskell
+-- List patterns
+listLength :: [a] -> Int
+listLength [] = 0
+listLength (x:xs) = 1 + listLength xs
+
+-- As-patterns
+duplicate :: [a] -> [a]
+duplicate [] = []
+duplicate list@(x:xs) = x : list  -- list refers to entire (x:xs)
+
+-- Lazy patterns
+lazyPattern :: (a, b) -> a
+lazyPattern ~(x, y) = x  -- Won't evaluate y unless needed
+```
+
+### Record Syntax
+```haskell
+-- Record definition
+data Person = Person
+    { name :: String
+    , age :: Int
+    , email :: String
+    } deriving (Show, Eq)
+
+-- Record construction
+john :: Person
+john = Person 
+    { name = "John Doe"
+    , age = 30
+    , email = "john@example.com"
+    }
+
+-- Record update
+birthday :: Person -> Person
+birthday person = person { age = age person + 1 }
+
+-- Record pattern matching
+getEmail :: Person -> String
+getEmail Person{email = e} = e
+```
+
+### Type Signatures and Constraints
+```haskell
+-- Basic type signature
+add :: Int -> Int -> Int
+add x y = x + y
+
+-- Polymorphic with constraints
+sort_list :: (Ord a) => [a] -> [a]
+sort_list = Data.List.sort
+
+-- Multiple constraints
+show_and_compare :: (Show a, Ord a) => a -> a -> String
+show_and_compare x y = show x ++ " compared to " ++ show y
+
+-- Higher-order functions
+map_function :: (a -> b) -> [a] -> [b]
+map_function f [] = []
+map_function f (x:xs) = f x : map_function f xs
+```
+
+### Lambda Expressions
+```haskell
+-- Anonymous functions
+square_lambda = \x -> x * x
+add_lambda = \x y -> x + y
+
+-- Lambda in higher-order functions
+doubled = map (\x -> x * 2) [1,2,3,4]
+filtered = filter (\x -> x > 5) [1..10]
+
+-- Lambda with pattern matching
+first_elem = \(x:_) -> x
+```
+
+## Modern Haskell Extensions
+
+### Language Extensions (GHC 9.8+)
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+
+import Data.Text (Text)
+
+-- OverloadedStrings allows string literals to be other types
+greeting :: Text
+greeting = "Hello, World!"  -- No explicit conversion needed
+```
+
+### GADT Syntax
+```haskell
+{-# LANGUAGE GADTs #-}
+
+-- Generalized Algebraic Data Types
+data Expr a where
+    IntVal  :: Int -> Expr Int
+    BoolVal :: Bool -> Expr Bool
+    Add     :: Expr Int -> Expr Int -> Expr Int
+    Eq      :: Expr Int -> Expr Int -> Expr Bool
+
+eval :: Expr a -> a
+eval (IntVal x) = x
+eval (BoolVal b) = b
+eval (Add x y) = eval x + eval y
+eval (Eq x y) = eval x == eval y
+```
+
+### Type Applications
+```haskell
+{-# LANGUAGE TypeApplications #-}
+
+-- Explicit type application
+result = read @Int "42"  -- Specify type explicitly
+sorted = sort @[Int] [3,1,4,1,5,9]
+
+-- Useful with polymorphic functions
+proxy_example = show @Int 42
+```
+
+### Pattern Synonyms
+```haskell
+{-# LANGUAGE PatternSynonyms #-}
+
+-- Create pattern synonyms for better readability
+pattern Empty :: [a]
+pattern Empty = []
+
+pattern x :+ xs :: a -> [a] -> [a]
+pattern x :+ xs = x : xs
+
+-- Usage in pattern matching
+listSum :: [Int] -> Int
+listSum Empty = 0
+listSum (x :+ xs) = x + listSum xs
+```
+
+### DerivingVia (GHC 8.6+)
+```haskell
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+newtype Age = Age Int
+  deriving (Show, Eq, Ord)
+  deriving (Num) via Int
+
+-- Can now use Age as numbers
+youngAge :: Age
+youngAge = Age 25
+
+olderAge :: Age  
+olderAge = youngAge + 10
+```
+
+### Best Practices Summary
+
+1. **Indentation**: Use spaces (2 or 4), be consistent
+2. **Module Organization**: One module per file, hierarchical structure
+3. **Export Lists**: Explicit exports for public API
+4. **Type Signatures**: Always provide them for top-level functions
+5. **Pattern Matching**: Use comprehensive patterns, handle all cases
+6. **Modern Extensions**: Use language extensions judiciously
+7. **Documentation**: Use Haddock comments for public functions
+
+```haskell
+-- | Calculate the factorial of a non-negative integer
+-- 
+-- >>> factorial 5
+-- 120
+-- >>> factorial 0  
+-- 1
+factorial :: Int -> Int
+factorial n
+    | n < 0     = error "Negative input"
+    | n == 0    = 1
+    | otherwise = n * factorial (n - 1)
+```
+
+This guide covers the essential syntax rules, indentation patterns, and module structure that form the foundation of well-structured Haskell code.
