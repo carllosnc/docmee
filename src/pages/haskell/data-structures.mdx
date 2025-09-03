@@ -1,0 +1,256 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Data Structures
+
+## Overview of Data Structures
+Haskell’s data structures are immutable, meaning operations produce new structures rather than modifying existing ones. Common built-in structures include lists and tuples, while custom structures are defined using `data` or `newtype`. Data structures support pattern matching, type safety, and integration with higher-order functions.
+
+### Basic Syntax for Custom Data Types
+```haskell
+data TypeName = Constructor1 Type1 | Constructor2 Type2 | ...
+```
+- **Type**: Defines a new type with constructors (e.g., `data Bool = True | False`).
+- **Constructors**: Create values of the type, used in pattern matching.
+- **Fields**: Specify types for constructor arguments (e.g., `data Point = Point Int Int`).
+
+## 1. Lists: Homogeneous Sequences
+Lists are singly linked, immutable sequences of elements of the same type.
+
+```haskell
+-- lists.hs
+-- Defines and sums a list of numbers.
+
+numbers :: [Int]
+numbers = [1, 2, 3, 4]
+
+sumList :: [Int] -> Int
+sumList xs = foldr (+) 0 xs
+
+main :: IO ()
+main = print (sumList numbers)  -- Outputs: 10
+```
+
+- **Description**: `numbers` is a list of `Int`. `sumList` uses `foldr` to compute the sum.
+- **Key Concept**: Lists are homogeneous; use `:` (cons) and `[]` (empty list) for construction.
+- **In GHCi**: `[1..3]` returns `[1,2,3]`; `sumList [1,2,3]` returns `6`.
+
+## 2. Tuples: Fixed-Size Heterogeneous Collections
+Tuples store a fixed number of elements of different types.
+
+```haskell
+-- tuples.hs
+-- Defines a tuple with mixed types.
+
+person :: (String, Int)
+person = ("Alice", 30)
+
+getName :: (String, Int) -> String
+getName (name, _) = name
+
+main :: IO ()
+main = putStrLn (getName person)  -- Outputs: Alice
+```
+
+- **Description**: `person` is a tuple with a `String` and `Int`. `getName` extracts the first element via pattern matching.
+- **Key Concept**: Tuples are fixed-size and heterogeneous; use `(,)` for pairs, `(,,)` for triples, etc.
+- **In GHCi**: `fst ("Bob", 25)` returns `"Bob"`.
+
+## 3. Custom Data Type: Point
+Define a custom type for 2D points using `data`.
+
+```haskell
+-- point.hs
+-- Defines a Point type and computes distance.
+
+data Point = Point Int Int deriving (Show, Eq)
+
+distance :: Point -> Point -> Double
+distance (Point x1 y1) (Point x2 y2) =
+  sqrt $ fromIntegral $ (x2 - x1)^2 + (y2 - y1)^2
+
+main :: IO ()
+main = print (distance (Point 0 0) (Point 3 4))  -- Outputs: 5.0
+```
+
+- **Description**: `Point` has one constructor with two `Int` fields. `distance` computes Euclidean distance.
+- **Key Concept**: `data` defines algebraic data types; `deriving` adds typeclass instances.
+- **In GHCi**: `Point 1 2 == Point 1 2` returns `True`.
+
+## 4. Sum Type: Shape
+Define a type with multiple constructors.
+
+```haskell
+-- shape.hs
+-- Defines a Shape type with area calculation.
+
+data Shape = Circle Float | Rectangle Float Float deriving Show
+
+area :: Shape -> Float
+area (Circle r) = 3.14159 * r * r
+area (Rectangle w h) = w * h
+
+main :: IO ()
+main = print (area (Circle 2.0))  -- Outputs: 12.56636
+```
+
+- **Description**: `Shape` has two constructors: `Circle` (one `Float`) and `Rectangle` (two `Float`s). `area` uses pattern matching.
+- **Key Concept**: Sum types allow multiple constructors for different variants.
+- **In GHCi**: `area (Rectangle 2 3)` returns `6.0`.
+
+## 5. Recursive Data Type: Binary Tree
+Define a recursive type for a binary tree.
+
+```haskell
+-- tree.hs
+-- Defines a binary tree and counts nodes.
+
+data Tree a = Empty | Node a (Tree a) (Tree a) deriving Show
+
+countNodes :: Tree a -> Int
+countNodes Empty = 0
+countNodes (Node _ left right) = 1 + countNodes left + countNodes right
+
+main :: IO ()
+main = do
+  let tree = Node 1 (Node 2 Empty Empty) (Node 3 Empty Empty)
+  print (countNodes tree)  -- Outputs: 3
+```
+
+- **Description**: `Tree` is polymorphic and recursive. `countNodes` counts nodes via pattern matching.
+- **Key Concept**: Recursive types model hierarchical structures.
+- **In GHCi**: `countNodes (Node 1 Empty Empty)` returns `1`.
+
+## 6. Record Syntax: Student
+Use record syntax for named fields.
+
+```haskell
+-- student.hs
+-- Defines a Student type with named fields.
+
+data Student = Student { name :: String, age :: Int } deriving Show
+
+greetStudent :: Student -> String
+greetStudent s = "Hello, " ++ name s ++ "!"
+
+main :: IO ()
+main = putStrLn (greetStudent (Student "Alice" 20))  -- Outputs: Hello, Alice!
+```
+
+- **Description**: `Student` uses record syntax for accessors (`name`, `age`). `greetStudent` uses the `name` accessor.
+- **Key Concept**: Records provide convenient field access.
+- **In GHCi**: `name (Student "Bob" 25)` returns `"Bob"`.
+
+## 7. List Comprehension: Pair Combinations
+Generate lists of pairs using comprehensions.
+
+```haskell
+-- pairs.hs
+-- Generates pairs from two lists.
+
+pairs :: [Int] -> [Int] -> [(Int, Int)]
+pairs xs ys = [(x, y) | x <- xs, y <- ys]
+
+main :: IO ()
+main = print (pairs [1, 2] [3, 4])  -- Outputs: [(1,3),(1,4),(2,3),(2,4)]
+```
+
+- **Description**: Creates all possible pairs from two lists using a comprehension.
+- **Key Concept**: Comprehensions work with any data structure yielding lists.
+- **In GHCi**: `pairs [1] [1,2]` returns `[(1,1),(1,2)]`.
+
+## 8. Higher-Order Functions: Map over Custom Type
+Use higher-order functions with custom types.
+
+```haskell
+-- scale_point.hs
+-- Scales a Point’s coordinates.
+
+data Point = Point Int Int deriving Show
+
+scalePoint :: (Int -> Int) -> Point -> Point
+scalePoint f (Point x y) = Point (f x) (f y)
+
+main :: IO ()
+main = print (scalePoint (*2) (Point 1 2))  -- Outputs: Point 2 4
+```
+
+- **Description**: Applies `f` to both coordinates of a `Point`.
+- **Key Concept**: Higher-order functions extend to custom types via pattern matching.
+- **In GHCi**: `scalePoint (+1) (Point 1 1)` returns `Point 2 2`.
+
+## 9. I/O with Data Structures: User Input
+Handle custom types in `IO`.
+
+```haskell
+-- input_point.hs
+-- Reads coordinates and creates a Point.
+
+data Point = Point Int Int deriving Show
+
+readPoint :: IO Point
+readPoint = do
+  putStrLn "Enter x and y coordinates:"
+  x <- readLn
+  y <- readLn
+  return (Point x y)
+
+main :: IO ()
+main = do
+  p <- readPoint
+  print p
+```
+
+- **Description**: Reads two integers and constructs a `Point`. Uses `readLn` for input.
+- **Key Concept**: `IO` actions can build and manipulate data structures.
+- **How to Run**: Compile and run; enter two numbers when prompted.
+
+## 10. Module with Data Structures: Geometry
+Organize data structures in a module.
+
+```haskell
+-- Geometry.hs
+module Geometry (Point(..), distance) where
+
+data Point = Point Int Int deriving (Show, Eq)
+
+distance :: Point -> Point -> Double
+distance (Point x1 y1) (Point x2 y2) =
+  sqrt $ fromIntegral $ (x2 - x1)^2 + (y2 - y1)^2
+```
+
+- **Description**: Exports `Point` (including constructor) and `distance`. Import with `import Geometry`.
+- **Usage Example** in another file:
+  ```haskell
+  import Geometry
+  main = print (distance (Point 0 0) (Point 3 4))  -- Outputs: 5.0
+  ```
+- **Key Concept**: Modules encapsulate data structures and operations.
+
+## Characteristics of Data Structures
+- **Immutability**: Operations return new structures, preserving originals.
+- **Type Safety**: Types are checked at compile time; constructors ensure correctness.
+- **Lazy Evaluation**: Elements are evaluated only when needed, e.g., `take 2 [1..]` returns `[1,2]`.
+- **Pattern Matching**: Simplifies data access and manipulation.
+- **Polymorphism**: Types like `Tree a` support any element type.
+
+## Best Practices
+- **Use Type Signatures**: Specify types (e.g., `Point Int Int`) for clarity.
+- **Leverage Pattern Matching**: Deconstruct data structures concisely.
+- **Derive Typeclasses**: Use `deriving (Show, Eq)` for common behaviors.
+- **Use Records**: For types with many fields, use record syntax.
+- **Test in GHCi**: Check types with `:t` and test constructors (e.g., `Point 1 2`).
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` or `Either` for safe operations, e.g., `safeHead xs = if null xs then Nothing else Just (head xs)`.
+- **Common Functions**: Use `Prelude` (`map`, `filter`, `foldr`) and `Data.List` (`group`, `sort`).
+- **Custom Types**: Use `newtype` for single-constructor types to avoid overhead.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect structures.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers data structures).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and `Data.List` documentation.
