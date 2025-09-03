@@ -1,0 +1,241 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# List Comprehensions:
+
+## Overview of List Comprehensions
+List comprehensions in Haskell resemble mathematical set notation, allowing you to generate lists by specifying elements, sources, and conditions. They are ideal for creating lists from existing ones with transformations and filters, combining the functionality of `map` and `filter` in a readable format. Lists remain immutable, and comprehensions produce new lists.
+
+### Basic Syntax
+```haskell
+[ expression | variable <- source, condition1, condition2, ... ]
+```
+- **Expression**: The output for each element (e.g., `x * 2`).
+- **Variable `<-` Source**: Draws elements from a list (e.g., `x <- [1..5]`).
+- **Conditions**: Filters elements (e.g., `even x`).
+- **Output**: A new list containing results of `expression` for elements meeting all conditions.
+
+## 1. Basic Comprehension: Doubling Numbers
+Generate a list by doubling numbers.
+
+```haskell
+-- double.hs
+-- Doubles numbers from 1 to 5.
+
+doubles :: [Int]
+doubles = [x * 2 | x <- [1..5]]
+
+main :: IO ()
+main = print doubles  -- Outputs: [2,4,6,8,10]
+```
+
+- **Description**: Draws `x` from `[1..5]`, computes `x * 2` for each.
+- **Key Concept**: Equivalent to `map (*2) [1..5]`.
+- **In GHCi**: `[x * 3 | x <- [1..3]]` returns `[3,6,9]`.
+
+## 2. Filtering: Even Squares
+Filter elements using a condition.
+
+```haskell
+-- even_squares.hs
+-- Squares of even numbers from 1 to 6.
+
+evenSquares :: [Int]
+evenSquares = [x * x | x <- [1..6], even x]
+
+main :: IO ()
+main = print evenSquares  -- Outputs: [4,16,36]
+```
+
+- **Description**: Draws `x` from `[1..6]`, keeps `even x`, computes `x * x`.
+- **Key Concept**: Filters act like `filter even` before mapping.
+- **In GHCi**: `[x^2 | x <- [1..4], odd x]` returns `[1,9]`.
+
+## 3. Multiple Generators: Pairs
+Use multiple sources to create pairs.
+
+```haskell
+-- pairs.hs
+-- Generates all pairs from two lists.
+
+pairs :: [(Int, Int)]
+pairs = [(x, y) | x <- [1, 2], y <- [3, 4]]
+
+main :: IO ()
+main = print pairs  -- Outputs: [(1,3),(1,4),(2,3),(2,4)]
+```
+
+- **Description**: Draws `x` from `[1, 2]` and `y` from `[3, 4]`, creates tuples `(x, y)`.
+- **Key Concept**: Multiple generators produce a Cartesian product.
+- **In GHCi**: `[(a, b) | a <- [1], b <- [1,2]]` returns `[(1,1),(1,2)]`.
+
+## 4. Multiple Conditions: Filtered Pairs
+Apply multiple filters to refine output.
+
+```haskell
+-- filtered_pairs.hs
+-- Pairs where sum is even.
+
+evenSumPairs :: [(Int, Int)]
+evenSumPairs = [(x, y) | x <- [1..3], y <- [1..3], even (x + y)]
+
+main :: IO ()
+main = print evenSumPairs  -- Outputs: [(1,1),(1,3),(2,2),(3,1),(3,3)]
+```
+
+- **Description**: Generates pairs `(x, y)` where `x + y` is even.
+- **Key Concept**: Multiple conditions stack like chained `filter`s.
+- **In GHCi**: `[(x, y) | x <- [1,2], y <- [1,2], x /= y]` returns `[(1,2),(2,1)]`.
+
+## 5. String Processing: Vowel Extraction
+Process strings (lists of `Char`) with comprehensions.
+
+```haskell
+-- vowels.hs
+-- Extracts vowels from a string.
+
+vowels :: String -> String
+vowels s = [c | c <- s, c `elem` "aeiouAEIOU"]
+
+main :: IO ()
+main = print (vowels "Haskell")  -- Outputs: "ae"
+```
+
+- **Description**: Draws `c` from `s`, keeps characters in `"aeiouAEIOU"`.
+- **Key Concept**: Strings are `[Char]`, so comprehensions apply directly.
+- **In GHCi**: `vowels "Hello"` returns `"eo"`.
+
+## 6. Nested Comprehensions: Flattening Lists
+Use comprehensions within comprehensions.
+
+```haskell
+-- nested.hs
+-- Flattens a list of lists.
+
+flatten :: [[Int]] -> [Int]
+flatten xss = [x | xs <- xss, x <- xs]
+
+main :: IO ()
+main = print (flatten [[1, 2], [3], [4, 5]])  -- Outputs: [1,2,3,4,5]
+```
+
+- **Description**: Draws `xs` from `xss`, then `x` from each `xs`, producing a flat list.
+- **Key Concept**: Equivalent to `concatMap id xss` or `concat xss`.
+- **In GHCi**: `[x | xs <- [[1], [2,3]], x <- xs]` returns `[1,2,3]`.
+
+## 7. Combining Transformations: Scaled Evens
+Combine transformations and filters.
+
+```haskell
+-- scaled_evens.hs
+-- Doubles even numbers after adding 1.
+
+scaledEvens :: [Int] -> [Int]
+scaledEvens xs = [x * 2 | x <- xs, even (x + 1)]
+
+main :: IO ()
+main = print (scaledEvens [1, 2, 3, 4])  -- Outputs: [4,8]
+```
+
+- **Description**: Filters numbers where `x + 1` is even, then doubles them.
+- **Key Concept**: Comprehensions allow complex logic in a single expression.
+- **In GHCi**: `[x * 3 | x <- [1..3], x > 1]` returns `[6,9]`.
+
+## 8. Infinite Lists: Lazy Evaluation
+Use comprehensions with infinite lists.
+
+```haskell
+-- infinite.hs
+-- First 5 even squares from infinite range.
+
+firstEvenSquares :: [Int]
+firstEvenSquares = take 5 [x * x | x <- [1..], even x]
+
+main :: IO ()
+main = print firstEvenSquares  -- Outputs: [4,16,36,64,100]
+```
+
+- **Description**: Draws from `[1..]` (infinite), filters even `x`, computes `x * x`, takes first 5.
+- **Key Concept**: Lazy evaluation ensures only needed elements are computed.
+- **In GHCi**: `take 3 [x | x <- [1..], odd x]` returns `[1,3,5]`.
+
+## 9. I/O with Comprehensions: Process Input
+Use comprehensions with `IO` input.
+
+```haskell
+-- input.hs
+-- Reads words and keeps short ones.
+
+shortWords :: IO [String]
+shortWords = do
+  putStrLn "Enter words (one per line, empty to stop):"
+  words <- readWords
+  return [w | w <- words, length w < 4]
+  where
+    readWords = do
+      line <- getLine
+      if null line
+        then return []
+        else do
+          rest <- readWords
+          return (line : rest)
+
+main :: IO ()
+main = do
+  ws <- shortWords
+  print ws
+```
+
+- **Description**: Reads words into a list, keeps those with length < 4.
+- **Key Concept**: Comprehensions process `IO`-generated lists.
+- **How to Run**: Compile and run; enter words, press Enter twice to stop.
+
+## 10. Module with Comprehensions: Utilities
+Organize comprehension-based functions in a module.
+
+```haskell
+-- ListComprehensions.hs
+module ListComprehensions (evens, pairs) where
+
+evens :: [Int] -> [Int]
+evens xs = [x | x <- xs, even x]
+
+pairs :: [a] -> [b] -> [(a, b)]
+pairs xs ys = [(x, y) | x <- xs, y <- ys]
+```
+
+- **Description**: Exports `evens` (filters even numbers) and `pairs` (creates pairs). Import with `import ListComprehensions`.
+- **Usage Example** in another file:
+  ```haskell
+  import ListComprehensions
+  main = print (evens [1..5])  -- Outputs: [2,4]
+  ```
+- **Key Concept**: Modules encapsulate reusable comprehension-based functions.
+
+## Characteristics of List Comprehensions
+- **Type**: Produce `[a]` for some type `a` (e.g., `[Int]`, `[String]`).
+- **Immutability**: Generate new lists, preserving originals.
+- **Lazy Evaluation**: Only compute elements as needed, e.g., `take 3 [x | x <- [1..]]`.
+- **Expressiveness**: Combine mapping and filtering in a readable format.
+- **Equivalence**: `[f x | x <- xs, p x]` is equivalent to `map f (filter p xs)`.
+
+## Best Practices
+- **Use Clear Expressions**: Keep `expression` and `conditions` simple for readability.
+- **Combine Generators Sparingly**: Multiple generators increase complexity; consider `map` or `filter` for clarity.
+- **Leverage Laziness**: Use with infinite lists, but pair with `take` or `head`.
+- **Test in GHCi**: Experiment with small comprehensions, e.g., `[x | x <- [1..3]]`.
+- **Avoid Overuse**: For complex logic, consider explicit `map` and `filter` combinations.
+
+## Additional Tips
+- **Error Handling**: Handle empty lists, e.g., `safeTake n xs = take n [x | x <- xs, not (null xs)]`.
+- **Common Functions**: Use `Prelude` (`map`, `filter`, `concat`) or `Data.List` (`group`, `sort`) alongside comprehensions.
+- **Performance**: For large lists, `Data.Vector` may be faster than `[a]`.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect results.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers list comprehensions).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and `Data.List` documentation.
