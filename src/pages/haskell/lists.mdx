@@ -1,0 +1,240 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Lists
+
+## Overview of Lists
+A Haskell list, denoted `[a]`, is a sequence of elements of type `a`. Lists are singly linked, immutable, and support powerful operations like pattern matching, recursion, and higher-order functions. Strings are a special case of lists (`String` is `[Char]`). Lists are central to functional programming in Haskell, often used with functions like `map`, `filter`, and `foldr`.
+
+### Basic Syntax
+```haskell
+variableName :: [Type]
+variableName = [element1, element2, ...]
+```
+- **Type**: `[Type]` indicates a list of elements (e.g., `[Int]`, `[Char]`).
+- **Literal**: Defined with square brackets and commas (e.g., `[1, 2, 3]`).
+- **Operations**: Use `:` (cons), `++` (concatenation), or `Prelude` functions (`head`, `tail`).
+
+## 1. Simple List: Number List
+Define a basic list of numbers.
+
+```haskell
+-- numbers.hs
+-- Defines a list of integers.
+
+numbers :: [Int]
+numbers = [1, 2, 3, 4, 5]
+
+main :: IO ()
+main = print numbers  -- Outputs: [1,2,3,4,5]
+```
+
+- **Description**: Binds `numbers` to a list of `Int`. Lists are immutable and homogeneous.
+- **Key Concept**: List literals are simple and type-safe.
+- **In GHCi**: `numbers` returns `[1,2,3,4,5]`.
+
+## 2. List Construction: Cons Operator
+Use `:` to construct lists by prepending elements.
+
+```haskell
+-- cons.hs
+-- Builds a list using cons.
+
+buildList :: [Int]
+buildList = 1 : 2 : 3 : []
+
+main :: IO ()
+main = print buildList  -- Outputs: [1,2,3]
+```
+
+- **Description**: `:` (cons) adds an element to the front of a list; `[]` is the empty list.
+- **Key Concept**: Lists are built recursively with `:` and `[]`.
+- **In GHCi**: `4 : [5, 6]` returns `[4,5,6]`.
+
+## 3. List Concatenation: Combining Lists
+Use `++` to concatenate lists.
+
+```haskell
+-- concat.hs
+-- Combines two lists.
+
+combineLists :: [Int] -> [Int] -> [Int]
+combineLists xs ys = xs ++ ys
+
+main :: IO ()
+main = print (combineLists [1, 2] [3, 4])  -- Outputs: [1,2,3,4]
+```
+
+- **Description**: `++` joins two lists, creating a new list.
+- **Key Concept**: Concatenation is O(n) for the length of the first list; use `:` for efficiency when possible.
+- **In GHCi**: `[1, 2] ++ [3]` returns `[1,2,3]`.
+
+## 4. Accessing Elements: Head and Tail
+Extract parts of a list using `head` and `tail`.
+
+```haskell
+-- head_tail.hs
+-- Gets the first element and rest of a list.
+
+firstAndRest :: [a] -> (a, [a])
+firstAndRest xs = (head xs, tail xs)
+
+main :: IO ()
+main = print (firstAndRest [1, 2, 3])  -- Outputs: (1,[2,3])
+```
+
+- **Description**: `head` gets the first element; `tail` gets all but the first. Errors on empty lists.
+- **Key Concept**: Use with caution or prefer safe alternatives (e.g., `listToMaybe`).
+- **In GHCi**: `head [1,2]` returns `1`; `tail [1,2]` returns `[2]`.
+
+## 5. Map: Transforming Lists
+Apply a function to each element using `map`.
+
+```haskell
+-- map.hs
+-- Squares all elements in a list.
+
+squareList :: [Int] -> [Int]
+squareList xs = map (*2) xs
+
+main :: IO ()
+main = print (squareList [1, 2, 3])  -- Outputs: [2,4,6]
+```
+
+- **Description**: `map` applies `(*2)` to each element, producing a new list.
+- **Key Concept**: Higher-order function for transformations; preserves list length.
+- **In GHCi**: `map (+1) [1,2,3]` returns `[2,3,4]`.
+
+## 6. Filter: Selecting Elements
+Select elements based on a predicate.
+
+```haskell
+-- filter.hs
+-- Keeps even numbers from a list.
+
+evens :: [Int] -> [Int]
+evens xs = filter even xs
+
+main :: IO ()
+main = print (evens [1, 2, 3, 4])  -- Outputs: [2,4]
+```
+
+- **Description**: `filter` keeps elements where `even` returns `True`.
+- **Key Concept**: Higher-order function for conditional selection.
+- **In GHCi**: `filter (>2) [1..5]` returns `[3,4,5]`.
+
+## 7. Fold: Aggregating Lists
+Reduce a list to a single value using `foldr`.
+
+```haskell
+-- fold.hs
+-- Computes the product of a list.
+
+productList :: [Int] -> Int
+productList xs = foldr (*) 1 xs
+
+main :: IO ()
+main = print (productList [1, 2, 3])  -- Outputs: 6
+```
+
+- **Description**: `foldr` applies `(*)` right-to-left, starting with `1`.
+- **Key Concept**: `foldr` and `foldl` aggregate lists; `foldr` is right-associative.
+- **In GHCi**: `foldr (+) 0 [1,2,3]` returns `6`.
+
+## 8. List Comprehension: Generating Lists
+Create lists using set-like notation.
+
+```haskell
+-- comprehension.hs
+-- Generates squares of even numbers.
+
+evenSquares :: [Int]
+evenSquares = [x * x | x <- [1..5], even x]
+
+main :: IO ()
+main = print evenSquares  -- Outputs: [4,16]
+```
+
+- **Description**: Filters even numbers from `[1..5]`, squares them.
+- **Key Concept**: Comprehensions are concise for filtering and transforming.
+- **In GHCi**: `[x + 1 | x <- [1..3]]` returns `[2,3,4]`.
+
+## 9. I/O with Lists: Processing Input
+Handle lists in `IO` actions.
+
+```haskell
+-- input.hs
+-- Reads numbers and sums them.
+
+sumInput :: IO ()
+sumInput = do
+  putStrLn "Enter numbers (one per line, empty to stop):"
+  nums <- readNumbers
+  print (sum nums)
+
+readNumbers :: IO [Int]
+readNumbers = do
+  line <- getLine
+  if null line
+    then return []
+    else do
+      rest <- readNumbers
+      return (read line : rest)
+
+main :: IO ()
+main = sumInput
+```
+
+- **Description**: Reads lines as numbers into a list, then sums them. Stops on empty input.
+- **Key Concept**: Lists in `IO` handle dynamic input; `read` converts strings to numbers.
+- **How to Run**: Compile and run; enter numbers, press Enter twice to stop.
+
+## 10. Module with List Functions: Utilities
+Organize list-related functions in a module.
+
+```haskell
+-- ListUtils.hs
+module ListUtils (double, keepPositive) where
+
+double :: [Int] -> [Int]
+double xs = map (*2) xs
+
+keepPositive :: [Int] -> [Int]
+keepPositive xs = filter (>0) xs
+```
+
+- **Description**: Exports `double` (doubles elements) and `keepPositive` (keeps positive numbers). Import with `import ListUtils`.
+- **Usage Example** in another file:
+  ```haskell
+  import ListUtils
+  main = print (double [1, 2, 3])  -- Outputs: [2,4,6]
+  ```
+- **Key Concept**: Modules encapsulate reusable list operations.
+
+## Characteristics of Lists
+- **Type**: `[a]` denotes a list of type `a` (e.g., `[Int]`, `[Char]`).
+- **Immutability**: Operations create new lists, preserving originals.
+- **Lazy Evaluation**: Elements are evaluated only when needed, e.g., `take 3 [1..]` returns `[1,2,3]`.
+- **Homogeneity**: All elements must be the same type.
+- **Typeclasses**: Lists are instances of `Eq`, `Show`, `Foldable`, etc., enabling comparisons and operations.
+
+## Best Practices
+- **Use Type Signatures**: Declare `[Type]` for clarity (e.g., `xs :: [Int]`).
+- **Leverage Higher-Order Functions**: Use `map`, `filter`, `foldr` for concise operations.
+- **Avoid Unsafe Functions**: Prefer safe alternatives (e.g., `listToMaybe` over `head`) for empty lists.
+- **Use Comprehensions**: For simple transformations and filtering.
+- **Test in GHCi**: Check types with `:t` (e.g., `:t map`) and test operations.
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` for safe access, e.g., `safeHead xs = if null xs then Nothing else Just (head xs)`.
+- **Common Functions**: Use `Prelude` (`length`, `reverse`, `take`, `drop`) and `Data.List` (`group`, `sort`).
+- **Infinite Lists**: Leverage lazy evaluation, e.g., `[1..]` or `repeat 1`.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect lists.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers lists).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and `Data.List` documentation.
