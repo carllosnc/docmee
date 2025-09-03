@@ -1,0 +1,258 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Recursion</a> <br /> <br />
+
+# Recursion
+
+## Overview of Recursion
+Recursion in Haskell involves a function calling itself with modified arguments until it reaches a base case. It’s used for tasks like traversing lists, trees, or computing sequences, leveraging pattern matching and guards for clarity. Haskell’s lazy evaluation ensures recursive calls are evaluated only when needed, enabling efficient handling of infinite structures.
+
+### Basic Syntax
+```haskell
+functionName :: Type -> ReturnType
+functionName baseCase = baseResult
+functionName arg = expressionInvolving (functionName modifiedArg)
+```
+- **Base Case**: A condition where recursion stops, returning a fixed result.
+- **Recursive Case**: Calls the function with a modified argument, progressing toward the base case.
+- **Pattern Matching/Guards**: Used to define base and recursive cases.
+
+## 1. Basic Recursion: Factorial
+Compute the factorial of a number.
+
+```haskell
+-- factorial.hs
+-- Computes factorial recursively.
+
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+main :: IO ()
+main = print (factorial 5)  -- Outputs: 120
+```
+
+- **Description**: Base case: `factorial 0 = 1`. Recursive case: multiplies `n` by `factorial (n - 1)`.
+- **Key Concept**: Pattern matching defines the base case clearly.
+- **In GHCi**: `factorial 6` returns `720`.
+
+## 2. List Recursion: Sum
+Sum elements in a list.
+
+```haskell
+-- sum_list.hs
+-- Sums a list of integers.
+
+sumList :: [Int] -> Int
+sumList [] = 0
+sumList (x:xs) = x + sumList xs
+
+main :: IO ()
+main = print (sumList [1, 2, 3, 4])  -- Outputs: 10
+```
+
+- **Description**: Base case: empty list returns `0`. Recursive case: adds head `x` to sum of tail `xs`.
+- **Key Concept**: Pattern matching on lists (`[]`, `x:xs`) is common for recursion.
+- **In GHCi**: `sumList [1..5]` returns `15`.
+
+## 3. Tail Recursion: Length
+Compute the length of a list using tail recursion.
+
+```haskell
+-- length.hs
+-- Computes list length with tail recursion.
+
+lengthList :: [a] -> Int
+lengthList xs = go xs 0
+  where
+    go [] acc = acc
+    go (_:xs) acc = go xs (acc + 1)
+
+main :: IO ()
+main = print (lengthList [1, 2, 3])  -- Outputs: 3
+```
+
+- **Description**: Uses a helper function `go` with an accumulator `acc`. Base case: empty list returns `acc`. Recursive case: increments `acc` and recurses on tail.
+- **Key Concept**: Tail recursion optimizes stack usage; GHC often optimizes it to iteration.
+- **In GHCi**: `lengthList "abc"` returns `3`.
+
+## 4. Recursive String Processing: Reverse
+Reverse a string (list of `Char`).
+
+```haskell
+-- reverse.hs
+-- Reverses a string recursively.
+
+reverseString :: String -> String
+reverseString [] = []
+reverseString (x:xs) = reverseString xs ++ [x]
+
+main :: IO ()
+main = putStrLn (reverseString "Haskell")  -- Outputs: lleksaH
+```
+
+- **Description**: Base case: empty string returns `[]`. Recursive case: reverses tail and appends head.
+- **Key Concept**: Strings are `[Char]`, so list recursion applies.
+- **In GHCi**: `reverseString "hi"` returns `"ih"`.
+
+## 5. Recursive Tree: Node Count
+Count nodes in a binary tree.
+
+```haskell
+-- tree.hs
+-- Counts nodes in a binary tree.
+
+data Tree a = Empty | Node a (Tree a) (Tree a) deriving Show
+
+countNodes :: Tree a -> Int
+countNodes Empty = 0
+countNodes (Node _ left right) = 1 + countNodes left + countNodes right
+
+main :: IO ()
+main = do
+  let tree = Node 1 (Node 2 Empty Empty) (Node 3 Empty Empty)
+  print (countNodes tree)  -- Outputs: 3
+```
+
+- **Description**: Base case: `Empty` returns `0`. Recursive case: counts node plus left and right subtrees.
+- **Key Concept**: Recursive data types use recursion for traversal.
+- **In GHCi**: `countNodes (Node 1 Empty Empty)` returns `1`.
+
+## 6. Guards with Recursion: Fibonacci
+Compute Fibonacci numbers using guards.
+
+```haskell
+-- fibonacci.hs
+-- Computes nth Fibonacci number.
+
+fib :: Int -> Int
+fib n
+  | n <= 0    = 0
+  | n == 1    = 1
+  | otherwise = fib (n - 1) + fib (n - 2)
+
+main :: IO ()
+main = print (fib 6)  -- Outputs: 8
+```
+
+- **Description**: Base cases: `n <= 0` returns `0`, `n == 1` returns `1`. Recursive case: sums previous two numbers.
+- **Key Concept**: Guards simplify conditional recursion.
+- **In GHCi**: `fib 5` returns `5`.
+
+## 7. Accumulator: Tail-Recursive Sum
+Sum a list with an accumulator for efficiency.
+
+```haskell
+-- tail_sum.hs
+-- Sums a list with tail recursion.
+
+sumTail :: [Int] -> Int
+sumTail xs = go xs 0
+  where
+    go [] acc = acc
+    go (x:xs) acc = go xs (x + acc)
+
+main :: IO ()
+main = print (sumTail [1, 2, 3])  -- Outputs: 6
+```
+
+- **Description**: Accumulator `acc` stores partial sum, avoiding stack growth.
+- **Key Concept**: Tail recursion is efficient and often optimized by GHC.
+- **In GHCi**: `sumTail [1..4]` returns `10`.
+
+## 8. Infinite Lists: Lazy Recursion
+Use recursion with lazy evaluation.
+
+```haskell
+-- infinite.hs
+-- Generates first n Fibonacci numbers lazily.
+
+fibs :: [Int]
+fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+
+main :: IO ()
+main = print (take 6 fibs)  -- Outputs: [0,1,1,2,3,5]
+```
+
+- **Description**: Defines infinite Fibonacci list using recursion. `zipWith` combines `fibs` and its tail.
+- **Key Concept**: Lazy evaluation allows infinite recursive definitions.
+- **In GHCi**: `take 5 fibs` returns `[0,1,1,2,3]`.
+
+## 9. I/O with Recursion: Read Numbers
+Recursively read input into a list.
+
+```haskell
+-- input.hs
+-- Reads numbers until empty input.
+
+readNumbers :: IO [Int]
+readNumbers = do
+  line <- getLine
+  if null line
+    then return []
+    else do
+      let num = read line :: Int
+      rest <- readNumbers
+      return (num : rest)
+
+main :: IO ()
+main = do
+  putStrLn "Enter numbers (one per line, empty to stop):"
+  nums <- readNumbers
+  print (sum nums)
+```
+
+- **Description**: Recursively reads lines, converts to `Int`, builds a list. Stops on empty input.
+- **Key Concept**: Recursion in `IO` handles dynamic input.
+- **How to Run**: Compile and run; enter numbers, press Enter twice to stop.
+
+## 10. Module with Recursive Functions: Utilities
+Organize recursive functions in a module.
+
+```haskell
+-- RecursiveUtils.hs
+module RecursiveUtils (factorial, reverseList) where
+
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+reverseList :: [a] -> [a]
+reverseList [] = []
+reverseList (x:xs) = reverseList xs ++ [x]
+```
+
+- **Description**: Exports `factorial` and `reverseList` for recursive operations. Import with `import RecursiveUtils`.
+- **Usage Example** in another file:
+  ```haskell
+  import RecursiveUtils
+  main = print (factorial 4)  -- Outputs: 24
+  ```
+- **Key Concept**: Modules encapsulate reusable recursive functions.
+
+## Characteristics of Recursion
+- **Immutability**: Recursive calls produce new values, preserving inputs.
+- **Lazy Evaluation**: Only evaluates needed recursive steps, enabling infinite recursion.
+- **Type Safety**: Type signatures ensure correct argument and return types.
+- **Base Case**: Essential to prevent infinite recursion.
+- **Tail Recursion**: Optimizes stack usage when the recursive call is the last operation.
+
+## Best Practices
+- **Define Base Cases**: Ensure every recursive function has a terminating condition.
+- **Use Pattern Matching**: Simplify recursion with clear patterns (e.g., `[]`, `x:xs`).
+- **Prefer Tail Recursion**: Use accumulators for efficiency in large computations.
+- **Test in GHCi**: Verify base and recursive cases (e.g., `factorial 3`).
+- **Avoid Inefficiency**: Be cautious with non-tail recursion (e.g., `fib` above is slow for large `n`).
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` for safe recursion, e.g., `safeHead xs = if null xs then Nothing else Just (head xs)`.
+- **Common Patterns**: Use `foldr` or `foldl` to abstract recursion for lists.
+- **Optimization**: For performance, consider tail recursion or library functions.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect recursive steps.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers recursion).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and `Data.List` documentation.
