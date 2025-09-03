@@ -1,0 +1,228 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Strings
+
+## Overview of Strings
+In Haskell, a `String` is a type alias for `[Char]`, a list of Unicode characters. Strings are immutable, and operations on them produce new strings. The `Prelude` module provides basic string functions, while `Data.Char` and `Data.Text` (for advanced use) offer additional utilities. This guide focuses on `String` for simplicity, with notes on `Data.Text` for performance.
+
+### Basic Syntax
+```haskell
+variableName :: String
+variableName = "text"
+```
+- **Type**: `String` (or `[Char]`), representing a sequence of characters.
+- **Literal**: Defined using double quotes (e.g., `"hello"`).
+- **Operations**: Use `++` for concatenation, list functions (`head`, `tail`), or `Data.Char` utilities.
+
+## 1. Simple String: Greeting
+Define a basic string variable.
+
+```haskell
+-- greeting.hs
+-- Defines a simple string.
+
+greeting :: String
+greeting = "Hello, Haskell!"
+
+main :: IO ()
+main = putStrLn greeting  -- Outputs: Hello, Haskell!
+```
+
+- **Description**: Binds `greeting` to a string literal. `putStrLn` prints with a newline.
+- **Key Concept**: Strings are immutable lists of `Char`.
+- **In GHCi**: `greeting` returns `"Hello, Haskell!"`.
+
+## 2. String Concatenation: Combining Strings
+Use `++` to concatenate strings.
+
+```haskell
+-- concat.hs
+-- Combines two strings.
+
+fullGreeting :: String -> String
+fullGreeting name = "Hello, " ++ name ++ "!"
+
+main :: IO ()
+main = putStrLn (fullGreeting "World")  -- Outputs: Hello, World!
+```
+
+- **Description**: Concatenates strings with `++`. The function takes a name and builds a greeting.
+- **Key Concept**: `++` creates a new string, preserving immutability.
+- **In GHCi**: `fullGreeting "Alice"` returns `"Hello, Alice!"`.
+
+## 3. String Length: Counting Characters
+Use `length` to get the number of characters.
+
+```haskell
+-- length.hs
+-- Counts characters in a string.
+
+stringLength :: String -> Int
+stringLength s = length s
+
+main :: IO ()
+main = print (stringLength "Haskell")  -- Outputs: 7
+```
+
+- **Description**: `length` (from `Prelude`) counts characters in a string.
+- **Key Concept**: Strings are lists, so list functions like `length` apply.
+- **In GHCi**: `stringLength "Hi"` returns `2`.
+
+## 4. Accessing Characters: Head and Tail
+Use list functions to access string elements.
+
+```haskell
+-- access.hs
+-- Gets the first character of a string.
+
+firstChar :: String -> Char
+firstChar s = head s
+
+main :: IO ()
+main = print (firstChar "Haskell")  -- Outputs: 'H'
+```
+
+- **Description**: `head` returns the first `Char`. Note: `head` errors on empty strings; use `safeHead` for safety.
+- **Key Concept**: Strings support list operations (`head`, `tail`, `take`, `drop`).
+- **In GHCi**: `firstChar "Code"` returns `'C'`.
+
+## 5. Character Manipulation: Uppercase Conversion
+Use `Data.Char` for character transformations.
+
+```haskell
+-- uppercase.hs
+-- Converts a string to uppercase.
+
+toUpperString :: String -> String
+toUpperString s = map toUpper s  -- Requires import Data.Char
+
+main :: IO ()
+main = putStrLn (toUpperString "haskell")  -- Outputs: HASKELL
+```
+
+- **Description**: `map` applies `toUpper` to each character. Requires `import Data.Char`.
+- **Key Concept**: `Data.Char` provides `toUpper`, `toLower`, `isDigit`, etc.
+- **In GHCi**: `toUpperString "hi"` returns `"HI"`. Note: Add `import Data.Char`.
+
+## 6. String Splitting: Words
+Split a string into a list of words.
+
+```haskell
+-- words.hs
+-- Splits a string into words.
+
+splitWords :: String -> [String]
+splitWords s = words s
+
+main :: IO ()
+main = print (splitWords "Haskell is fun")  -- Outputs: ["Haskell","is","fun"]
+```
+
+- **Description**: `words` (from `Prelude`) splits on whitespace, returning a list of strings.
+- **Key Concept**: Use `unwords` to join words back into a string.
+- **In GHCi**: `splitWords "Hello World"` returns `["Hello","World"]`.
+
+## 7. Pattern Matching: Prefix Check
+Use pattern matching to process strings.
+
+```haskell
+-- prefix.hs
+-- Checks if a string starts with a given prefix.
+
+hasPrefix :: String -> String -> Bool
+hasPrefix prefix s = take (length prefix) s == prefix
+
+main :: IO ()
+main = print (hasPrefix "Has" "Haskell")  -- Outputs: True
+```
+
+- **Description**: Uses `take` and `length` to compare the prefix with the start of `s`.
+- **Key Concept**: Pattern matching or list functions simplify string operations.
+- **In GHCi**: `hasPrefix "He" "Hello"` returns `True`.
+
+## 8. List Comprehension: Filtering Vowels
+Use list comprehensions for string processing.
+
+```haskell
+-- vowels.hs
+-- Extracts vowels from a string.
+
+vowels :: String -> String
+vowels s = [c | c <- s, c `elem` "aeiouAEIOU"]
+
+main :: IO ()
+main = print (vowels "Haskell")  -- Outputs: "ae"
+```
+
+- **Description**: Filters characters in `s` that are vowels using a comprehension.
+- **Key Concept**: Comprehensions are concise for string transformations.
+- **In GHCi**: `vowels "Hello"` returns `"eo"`.
+
+## 9. I/O with Strings: User Input
+Handle strings in `IO` for user interaction.
+
+```haskell
+-- input.hs
+-- Reads a name and creates a greeting.
+
+main :: IO ()
+main = do
+  putStrLn "Enter your name:"
+  name <- getLine
+  let greeting = "Hello, " ++ name ++ "!"
+  putStrLn greeting
+```
+
+- **Description**: Uses `getLine` to read a string, binds it to `name`, and creates a greeting.
+- **Key Concept**: `IO` actions handle string input/output; `let` binds immutable strings.
+- **How to Run**: Compile and run; enter a name when prompted.
+
+## 10. Module with Strings: Constants and Functions
+Organize string-related code in a module.
+
+```haskell
+-- StringUtils.hs
+module StringUtils (defaultGreeting, shout) where
+
+defaultGreeting :: String
+defaultGreeting = "Welcome!"
+
+shout :: String -> String
+shout s = map toUpper s  -- Requires import Data.Char
+```
+
+- **Description**: Exports a string constant `defaultGreeting` and a function `shout`. Import with `import StringUtils`.
+- **Usage Example** in another file:
+  ```haskell
+  import StringUtils
+  main = putStrLn (shout defaultGreeting)  -- Outputs: WELCOME!
+  ```
+- **Key Concept**: Modules group string-related utilities for reuse. Note: Add `import Data.Char` for `shout`.
+
+## Characteristics of Strings
+- **Type**: `String` is `[Char]`, a list of Unicode characters.
+- **Immutability**: Strings cannot be modified; operations create new strings.
+- **Lazy Evaluation**: Characters are evaluated only when needed, e.g., `take 5 (repeat 'a')` returns `"aaaaa"`.
+- **Typeclasses**: Strings are instances of `Eq`, `Show`, etc., enabling comparisons and printing.
+- **Performance Note**: For large-scale string processing, use `Data.Text` for better performance (requires `import Data.Text`).
+
+## Best Practices
+- **Use Type Signatures**: Explicitly declare `String` for clarity (e.g., `s :: String`).
+- **Leverage List Functions**: Use `map`, `filter`, `take`, etc., as strings are lists.
+- **Use Data.Char**: Import `Data.Char` for character manipulations (e.g., `toUpper`).
+- **Consider Data.Text**: For performance-critical applications, use `Text` instead of `String`.
+- **Test in GHCi**: Check types with `:t` (e.g., `:t greeting`) and test operations.
+
+## Additional Tips
+- **Error Handling**: Handle empty strings, e.g., `safeHead s = if null s then Nothing else Just (head s)`.
+- **Common Functions**: Use `Prelude` functions (`words`, `unwords`, `lines`, `unlines`) or `Data.Char` utilities.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect strings.
+- **Practice**: Solve string-related problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers strings as lists).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude`, `Data.Char`, and `Data.Text` documentation.

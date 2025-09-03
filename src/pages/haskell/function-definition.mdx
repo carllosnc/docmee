@@ -1,0 +1,232 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+## Function Definitions
+A Haskell function maps inputs to an output, defined by a name, optional type signature, parameters, and an expression. Functions support features like currying, pattern matching, and recursion, making them powerful and concise.
+
+### Basic Syntax
+```haskell
+functionName :: InputType1 -> InputType2 -> ... -> OutputType
+functionName param1 param2 ... = expression
+```
+- **Type Signature**: Specifies input and output types (optional but recommended).
+- **Parameters**: Variables used in the expression.
+- **Expression**: Computes the result using parameters.
+
+## 1. Simple Function: Adding Two Numbers
+A basic function to demonstrate type signatures and arithmetic.
+
+```haskell
+-- add.hs
+-- Adds two integers.
+
+addNumbers :: Int -> Int -> Int
+addNumbers x y = x + y
+
+main :: IO ()
+main = print (addNumbers 5 3)  -- Outputs: 8
+```
+
+- **Description**: Takes two `Int`s, returns their sum. Curried by default (e.g., `addFive = addNumbers 5`).
+- **Key Concept**: Type signature ensures type safety.
+- **In GHCi**: `addNumbers 10 20` returns `30`.
+
+## 2. Currying: Partial Application
+Haskell functions are curried, allowing partial application.
+
+```haskell
+-- curry.hs
+-- Increment by a fixed amount.
+
+incrementBy :: Int -> Int -> Int
+incrementBy n x = x + n
+
+main :: IO ()
+main = do
+  let incBy5 = incrementBy 5
+  print (incBy5 3)  -- Outputs: 8
+```
+
+- **Description**: `incrementBy 5` creates a new function that adds 5 to any number.
+- **Key Concept**: Currying treats multi-argument functions as a chain of single-argument functions.
+- **In GHCi**: `incrementBy 10 2` returns `12`.
+
+## 3. Pattern Matching: Factorial
+Pattern matching defines behavior for specific input patterns.
+
+```haskell
+-- factorial.hs
+-- Computes factorial recursively.
+
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+main :: IO ()
+main = print (factorial 5)  -- Outputs: 120
+```
+
+- **Description**: Matches `0` for base case, uses recursion for others.
+- **Key Concept**: Pattern matching simplifies logic without explicit conditionals.
+- **In GHCi**: `factorial 6` returns `720`.
+
+## 4. Guards: Number Classification
+Guards provide conditional logic.
+
+```haskell
+-- classify.hs
+-- Classifies a number as positive, negative, or zero.
+
+classifyNumber :: Int -> String
+classifyNumber n
+  | n > 0     = "Positive"
+  | n == 0    = "Zero"
+  | otherwise = "Negative"
+
+main :: IO ()
+main = putStrLn (classifyNumber (-3))  -- Outputs: Negative
+```
+
+- **Description**: Uses guards to return a string based on `n`.
+- **Key Concept**: `otherwise` catches all other cases.
+- **In GHCi**: `classifyNumber 4` returns `"Positive"`.
+
+## 5. Higher-Order Function: Apply Twice
+Functions can take other functions as arguments.
+
+```haskell
+-- applytwice.hs
+-- Applies a function twice to a value.
+
+applyTwice :: (a -> a) -> a -> a
+applyTwice f x = f (f x)
+
+main :: IO ()
+main = print (applyTwice (+1) 5)  -- Outputs: 7
+```
+
+- **Description**: Applies function `f` to `x` twice (e.g., increments 5 to 6, then 7).
+- **Key Concept**: Higher-order functions enable abstraction.
+- **In GHCi**: `applyTwice (*2) 3` returns `12` (3 * 2 = 6, 6 * 2 = 12).
+
+## 6. Lambda Function: Anonymous Function
+Lambda functions define inline, anonymous functions.
+
+```haskell
+-- lambda.hs
+-- Doubles a number using a lambda.
+
+double :: Int -> Int
+double = \x -> x * 2
+
+main :: IO ()
+main = print (double 5)  -- Outputs: 10
+```
+
+- **Description**: `\x -> x * 2` is an anonymous function assigned to `double`.
+- **Key Concept**: Lambdas are useful for one-off functions, e.g., in `map`.
+- **In GHCi**: `(\x -> x + 3) 4` returns `7`.
+
+## 7. Function Composition: Negate Square
+Combine functions using the composition operator (`.`).
+
+```haskell
+-- compose.hs
+-- Negates the square of a number.
+
+negateSquare :: Int -> Int
+negateSquare = negate . (^2)
+
+main :: IO ()
+main = print (negateSquare 3)  -- Outputs: -9
+```
+
+- **Description**: Squares the input, then negates it (3² = 9, then -9).
+- **Key Concept**: `(f . g) x = f (g x)` composes functions.
+- **In GHCi**: `negateSquare 4` returns `-16`.
+
+## 8. List Processing: Map over List
+Use functions with lists for bulk operations.
+
+```haskell
+-- maplist.hs
+-- Squares all numbers in a list.
+
+squareList :: [Int] -> [Int]
+squareList xs = map (\x -> x * x) xs
+
+main :: IO ()
+main = print (squareList [1, 2, 3])  -- Outputs: [1,4,9]
+```
+
+- **Description**: `map` applies a lambda to each list element.
+- **Key Concept**: Functional programming favors transformations over mutation.
+- **In GHCi**: `squareList [4..6]` returns `[16,25,36]`.
+
+## 9. I/O Function: Greeting with Input
+Functions with `IO` handle side effects.
+
+```haskell
+-- greetinput.hs
+-- Reads a name and returns a greeting.
+
+greetIO :: IO ()
+greetIO = do
+  putStrLn "Enter your name:"
+  name <- getLine
+  putStrLn ("Hello, " ++ name ++ "!")
+
+main :: IO ()
+main = greetIO
+```
+
+- **Description**: Uses `do` notation to sequence `IO` actions for input/output.
+- **Key Concept**: `IO` monad isolates side effects.
+- **How to Run**: Compile and run; enter a name when prompted.
+
+## 10. Polymorphic Function: Identity
+Polymorphic functions work with any type.
+
+```haskell
+-- identity.hs
+-- Returns the input unchanged.
+
+identity :: a -> a
+identity x = x
+
+main :: IO ()
+main = do
+  print (identity 42)        -- Outputs: 42
+  putStrLn (identity "Test") -- Outputs: Test
+```
+
+- **Description**: Uses type variable `a` to accept any type.
+- **Key Concept**: Polymorphism via type variables.
+- **In GHCi**: `identity True` returns `True`.
+
+## Characteristics of Functions
+- **Purity**: Functions produce consistent outputs for inputs, no side effects unless in `IO`.
+- **Currying**: Multi-argument functions are chains of single-argument functions.
+- **Lazy Evaluation**: Arguments are evaluated only when needed.
+- **Type Safety**: Type signatures (e.g., `Int -> Int -> Int`) ensure correctness.
+- **First-Class**: Functions can be arguments, return values, or assigned to variables.
+
+## Best Practices
+- **Use Type Signatures**: Declare types for clarity (e.g., `f :: Int -> Int`).
+- **Keep Pure**: Avoid side effects in non-`IO` functions.
+- **Use Recursion**: Replace loops with recursion or higher-order functions (`map`, `foldr`).
+- **Test in GHCi**: Use `:t` to check types, test functions interactively.
+- **Descriptive Names**: Choose names like `addNumbers` or `classifyNumber`.
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` or `Either` for safe operations, e.g., `safeDiv x y = if y == 0 then Nothing else Just (x `div` y)`.
+- **Common Functions**: Use `Prelude` functions like `map`, `filter`, `foldr`.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly for pure functions.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers functions).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and library documentation.

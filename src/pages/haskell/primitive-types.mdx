@@ -1,0 +1,166 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Primitive Types
+
+## Overview of Primitive Types
+Primitive types in Haskell are basic data types used to represent numbers, characters, booleans, and other fundamental data. They are immutable, type-safe, and integrated with Haskell’s typeclass system (e.g., `Num`, `Eq`) for flexible operations. The main primitive types are `Int`, `Integer`, `Float`, `Double`, `Char`, and `Bool`.
+
+## 1. Int: Fixed-Size Integer
+Represents whole numbers with a fixed size (typically 32 or 64 bits, depending on the system).
+
+```haskell
+-- int_example.hs
+-- Compute the square of an integer.
+
+squareInt :: Int -> Int
+squareInt x = x * x
+
+main :: IO ()
+main = print (squareInt 5)  -- Outputs: 25
+```
+
+- **Description**: `Int` is used for bounded integers (at least -2^29 to 2^29 - 1 on 32-bit systems, or -2^63 to 2^63 - 1 on 64-bit). Efficient but may overflow for large values.
+- **Key Concept**: Type-safe arithmetic with `+`, `-`, `*`, `div`.
+- **In GHCi**: `squareInt 7` returns `49`.
+
+## 2. Integer: Arbitrary-Precision Integer
+Represents whole numbers with no size limit, suitable for large calculations.
+
+```haskell
+-- integer_example.hs
+-- Calculate factorial using Integer for large results.
+
+factorial :: Integer -> Integer
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+main :: IO ()
+main = print (factorial 20)  -- Outputs: 2432902008176640000
+```
+
+- **Description**: `Integer` supports arbitrarily large numbers, limited only by memory. Slower than `Int` due to dynamic allocation.
+- **Key Concept**: Use for computations where overflow is a concern (e.g., factorials).
+- **In GHCi**: `factorial 10` returns `3628800`.
+
+## 3. Float: Single-Precision Floating-Point
+Represents real numbers with single-precision (typically 32 bits).
+
+```haskell
+-- float_example.hs
+-- Calculate circle area using Float.
+
+circleArea :: Float -> Float
+circleArea r = 3.14159 * r * r
+
+main :: IO ()
+main = print (circleArea 2.5)  -- Outputs: 19.634937
+```
+
+- **Description**: Used for approximate real-number calculations. Less precise than `Double`.
+- **Key Concept**: Floating-point arithmetic with `+`, `-`, `*`, `/`.
+- **In GHCi**: `circleArea 1.0` returns `3.14159`.
+
+## 4. Double: Double-Precision Floating-Point
+Represents real numbers with higher precision (typically 64 bits).
+
+```haskell
+-- double_example.hs
+-- Compute sine of an angle in radians.
+
+sinApprox :: Double -> Double
+sinApprox x = sin x  -- Requires import Data.Fixed
+
+main :: IO ()
+main = print (sinApprox (pi / 2))  -- Outputs: 1.0
+```
+
+- **Description**: Preferred for precise floating-point calculations (e.g., scientific applications). More accurate than `Float`.
+- **Key Concept**: Use standard math functions from `Prelude` or `Data.Fixed`.
+- **In GHCi**: `sinApprox 0` returns `0.0`. Note: Add `import Data.Fixed` for `sin`.
+
+## 5. Char: Unicode Character
+Represents a single Unicode character.
+
+```haskell
+-- char_example.hs
+-- Convert a character to uppercase.
+
+toUpperCase :: Char -> Char
+toUpperCase c = toUpper c  -- Requires import Data.Char
+
+main :: IO ()
+main = print (toUpperCase 'a')  -- Outputs: 'A'
+```
+
+- **Description**: Used for individual characters. Strings are lists of `Char` (`[Char]`). Supports Unicode.
+- **Key Concept**: Use `Data.Char` functions like `toUpper`, `isDigit`.
+- **In GHCi**: `toUpperCase 'z'` returns `'Z'`. Note: Add `import Data.Char`.
+
+## 6. Bool: Boolean Values
+Represents logical values: `True` or `False`.
+
+```haskell
+-- bool_example.hs
+-- Check if a number is positive.
+
+isPositive :: Int -> Bool
+isPositive x = x > 0
+
+main :: IO ()
+main = print (isPositive 5)  -- Outputs: True
+```
+
+- **Description**: Used for logical operations and conditionals. Supports `&&`, `||`, `not`.
+- **Key Concept**: Often used in guards or pattern matching.
+- **In GHCi**: `isPositive (-3)` returns `False`.
+
+## 7. Combining Primitive Types: Example
+A function combining multiple primitive types for practical use.
+
+```haskell
+-- combined_example.hs
+-- Describe a number with multiple types.
+
+describeCalculation :: Int -> Double -> Bool -> String
+describeCalculation n x b =
+  let result = fromIntegral n + x  -- Convert Int to Double
+  in if b then show result else "Calculation skipped"
+
+main :: IO ()
+main = putStrLn (describeCalculation 5 3.14 True)  -- Outputs: 8.14
+```
+
+- **Description**: Combines `Int`, `Double`, `Bool`, and `String` (`[Char]`). Uses `fromIntegral` for type conversion and `show` to produce a string.
+- **Key Concept**: Type conversions and conditional logic.
+- **In GHCi**: `describeCalculation 2 1.5 False` returns `"Calculation skipped"`.
+
+## Characteristics of Primitive Types
+- **Immutability**: Values cannot be changed once defined (e.g., `x :: Int; x = 5` is fixed).
+- **Type Safety**: Operations must match types (e.g., cannot add `Char` to `Int` without conversion).
+- **Typeclasses**: Types are instances of typeclasses like `Num` (for numbers), `Eq` (for equality), `Show` (for string conversion). Example:
+  ```haskell
+  add :: Num a => a -> a -> a
+  add x y = x + y  -- Works for Int, Integer, Float, Double
+  ```
+- **Lazy Evaluation**: Values are computed only when needed, e.g., `x :: Int; x = 1 `div` 0` doesn’t crash until evaluated.
+
+## Best Practices
+- **Use Type Signatures**: Always declare types (e.g., `x :: Int`) for clarity and safety.
+- **Choose Appropriate Types**: Use `Int` for small numbers, `Integer` for large ones, `Double` for precise floats, `Float` for less precision.
+- **Avoid Overflows**: Prefer `Integer` for calculations like factorials to avoid `Int` overflow.
+- **Leverage Libraries**: Use `Data.Char` for `Char` operations, `Data.Fixed` for math functions.
+- **Test in GHCi**: Check types with `:t` (e.g., `:t squareInt`) and test functions interactively.
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` for safe operations, e.g., `safeDiv x y = if y == 0 then Nothing else Just (x / y)`.
+- **Common Operations**: Use `+`, `-`, `*`, `/`, `div`, `==`, `<`, `>`, `&&`, `||` for primitive types.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to debug pure functions.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers types).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and library documentation (e.g., `Data.Char`).

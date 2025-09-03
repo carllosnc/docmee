@@ -1,0 +1,200 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Getting Started with Haskell
+
+To get started, install Haskell via the [Haskell Platform](https://www.haskell.org/platform/) or use [GHCup](https://www.haskell.org/ghcup/) for easy setup on Windows, macOS, or Linux. Once installed, use GHCi (the interactive REPL) by running `ghci` in your terminal, or compile files with `ghc filename.hs`.
+
+## 1. Hello World Program
+The classic "Hello World" introduces basic I/O in Haskell. Haskell separates pure computations from side effects using the `IO` monad.
+
+```haskell
+-- hello.hs
+-- A simple program that prints "Hello, World!" to the console.
+
+main :: IO ()
+main = putStrLn "Hello, World!"
+```
+
+- **Description**: Defines the `main` function (entry point for executables) which uses `putStrLn` to output a string followed by a newline.
+- **How to Run**: Save as `hello.hs`, compile with `ghc hello.hs`, and run `./hello` (or `hello.exe` on Windows). Output: `Hello, World!`
+- **In GHCi**: Load with `:load hello.hs` and run `:main`.
+
+## 2. Basic Function: Adding Two Numbers
+Functions are central to Haskell. This example shows a simple arithmetic function.
+
+```haskell
+-- add.hs
+-- Function to add two integers.
+
+addNumbers :: Int -> Int -> Int
+addNumbers x y = x + y
+
+main :: IO ()
+main = print (addNumbers 5 3)  -- Outputs: 8
+```
+
+- **Description**: `addNumbers` takes two `Int` parameters and returns their sum. The type signature specifies inputs and output. `main` prints the result.
+- **Key Concept**: Functions are curried (can be partially applied, e.g., `addFive = addNumbers 5`).
+- **In GHCi**: `addNumbers 10 20` returns `30`.
+
+## 3. Working with Strings: Greeting Function
+Strings are lists of characters (`[Char]`). This example concatenates strings.
+
+```haskell
+-- greet.hs
+-- Function to create a personalized greeting.
+
+greet :: String -> String
+greet name = "Hello, " ++ name ++ "!"
+
+main :: IO ()
+main = putStrLn (greet "Haskell Beginner")  -- Outputs: Hello, Haskell Beginner!
+```
+
+- **Description**: Uses `++` for string concatenation. The function is pure and returns a new string.
+- **In GHCi**: `greet "World"` returns `"Hello, World!"`.
+
+## 4. Lists and Higher-Order Functions: Doubling Elements
+Lists are fundamental data structures. Use functions like `map` for transformations.
+
+```haskell
+-- lists.hs
+-- Function to double each element in a list.
+
+doubleList :: [Int] -> [Int]
+doubleList xs = map (*2) xs
+
+main :: IO ()
+main = print (doubleList [1, 2, 3, 4])  -- Outputs: [2,4,6,8]
+```
+
+- **Description**: `map` applies a function (`*2`) to each list element. Lists are homogeneous (same type elements).
+- **Key Concept**: Higher-order functions (functions taking functions as arguments).
+- **In GHCi**: `doubleList [5..10]` returns `[10,12,14,16,18,20]`.
+
+## 5. Recursion: Factorial Calculation
+Haskell uses recursion for iteration, as there are no mutable loops.
+
+```haskell
+-- factorial.hs
+-- Recursive function to compute factorial.
+
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+main :: IO ()
+main = print (factorial 5)  -- Outputs: 120
+```
+
+- **Description**: Uses pattern matching: base case for 0, recursive case for n > 0.
+- **Key Concept**: Recursion with base cases to avoid infinite loops.
+- **In GHCi**: `factorial 6` returns `720`.
+
+## 6. Conditionals with Guards: Even/Odd Checker
+Guards provide conditional logic similar to if-else.
+
+```haskell
+-- evenodd.hs
+-- Function to check if a number is even or odd.
+
+describeNumber :: Int -> String
+describeNumber n
+  | even n    = "Even"
+  | otherwise = "Odd"
+
+main :: IO ()
+main = putStrLn (describeNumber 7)  -- Outputs: Odd
+```
+
+- **Description**: `even` is a built-in function. `otherwise` catches all other cases.
+- **In GHCi**: `describeNumber 4` returns `"Even"`.
+
+## 7. Pattern Matching: List Head and Tail
+Pattern matching deconstructs data structures.
+
+```haskell
+-- patterns.hs
+-- Function to get the first two elements of a list.
+
+firstTwo :: [a] -> (a, a)
+firstTwo (x:y:_) = (x, y)  -- Matches first (x), second (y), ignores rest (_)
+
+main :: IO ()
+main = print (firstTwo [1, 2, 3, 4])  -- Outputs: (1,2)
+```
+
+- **Description**: Matches list patterns. Uses polymorphic type `a` for any element type.
+- **Key Concept**: `_` is a wildcard for ignored parts.
+- **In GHCi**: `firstTwo "hello"` returns `('h','e')`.
+
+## 8. List Comprehensions: Generating Squares
+A concise way to create lists, similar to set notation.
+
+```haskell
+-- comprehensions.hs
+-- Generate squares of even numbers from 1 to 10.
+
+squaresOfEvens :: [Int]
+squaresOfEvens = [x^2 | x <- [1..10], even x]
+
+main :: IO ()
+main = print squaresOfEvens  -- Outputs: [4,16,36,64,100]
+```
+
+- **Description**: Draws from `[1..10]`, filters even `x`, computes `x^2`.
+- **In GHCi**: Experiment with variations, e.g., `[x*2 | x <- [1..5]]` returns `[2,4,6,8,10]`.
+
+## 9. Basic I/O: Reading User Input
+Interact with users using `IO` actions.
+
+```haskell
+-- input.hs
+-- Program to read a name and greet the user.
+
+main :: IO ()
+main = do
+  putStrLn "Enter your name:"
+  name <- getLine
+  putStrLn ("Hello, " ++ name ++ "!")
+```
+
+- **Description**: Uses `do` notation for sequencing `IO` actions. `getLine` reads input.
+- **How to Run**: Compile and run; enter a name when prompted.
+- **Key Concept**: `<-` binds input to a variable.
+
+## 10. Simple Module: Exporting Functions
+Organize code into modules for reusability.
+
+```haskell
+-- MyModule.hs
+module MyModule (addNumbers, greet) where
+
+addNumbers :: Int -> Int -> Int
+addNumbers x y = x + y
+
+greet :: String -> String
+greet name = "Hello, " ++ name ++ "!"
+```
+
+- **Description**: The module exports `addNumbers` and `greet`. Import in another file: `import MyModule`.
+- **Usage Example** in another file:
+  ```haskell
+  import MyModule
+  main = putStrLn (greet "World")
+  ```
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` for optional values, e.g., `safeDiv x y = if y == 0 then Nothing else Just (x `div` y)`.
+- **Lazy Evaluation**: Haskell computes values only when needed, enabling infinite lists like `take 5 [1..]` (returns `[1,2,3,4,5]`).
+- **Common Functions**: Explore `Prelude` (auto-imported): `length`, `reverse`, `sum`, `product`.
+- **Debugging**: Use `trace` from `Debug.Trace` for prints, but sparingly in pure code.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, beginner-friendly).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and library documentation.

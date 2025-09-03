@@ -1,0 +1,240 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Variable Definitions
+
+## Overview of Variable Definitions
+In Haskell, variables are not mutable storage locations but rather names bound to values or expressions. These bindings are immutable, meaning their values cannot change after definition. Variables can be defined at the top level, within functions, or in local scopes using `let` or `where`. They often have explicit type signatures for clarity and safety.
+
+### Basic Syntax
+```haskell
+variableName :: Type
+variableName = expression
+```
+- **Type Signature**: Specifies the variable’s type (optional, as Haskell infers types).
+- **Variable Name**: A unique identifier bound to a value.
+- **Expression**: The value or computation the variable represents.
+
+Variables can also be defined locally within functions using `let` or `where` clauses.
+
+## 1. Simple Variable: Constant Integer
+A basic variable binding to a fixed integer value.
+
+```haskell
+-- int_constant.hs
+-- Defines a constant integer.
+
+answer :: Int
+answer = 42
+
+main :: IO ()
+main = print answer  -- Outputs: 42
+```
+
+- **Description**: Binds `answer` to the `Int` value `42`. The value is immutable.
+- **Key Concept**: Top-level variables are globally accessible within the module.
+- **In GHCi**: `answer` returns `42`.
+
+## 2. String Variable: Greeting Message
+Variables can hold strings (type `[Char]`).
+
+```haskell
+-- greeting.hs
+-- Defines a greeting message.
+
+greeting :: String
+greeting = "Hello, Haskell!"
+
+main :: IO ()
+main = putStrLn greeting  -- Outputs: Hello, Haskell!
+```
+
+- **Description**: Binds `greeting` to a string literal. Strings are lists of `Char`.
+- **Key Concept**: Immutable strings can be used in pure functions.
+- **In GHCi**: `greeting` returns `"Hello, Haskell!"`.
+
+## 3. Local Variable with Let: Area Calculation
+Use `let` to define local variables within a function.
+
+```haskell
+-- area.hs
+-- Computes circle area with a local variable.
+
+circleArea :: Float -> Float
+circleArea r = let pi = 3.14159 in pi * r * r
+
+main :: IO ()
+main = print (circleArea 2.0)  -- Outputs: 12.56636
+```
+
+- **Description**: Defines `pi` locally within `circleArea` using `let`. The variable is only in scope within the expression.
+- **Key Concept**: `let` bindings are local and immutable.
+- **In GHCi**: `circleArea 1.5` returns `7.0685775`.
+
+## 4. Local Variable with Where: Factorial
+Use `where` to define local variables after a function’s expression.
+
+```haskell
+-- factorial.hs
+-- Computes factorial with a local base case variable.
+
+factorial :: Int -> Int
+factorial n = go n
+  where
+    base = 1
+    go 0 = base
+    go n = n * go (n - 1)
+
+main :: IO ()
+main = print (factorial 5)  -- Outputs: 120
+```
+
+- **Description**: Defines `base` and a helper function `go` in a `where` clause. Both are local to `factorial`.
+- **Key Concept**: `where` bindings are scoped to the function and can be reused across guards or patterns.
+- **In GHCi**: `factorial 6` returns `720`.
+
+## 5. List Variable: Predefined List
+Variables can hold lists, a common Haskell data structure.
+
+```haskell
+-- list.hs
+-- Defines a list of numbers.
+
+numbers :: [Int]
+numbers = [1, 2, 3, 4, 5]
+
+main :: IO ()
+main = print (sum numbers)  -- Outputs: 15
+```
+
+- **Description**: Binds `numbers` to a list of `Int`. Lists are immutable and homogeneous.
+- **Key Concept**: Use list operations like `sum`, `length`, or `map` on list variables.
+- **In GHCi**: `numbers` returns `[1,2,3,4,5]`.
+
+## 6. Boolean Variable: Flag
+Variables can hold `Bool` values for logic.
+
+```haskell
+-- flag.hs
+-- Defines a boolean flag.
+
+isDebug :: Bool
+isDebug = True
+
+main :: IO ()
+main = print isDebug  -- Outputs: True
+```
+
+- **Description**: Binds `isDebug` to `True`. Useful for conditionals.
+- **Key Concept**: Combine with `if` or guards for control flow.
+- **In GHCi**: `isDebug` returns `True`.
+
+## 7. Polymorphic Variable: Identity Function
+Variables can be bound to polymorphic values or functions.
+
+```haskell
+-- identity.hs
+-- Defines a polymorphic identity function.
+
+idFunc :: a -> a
+idFunc = \x -> x
+
+main :: IO ()
+main = do
+  print (idFunc 42)        -- Outputs: 42
+  putStrLn (idFunc "Test") -- Outputs: Test
+```
+
+- **Description**: Binds `idFunc` to a lambda that returns its input unchanged. Type `a` is polymorphic.
+- **Key Concept**: Polymorphic variables work with any type.
+- **In GHCi**: `idFunc 'c'` returns `'c'`.
+
+## 8. Combining Variables: Descriptive Output
+Use multiple variables in a function for clarity.
+
+```haskell
+-- describe.hs
+-- Combines variables to describe a number.
+
+describeNumber :: Int -> String
+describeNumber n =
+  let threshold = 0
+      description = if n > threshold then "Positive" else "Non-positive"
+  in description ++ " number: " ++ show n
+
+main :: IO ()
+main = putStrLn (describeNumber 10)  -- Outputs: Positive number: 10
+```
+
+- **Description**: Uses `let` to define `threshold` and `description` locally.
+- **Key Concept**: Local variables improve readability and modularity.
+- **In GHCi**: `describeNumber (-5)` returns `"Non-positive number: -5"`.
+
+## 9. I/O with Variables: User Input
+Variables in `IO` actions for user interaction.
+
+```haskell
+-- input.hs
+-- Reads and stores user input in a variable.
+
+main :: IO ()
+main = do
+  let prompt = "Enter your name:"
+  putStrLn prompt
+  name <- getLine
+  let greeting = "Hello, " ++ name ++ "!"
+  putStrLn greeting
+```
+
+- **Description**: Uses `let` in `do` block to define `prompt` and `greeting`. `name` is bound via `<-` for `IO` input.
+- **Key Concept**: `let` in `IO` is immutable; `<-` binds `IO` results.
+- **How to Run**: Compile and run; enter a name when prompted.
+
+## 10. Module with Variables: Reusable Constants
+Organize variables in a module for reusability.
+
+```haskell
+-- Constants.hs
+module Constants (pi, maxSize) where
+
+pi :: Float
+pi = 3.14159
+
+maxSize :: Int
+maxSize = 100
+```
+
+- **Description**: Defines `pi` and `maxSize` as module-level constants. Import with `import Constants`.
+- **Usage Example** in another file:
+  ```haskell
+  import Constants
+  main = print (pi * 2)  -- Outputs: 6.28318
+  ```
+- **Key Concept**: Modules group related variables for reuse.
+
+## Characteristics of Variables
+- **Immutability**: Once bound, a variable’s value cannot change (e.g., `x = 5` is fixed).
+- **Type Safety**: Variables have explicit or inferred types, checked at compile time.
+- **Lazy Evaluation**: Values are computed only when needed, e.g., `x = 1 `div` 0` won’t crash until used.
+- **Scope**: Top-level variables are module-wide; `let` and `where` are local to their context.
+- **Typeclasses**: Variables inherit typeclass behaviors (e.g., `Num` for numbers, `Show` for printing).
+
+## Best Practices
+- **Use Type Signatures**: Declare types (e.g., `x :: Int`) for clarity and error prevention.
+- **Descriptive Names**: Choose names like `greeting` or `maxSize` to reflect purpose.
+- **Use Let/Where**: Define local variables to break down complex expressions.
+- **Avoid Shadowing**: Ensure local variables don’t conflict with outer names.
+- **Test in GHCi**: Use `:t` to check variable types (e.g., `:t pi`) and evaluate values.
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` for optional values, e.g., `let safeValue = Nothing :: Maybe Int`.
+- **Common Operations**: Combine variables with functions like `map`, `filter`, or arithmetic.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect variable values.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers basics).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and library documentation.
