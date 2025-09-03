@@ -1,0 +1,249 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Currying
+
+## Overview of Currying
+Currying means that a function with multiple parameters, like `f :: a -> b -> c`, is treated as a function `f :: a -> (b -> c)` that takes one argument and returns a function expecting the next. This allows partial application, where you provide fewer arguments than required, creating a new function. In Haskell, all multi-argument functions are inherently curried, simplifying function composition and reuse.
+
+### Basic Syntax
+```haskell
+functionName :: Type1 -> Type2 -> ... -> ReturnType
+functionName x y ... = expression
+```
+- **Type Signature**: Uses `->` to indicate currying (e.g., `Int -> Int -> Int` is `Int -> (Int -> Int)`).
+- **Partial Application**: Supplying fewer arguments returns a function awaiting the rest.
+- **Expression**: Combines arguments to produce the result.
+
+## 1. Basic Currying: Adding Two Numbers
+A simple function demonstrating currying.
+
+```haskell
+-- add.hs
+-- Adds two integers with currying.
+
+addNumbers :: Int -> Int -> Int
+addNumbers x y = x + y
+
+main :: IO ()
+main = do
+  let addFive = addNumbers 5  -- Partial application
+  print (addFive 3)  -- Outputs: 8
+```
+
+- **Description**: `addNumbers` is curried; `addNumbers 5` returns a function that adds 5 to its argument.
+- **Key Concept**: Partial application creates reusable functions.
+- **In GHCi**: `addNumbers 10 20` returns `30`; `(addNumbers 10) 20` returns `30`.
+
+## 2. Partial Application: Scaling Numbers
+Use currying to create specialized functions.
+
+```haskell
+-- scale.hs
+-- Scales a number by a factor.
+
+scale :: Float -> Float -> Float
+scale factor x = factor * x
+
+main :: IO ()
+main = do
+  let double = scale 2.0
+  print (double 5.0)  -- Outputs: 10.0
+```
+
+- **Description**: `scale 2.0` creates a function that doubles any number.
+- **Key Concept**: Currying allows function specialization without redefinition.
+- **In GHCi**: `scale 3.0 4.0` returns `12.0`; `(scale 3.0) 4.0` returns `12.0`.
+
+## 3. Currying with Strings: Personalized Greeting
+Apply currying to string operations.
+
+```haskell
+-- greet.hs
+-- Creates a greeting with a prefix.
+
+greetWith :: String -> String -> String
+greetWith prefix name = prefix ++ ", " ++ name ++ "!"
+
+main :: IO ()
+main = do
+  let hello = greetWith "Hello"
+  putStrLn (hello "Alice")  -- Outputs: Hello, Alice!
+```
+
+- **Description**: `greetWith "Hello"` creates a function that adds "Hello, " to any name.
+- **Key Concept**: Currying works with any type, including `String`.
+- **In GHCi**: `greetWith "Hi" "Bob"` returns `"Hi, Bob!"`.
+
+## 4. Higher-Order Function: Applying Curried Function
+Curried functions are often used with higher-order functions.
+
+```haskell
+-- apply.hs
+-- Applies a curried function to a list.
+
+applyToList :: (a -> b) -> [a] -> [b]
+applyToList f xs = map f xs
+
+main :: IO ()
+main = do
+  let addTen = addNumbers 10
+  print (applyToList addTen [1, 2, 3])  -- Outputs: [11,12,13]
+```
+
+- **Description**: `addNumbers 10` creates a function passed to `map` via `applyToList`.
+- **Key Concept**: Curried functions integrate naturally with `map`, `filter`, etc.
+- **In GHCi**: `applyToList (addNumbers 5) [1,2]` returns `[6,7]`.
+
+## 5. Currying with Recursion: Power Function
+Currying in recursive functions.
+
+```haskell
+-- power.hs
+-- Computes x raised to the power n.
+
+power :: Int -> Int -> Int
+power n x
+  | n == 0    = 1
+  | otherwise = x * power (n - 1) x
+
+main :: IO ()
+main = do
+  let square = power 2
+  print (square 5)  -- Outputs: 25
+```
+
+- **Description**: `power 2` creates a function that squares its argument.
+- **Key Concept**: Currying simplifies recursive function reuse.
+- **In GHCi**: `power 3 2` returns `8`; `(power 3) 2` returns `8`.
+
+## 6. Lambda with Currying: Inline Partial Application
+Use lambdas to demonstrate currying.
+
+```haskell
+-- lambda.hs
+-- Curried lambda to add a constant.
+
+addConstant :: Int -> Int -> Int
+addConstant = \c -> \x -> c + x
+
+main :: IO ()
+main = do
+  let addThree = addConstant 3
+  print (addThree 7)  -- Outputs: 10
+```
+
+- **Description**: The lambda `\c -> \x -> c + x` explicitly shows currying.
+- **Key Concept**: Lambdas reveal the nested function structure of currying.
+- **In GHCi**: `(addConstant 4) 5` returns `9`.
+
+## 7. Function Composition with Currying: Negate Product
+Combine currying with function composition.
+
+```haskell
+-- compose.hs
+-- Negates the product of two numbers.
+
+negateProduct :: Int -> Int -> Int
+negateProduct x y = negate (x * y)
+
+main :: IO ()
+main = do
+  let negateTimesFive = negateProduct 5
+  print (negateTimesFive 3)  -- Outputs: -15
+```
+
+- **Description**: `negateProduct 5` creates a function that multiplies by 5 and negates.
+- **Key Concept**: Currying works seamlessly with composition (e.g., `negate . (*5)`).
+- **In GHCi**: `negateProduct 4 2` returns `-8`.
+
+## 8. Currying with Lists: Prefix Addition
+Add a prefix to each string in a list.
+
+```haskell
+-- prefix.hs
+-- Adds a prefix to each string in a list.
+
+addPrefix :: String -> [String] -> [String]
+addPrefix p xs = map (p ++) xs
+
+main :: IO ()
+main = print (addPrefix "Dr. " ["Alice", "Bob"])  -- Outputs: ["Dr. Alice","Dr. Bob"]
+```
+
+- **Description**: `addPrefix "Dr. "` creates a function that prepends "Dr. " to each string.
+- **Key Concept**: Currying enhances list transformations with `map`.
+- **In GHCi**: `addPrefix "Hi- " ["A", "B"]` returns `["Hi- A","Hi- B"]`.
+
+## 9. I/O with Currying: Configurable Prompt
+Use currying in `IO` for reusable prompts.
+
+```haskell
+-- prompt.hs
+-- Creates a prompt with a configurable message.
+
+promptFor :: String -> IO String
+promptFor msg = do
+  putStrLn msg
+  getLine
+
+main :: IO ()
+main = do
+  name <- promptFor "Enter your name:"
+  putStrLn ("Hello, " ++ name ++ "!")
+```
+
+- **Description**: `promptFor "Enter your name:"` creates an `IO` action to read input.
+- **Key Concept**: Currying applies to `IO` actions for flexible input handling.
+- **How to Run**: Compile and run; enter a name when prompted.
+
+## 10. Module with Curried Functions: Utilities
+Organize curried functions in a module.
+
+```haskell
+-- MathUtils.hs
+module MathUtils (add, multiplyBy) where
+
+add :: Int -> Int -> Int
+add x y = x + y
+
+multiplyBy :: Int -> Int -> Int
+multiplyBy n x = n * x
+```
+
+- **Description**: Exports curried functions `add` and `multiplyBy`. Import with `import MathUtils`.
+- **Usage Example** in another file:
+  ```haskell
+  import MathUtils
+  main = do
+    let timesTen = multiplyBy 10
+    print (timesTen 3)  -- Outputs: 30
+  ```
+- **Key Concept**: Modules group curried functions for reuse.
+
+## Characteristics of Currying
+- **Automatic Currying**: All multi-argument functions are curried (e.g., `f x y` is `f x` applied to `y`).
+- **Partial Application**: Supplying fewer arguments returns a function expecting the rest.
+- **Type Safety**: Type signatures reflect currying (e.g., `Int -> Int -> Int`).
+- **Lazy Evaluation**: Arguments are evaluated only when needed, enhancing efficiency.
+- **Flexibility**: Enables function reuse and composition without extra syntax.
+
+## Best Practices
+- **Use Type Signatures**: Declare types (e.g., `f :: Int -> Int -> Int`) for clarity.
+- **Leverage Partial Application**: Create specialized functions (e.g., `addTen = add 10`).
+- **Combine with Higher-Order Functions**: Use with `map`, `filter`, or `foldr`.
+- **Test in GHCi**: Experiment with partial application (e.g., `:t addNumbers 5`).
+- **Descriptive Names**: Choose names that reflect the function’s purpose (e.g., `multiplyBy`).
+
+## Additional Tips
+- **Error Handling**: Use `Maybe` for safe operations in curried functions, e.g., `safeDiv x y = if y == 0 then Nothing else Just (x / y)`.
+- **Common Functions**: Use `Prelude` functions (`map`, `filter`) with curried functions.
+- **Debugging**: Use `trace` from `Debug.Trace` sparingly to inspect curried outputs.
+- **Practice**: Solve problems on [Exercism Haskell Track](https://exercism.org/tracks/haskell) or [HackerRank Functional Programming](https://www.hackerrank.com/domains/functional-programming).
+
+## Resources
+- [Learn You a Haskell for Great Good!](http://learnyouahaskell.com/) (free, covers functions and currying).
+- [Haskell Documentation](https://www.haskell.org/documentation/) for official guides.
+- [Hackage](https://hackage.haskell.org/) for `Prelude` and library documentation.
