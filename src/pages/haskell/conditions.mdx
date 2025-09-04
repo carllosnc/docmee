@@ -1,0 +1,462 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Conditions
+
+## Table of Contents
+1. [if-then-else Expressions](#if-then-else-expressions)
+2. [Guards](#guards)
+3. [Case Expressions](#case-expressions)
+4. [Multi-way if](#multi-way-if)
+5. [Boolean Operators](#boolean-operators)
+6. [Pattern Matching with Conditions](#pattern-matching-with-conditions)
+7. [Maybe and Either Types](#maybe-and-either-types)
+8. [Advanced Conditional Patterns](#advanced-conditional-patterns)
+
+---
+
+## if-then-else Expressions
+
+Basic conditional expression that must include both `then` and `else` branches.
+
+```haskell
+-- Basic if-then-else
+absolute :: Int -> Int
+absolute x = if x >= 0 then x else -x
+
+-- Nested if-then-else
+classifyTemperature :: Double -> String
+classifyTemperature temp = 
+    if temp < 0.0 
+        then "Freezing"
+        else if temp < 20.0 
+            then "Cold"
+            else if temp < 35.0 
+                then "Warm" 
+                else "Hot"
+
+-- if-then-else with function calls
+maxOfThree :: Ord a => a -> a -> a -> a
+maxOfThree x y z = if x > y 
+                   then if x > z then x else z
+                   else if y > z then y else z
+
+-- Using if-then-else in list comprehensions
+evenNumbers :: [Int] -> [Int]
+evenNumbers xs = [if x `mod` 2 == 0 then x else x+1 | x <- xs]
+```
+
+---
+
+## Guards
+
+Guards provide pattern-like syntax for multiple conditions using `|` symbol.
+
+```haskell
+-- Basic guards
+gradeToGPA :: Char -> Double
+gradeToGPA grade
+    | grade == 'A' = 4.0
+    | grade == 'B' = 3.0
+    | grade == 'C' = 2.0
+    | grade == 'D' = 1.0
+    | grade == 'F' = 0.0
+    | otherwise    = error "Invalid grade"
+
+-- Guards with complex conditions
+bmiAdvice :: Double -> Double -> String
+bmiAdvice weight height
+    | bmi < 18.5  = "Underweight - consider gaining weight"
+    | bmi < 25.0  = "Normal weight - maintain current lifestyle"
+    | bmi < 30.0  = "Overweight - consider diet and exercise"
+    | bmi < 35.0  = "Obese Class I - consult healthcare provider"
+    | otherwise   = "Obese Class II+ - seek medical attention"
+    where bmi = weight / (height ^ 2)
+
+-- Guards with pattern matching
+processEither :: Either String Int -> String
+processEither (Left err)
+    | length err > 10 = "Long error: " ++ take 10 err ++ "..."
+    | null err        = "Empty error message"
+    | otherwise       = "Error: " ++ err
+processEither (Right val)
+    | val < 0         = "Negative value: " ++ show val
+    | val == 0        = "Zero value"
+    | val < 100       = "Small positive: " ++ show val
+    | otherwise       = "Large positive: " ++ show val
+
+-- Guards with local definitions
+triangleType :: Double -> Double -> Double -> String
+triangleType a b c
+    | not (isValidTriangle a b c) = "Not a valid triangle"
+    | a == b && b == c            = "Equilateral triangle"
+    | a == b || b == c || a == c  = "Isosceles triangle"
+    | isRightTriangle             = "Right triangle"
+    | otherwise                   = "Scalene triangle"
+    where
+        isValidTriangle x y z = x + y > z && x + z > y && y + z > x
+        sides = sort [a, b, c]
+        isRightTriangle = let [s1, s2, s3] = sides
+                         in abs (s1^2 + s2^2 - s3^2) < 0.0001
+```
+
+---
+
+## Case Expressions
+
+Pattern matching within expressions for more complex data structures.
+
+```haskell
+-- Basic case expression
+dayOfWeek :: Int -> String
+dayOfWeek n = case n of
+    1 -> "Monday"
+    2 -> "Tuesday"
+    3 -> "Wednesday"
+    4 -> "Thursday"
+    5 -> "Friday"
+    6 -> "Saturday"
+    7 -> "Sunday"
+    _ -> "Invalid day number"
+
+-- Case with list patterns
+listLength :: [a] -> String
+listLength xs = case xs of
+    []      -> "Empty list"
+    [_]     -> "Single element"
+    [_,_]   -> "Two elements"
+    [_,_,_] -> "Three elements"
+    _       -> "More than three elements"
+
+-- Nested case expressions
+parseCommand :: String -> String -> String
+parseCommand cmd arg = case cmd of
+    "create" -> case arg of
+        "file"   -> "Creating new file"
+        "folder" -> "Creating new folder"
+        ""       -> "Error: create requires an argument"
+        _        -> "Error: unknown create target"
+    "delete" -> case arg of
+        ""  -> "Error: delete requires an argument"
+        _   -> "Deleting " ++ arg
+    "help" -> "Available commands: create, delete, help"
+    _      -> "Unknown command: " ++ cmd
+
+-- Case with guards
+evaluateExpression :: Either String Int -> String
+evaluateExpression expr = case expr of
+    Left err    -> "Parse error: " ++ err
+    Right val   -> case () of
+        _ | val < 0    -> "Negative result: " ++ show val
+          | val == 0   -> "Zero result"
+          | val < 10   -> "Single digit: " ++ show val
+          | val < 100  -> "Two digits: " ++ show val
+          | otherwise  -> "Large number: " ++ show val
+
+-- Case with complex patterns
+processTree :: Tree a -> Int
+processTree tree = case tree of
+    Leaf _           -> 1
+    Node _ left right -> case (left, right) of
+        (Leaf _, Leaf _)         -> 3
+        (Leaf _, Node _ _ _)      -> 1 + processTree right
+        (Node _ _ _, Leaf _)      -> 1 + processTree left
+        (Node _ _ _, Node _ _ _)   -> 2 + processTree left + processTree right
+
+-- Helper data type for the above example
+data Tree a = Leaf a | Node a (Tree a) (Tree a)
+```
+
+---
+
+## Multi-way if
+
+Modern GHC extension for cleaner multiple condition syntax.
+
+```haskell
+{-# LANGUAGE MultiWayIf #-}
+
+-- Basic multi-way if
+determineAction :: Int -> Int -> String
+determineAction health mana = if
+    | health <= 0           -> "You are dead!"
+    | health < 20           -> "Find healing potion"
+    | mana < 10             -> "Rest to recover mana"
+    | health > 80 && mana > 50 -> "Ready for battle"
+    | otherwise             -> "Explore cautiously"
+
+-- Multi-way if with complex conditions
+weatherAdvice :: Double -> Double -> Int -> String
+weatherAdvice temp humidity windSpeed = if
+    | temp < -10 && windSpeed > 20 -> "Extreme cold with wind - stay inside"
+    | temp > 35 && humidity > 80   -> "Hot and humid - stay hydrated"
+    | temp > 30 && windSpeed < 5   -> "Hot and still - seek shade"
+    | temp < 0 && humidity > 90    -> "Freezing and wet - dress warmly"
+    | windSpeed > 50               -> "High winds - avoid outdoor activities"
+    | temp >= 15 && temp <= 25     -> "Perfect weather - enjoy outdoors"
+    | otherwise                    -> "Normal weather conditions"
+
+-- Multi-way if in function composition
+processScore :: Int -> String -> String
+processScore score playerName = if
+    | score < 0     -> playerName ++ " has invalid score"
+    | score == 0    -> playerName ++ " needs to start playing"
+    | score < 1000  -> playerName ++ " is a beginner"
+    | score < 5000  -> playerName ++ " is intermediate"
+    | score < 10000 -> playerName ++ " is advanced"
+    | otherwise     -> playerName ++ " is expert level"
+```
+
+---
+
+## Boolean Operators
+
+Logical operators for combining conditions.
+
+```haskell
+-- Basic boolean operations
+isLeapYear :: Int -> Bool
+isLeapYear year = (year `mod` 4 == 0) && 
+                 (year `mod` 100 /= 0 || year `mod` 400 == 0)
+
+-- Complex boolean logic
+isValidEmail :: String -> Bool
+isValidEmail email = hasAtSymbol && hasValidLength && hasValidChars
+    where
+        hasAtSymbol = '@' `elem` email
+        hasValidLength = length email >= 5 && length email <= 254
+        hasValidChars = all (`elem` validChars) email
+        validChars = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ "@.-_"
+
+-- Short-circuit evaluation examples
+safeDivide :: Double -> Double -> Maybe Double
+safeDivide x y = if y /= 0.0 && not (isInfinite result || isNaN result)
+                then Just result
+                else Nothing
+    where result = x / y
+
+-- Boolean operators with guards
+checkPassword :: String -> String
+checkPassword pwd
+    | length pwd < 8                    = "Too short"
+    | not (any isUpper pwd)             = "Needs uppercase letter"  
+    | not (any isLower pwd)             = "Needs lowercase letter"
+    | not (any isDigit pwd)             = "Needs digit"
+    | not (any (`elem` "!@#$%^&*") pwd) = "Needs special character"
+    | otherwise                         = "Valid password"
+
+-- Combining multiple conditions
+canAccessResource :: Int -> Bool -> Bool -> [String] -> Bool
+canAccessResource age isLoggedIn hasPermission roles =
+    age >= 18 && isLoggedIn && hasPermission && 
+    ("admin" `elem` roles || "user" `elem` roles)
+```
+
+---
+
+## Pattern Matching with Conditions
+
+Combining pattern matching with conditional logic.
+
+```haskell
+-- Guards with pattern matching
+processResult :: Maybe Int -> String
+processResult Nothing = "No result"
+processResult (Just x)
+    | x < 0     = "Negative: " ++ show x
+    | x == 0    = "Zero"
+    | x < 10    = "Single digit: " ++ show x
+    | x < 100   = "Two digits: " ++ show x
+    | otherwise = "Large number: " ++ show x
+
+-- Complex pattern matching with conditions
+analyzeList :: [Int] -> String
+analyzeList [] = "Empty list"
+analyzeList [x]
+    | x > 0 = "Single positive element"
+    | x < 0 = "Single negative element"  
+    | otherwise = "Single zero element"
+analyzeList [x, y]
+    | x == y = "Two equal elements: " ++ show x
+    | x > y = "Descending pair: " ++ show x ++ ", " ++ show y
+    | otherwise = "Ascending pair: " ++ show x ++ ", " ++ show y
+analyzeList (x:y:rest)
+    | all (> 0) (x:y:rest) = "All positive, length: " ++ show (length (x:y:rest))
+    | all (< 0) (x:y:rest) = "All negative, length: " ++ show (length (x:y:rest))
+    | otherwise = "Mixed signs, length: " ++ show (length (x:y:rest))
+
+-- Pattern matching with where clauses and guards
+processTransaction :: (String, Double, String) -> String
+processTransaction (transType, amount, account)
+    | transType == "deposit" && isValidAmount = 
+        "Deposited $" ++ show amount ++ " to " ++ account
+    | transType == "withdrawal" && isValidAmount = 
+        "Withdrew $" ++ show amount ++ " from " ++ account
+    | transType == "transfer" && isValidAmount = 
+        "Transferred $" ++ show amount ++ " involving " ++ account
+    | not isValidAmount = "Invalid amount: " ++ show amount
+    | otherwise = "Unknown transaction type: " ++ transType
+    where
+        isValidAmount = amount > 0 && amount <= 10000
+```
+
+---
+
+## Maybe and Either Types
+
+Conditional logic with Haskell's error handling types.
+
+```haskell
+-- Maybe type conditionals
+safeDivision :: Double -> Double -> Maybe Double
+safeDivision _ 0 = Nothing
+safeDivision x y = Just (x / y)
+
+processResult :: Maybe Int -> Int
+processResult Nothing = 0
+processResult (Just x)
+    | x > 100   = x * 2
+    | x > 50    = x + 10  
+    | x > 0     = x
+    | otherwise = abs x
+
+-- Either type conditionals
+validateAge :: Int -> Either String Int
+validateAge age
+    | age < 0   = Left "Age cannot be negative"
+    | age > 150 = Left "Age seems unrealistic"
+    | otherwise = Right age
+
+validateEmail :: String -> Either String String
+validateEmail email
+    | null email           = Left "Email cannot be empty"
+    | '@' `notElem` email  = Left "Email must contain @"
+    | length email < 5     = Left "Email too short"
+    | otherwise            = Right email
+
+-- Combining Maybe/Either with conditionals
+processUserData :: String -> Int -> Either String (String, Int)
+processUserData email age = do
+    validEmail <- validateEmail email
+    validAge <- validateAge age
+    case (validEmail, validAge) of
+        (e, a) | length e > 50 -> Left "Email too long"
+               | a < 13        -> Left "Must be 13 or older"
+               | otherwise     -> Right (e, a)
+
+-- Maybe chaining with conditionals
+calculateTax :: Double -> String -> Maybe Double
+calculateTax income country = do
+    rate <- case country of
+        "US" | income < 10000  -> Just 0.10
+             | income < 40000  -> Just 0.22
+             | income < 85000  -> Just 0.24
+             | otherwise       -> Just 0.32
+        "UK" | income < 12500  -> Just 0.00
+             | income < 50000  -> Just 0.20
+             | income < 150000 -> Just 0.40
+             | otherwise       -> Just 0.45
+        _ -> Nothing
+    if income > 0 then Just (income * rate) else Nothing
+```
+
+---
+
+## Advanced Conditional Patterns
+
+Modern Haskell features and advanced conditional techniques.
+
+```haskell
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ViewPatterns #-}
+
+-- LambdaCase extension
+processStatus :: Maybe String -> String
+processStatus = \case
+    Nothing -> "No status"
+    Just ""  -> "Empty status"
+    Just msg | length msg > 50 -> "Long message: " ++ take 47 msg ++ "..."
+             | otherwise       -> "Status: " ++ msg
+
+-- View patterns for conditional matching
+isEven :: Int -> Bool
+isEven n = n `mod` 2 == 0
+
+categorizeNumber :: Int -> String
+categorizeNumber (isEven -> True) = "Even number"
+categorizeNumber n 
+    | n > 0 = "Odd positive"
+    | otherwise = "Odd non-positive"
+
+-- Conditional with type classes
+compareValues :: (Ord a, Show a) => a -> a -> String
+compareValues x y
+    | x > y = show x ++ " is greater than " ++ show y
+    | x < y = show x ++ " is less than " ++ show y
+    | otherwise = show x ++ " equals " ++ show y
+
+-- Using conditionals in higher-order functions
+filterConditional :: (a -> Bool) -> (a -> Bool) -> [a] -> [a]
+filterConditional cond1 cond2 = filter (\x -> cond1 x && cond2 x)
+
+-- Conditional monadic operations
+processFiles :: [FilePath] -> IO [String]
+processFiles files = do
+    results <- mapM tryReadFile files
+    return $ map (\result -> case result of
+        Left err -> if "permission" `isInfixOf` err 
+                   then "Access denied"
+                   else "Read error: " ++ err
+        Right content -> if length content > 1000
+                        then "Large file content"
+                        else content) results
+    where
+        tryReadFile :: FilePath -> IO (Either String String)
+        tryReadFile path = do
+            -- Simplified version - actual implementation would use proper exception handling
+            if path == "missing.txt"
+                then return $ Left "File not found"
+                else return $ Right "File content here"
+
+-- Pattern synonyms with conditions (requires PatternSynonyms extension)
+{-# LANGUAGE PatternSynonyms #-}
+
+pattern SmallPositive :: Int -> Int
+pattern SmallPositive n <- n | n > 0 && n < 100
+
+pattern LargeNegative :: Int -> Int  
+pattern LargeNegative n <- n | n < 0 && abs n > 100
+
+classifyInteger :: Int -> String
+classifyInteger (SmallPositive n) = "Small positive: " ++ show n
+classifyInteger (LargeNegative n) = "Large negative: " ++ show n
+classifyInteger 0 = "Zero"
+classifyInteger n 
+    | n > 0 = "Large positive: " ++ show n
+    | otherwise = "Small negative: " ++ show n
+```
+
+---
+
+## Performance Notes
+
+- **Guards vs if-then-else**: Guards are generally more readable for multiple conditions
+- **Case vs Guards**: Case expressions can be more efficient for pattern matching
+- **Short-circuit evaluation**: `&&` and `||` operators use short-circuit evaluation
+- **Pattern matching**: Generally more efficient than multiple conditionals for data structure inspection
+
+## Best Practices
+
+1. **Use guards** for multiple conditions on the same value
+2. **Use case expressions** for pattern matching within expressions  
+3. **Use if-then-else** for simple binary conditions
+4. **Always include `otherwise`** in guards as the final condition
+5. **Prefer Maybe/Either** over throwing exceptions for error handling
+6. **Use MultiWayIf** extension for complex condition chains
+7. **Combine pattern matching with guards** for complex data processing
+
+---
+
+*This documentation covers Haskell conditions for GHC 9.4+ with modern extensions and idiomatic patterns.*
