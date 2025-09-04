@@ -1,0 +1,100 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Function Arguments
+
+## Overview of Function Arguments
+Function arguments in Haskell are variables passed to a function, defined in its type signature and body. They are immutable, meaning their values cannot be modified within the function. Haskell’s curried functions allow partial application, and arguments can be matched using patterns or processed with guards. Arguments can be of any type, including primitive types, lists, tuples, or functions (for higher-order functions).
+
+### Basic Syntax
+```haskell
+functionName :: Type1 -> Type2 -> ... -> ReturnType
+functionName arg1 arg2 ... = expression
+```
+- **Type Signature**: Specifies argument types with `->` (e.g., `Int -> String -> Bool`).
+- **Arguments**: Named variables (`arg1`, `arg2`) used in the expression.
+- **Expression**: Computes the result using the arguments.
+
+## 1. Simple Arguments: Adding Numbers
+A function with basic numeric arguments.
+
+```haskell
+-- add.hs
+-- Adds two integer arguments.
+
+addNumbers :: Int -> Int -> Int
+addNumbers x y = x + y
+
+main :: IO ()
+main = print (addNumbers 5 3)  -- Outputs: 8
+```
+
+- **Description**: Takes two `Int` arguments (`x`, `y`) and returns their sum.
+- **Key Concept**: Arguments are immutable; currying allows `addNumbers 5` to create a new function.
+- **In GHCi**: `addNumbers 10 20` returns `30`.
+
+## 2. String Argument: Greeting
+Use a string argument to create a greeting.
+
+```haskell
+-- greet.hs
+-- Creates a greeting with a name argument.
+
+greet :: String -> String
+greet name = "Hello, " ++ name ++ "!"
+
+main :: IO ()
+main = putStrLn (greet "Alice")  -- Outputs: Hello, Alice!
+```
+
+- **Description**: Takes a `String` argument `name` and concatenates it into a greeting.
+- **Key Concept**: String arguments are processed as lists of `Char`.
+- **In GHCi**: `greet "Bob"` returns `"Hello, Bob!"`.
+
+## 3. Pattern Matching: List Argument
+Match a list argument using patterns.
+
+```haskell
+-- first.hs
+-- Returns the first element of a list.
+
+firstElement :: [a] -> a
+firstElement (x:_) = x
+firstElement [] = error "Empty list"
+
+main :: IO ()
+main = print (firstElement [1, 2, 3])  -- Outputs: 1
+```
+
+- **Description**: Matches a non-empty list (`x:_`) to return the head; errors on empty lists.
+- **Key Concept**: Pattern matching destructures arguments like lists or tuples.
+- **In GHCi**: `firstElement [4,5]` returns `4`.
+
+## 4. Tuple Argument: Extract Components
+Use a tuple as an argument.
+
+```haskell
+-- tuple.hs
+-- Extracts name from a (String, Int) tuple.
+
+getName :: (String, Int) -> String
+getName (name, _) = name
+
+main :: IO ()
+main = putStrLn (getName ("Alice", 30))  -- Outputs: Alice
+```
+
+- **Description**: Takes a tuple, extracts the first component via pattern matching.
+- **Key Concept**: Tuples allow heterogeneous arguments; `_` ignores unused fields.
+- **In GHCi**: `getName ("Bob", 25)` returns `"Bob"`.
+
+## 5. Higher-Order Function: Function Argument
+Pass a function as an argument.
+
+```haskell
+-- apply.hs
+-- Applies a function to a number.
+
+applyFunction :: (Int -> Int) -> Int
