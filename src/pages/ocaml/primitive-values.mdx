@@ -1,0 +1,459 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Primitive Values
+
+## What are Primitive Values?
+
+Primitive values in OCaml are the basic, built-in data types that form the foundation of the type system. These are atomic values that cannot be decomposed into simpler parts and are directly supported by the language runtime.
+
+## 1. Integer Type (`int`)
+
+### Basic Integer Values
+```ocaml
+(* Standard decimal integers *)
+42;;           (* - : int = 42 *)
+-17;;          (* - : int = -17 *)
+0;;            (* - : int = 0 *)
+
+(* Different number bases *)
+0x2A;;         (* Hexadecimal: - : int = 42 *)
+0o52;;         (* Octal: - : int = 42 *)
+0b101010;;     (* Binary: - : int = 42 *)
+
+(* Large integers with underscores for readability *)
+1_000_000;;    (* - : int = 1000000 *)
+0xFF_FF_FF;;   (* - : int = 16777215 *)
+```
+
+### Integer Range and Limitations
+```ocaml
+(* Maximum and minimum integer values (platform dependent) *)
+Int.max_int;;  (* - : int = 4611686018427387903 (on 64-bit) *)
+Int.min_int;;  (* - : int = -4611686018427387904 (on 64-bit) *)
+
+(* On 32-bit systems *)
+(* Int.max_int = 1073741823 *)
+(* Int.min_int = -1073741824 *)
+```
+
+### Integer Operations
+```ocaml
+(* Arithmetic operations *)
+5 + 3;;        (* Addition: - : int = 8 *)
+10 - 4;;       (* Subtraction: - : int = 6 *)
+6 * 7;;        (* Multiplication: - : int = 42 *)
+15 / 3;;       (* Integer division: - : int = 5 *)
+17 mod 5;;     (* Modulo: - : int = 2 *)
+
+(* Unary operations *)
+-5;;           (* Negation: - : int = -5 *)
++5;;           (* Unary plus: - : int = 5 *)
+
+(* Comparison operations *)
+5 = 5;;        (* - : bool = true *)
+5 <> 3;;       (* - : bool = true *)
+5 < 10;;       (* - : bool = true *)
+5 <= 5;;       (* - : bool = true *)
+```
+
+## 2. Floating-Point Type (`float`)
+
+### Basic Float Values
+```ocaml
+(* Standard float notation *)
+3.14;;         (* - : float = 3.14 *)
+-2.5;;         (* - : float = -2.5 *)
+0.0;;          (* - : float = 0. *)
+
+(* Scientific notation *)
+1.5e10;;       (* - : float = 15000000000. *)
+2.3e-4;;       (* - : float = 0.00023 *)
+6.02e23;;      (* - : float = 6.02e+23 *)
+
+(* Special float values *)
+Float.infinity;;     (* - : float = infinity *)
+Float.neg_infinity;; (* - : float = neg_infinity *)
+Float.nan;;          (* - : float = nan *)
+```
+
+### Float Operations (Note the dot suffix)
+```ocaml
+(* Float arithmetic uses different operators *)
+5.0 +. 3.2;;   (* - : float = 8.2 *)
+10.5 -. 4.1;;  (* - : float = 6.4 *)
+2.5 *. 4.0;;   (* - : float = 10. *)
+15.0 /. 3.0;;  (* - : float = 5. *)
+
+(* Mathematical functions *)
+sqrt 16.0;;    (* - : float = 4. *)
+sin 0.0;;      (* - : float = 0. *)
+cos 0.0;;      (* - : float = 1. *)
+exp 1.0;;      (* - : float = 2.71828182845904509 *)
+log 10.0;;     (* - : float = 2.30258509299404568 *)
+```
+
+### Float Precision and Special Cases
+```ocaml
+(* Checking for NaN *)
+Float.is_nan (Float.nan);;  (* - : bool = true *)
+
+(* Checking for infinity *)
+Float.is_infinite Float.infinity;;  (* - : bool = true *)
+
+(* Float comparison issues *)
+0.1 +. 0.2 = 0.3;;  (* - : bool = false (floating-point precision) *)
+abs_float (0.1 +. 0.2 -. 0.3) < 1e-10;;  (* Better comparison *)
+```
+
+## 3. Boolean Type (`bool`)
+
+### Boolean Values
+```ocaml
+true;;         (* - : bool = true *)
+false;;        (* - : bool = false *)
+```
+
+### Boolean Operations
+```ocaml
+(* Logical operations *)
+true && false;;     (* AND: - : bool = false *)
+true || false;;     (* OR: - : bool = true *)
+not true;;          (* NOT: - : bool = false *)
+
+(* Short-circuit evaluation *)
+false && (1 / 0 = 0);;  (* - : bool = false (no exception) *)
+true || (1 / 0 = 0);;   (* - : bool = true (no exception) *)
+
+(* Boolean from comparisons *)
+5 > 3;;        (* - : bool = true *)
+"abc" = "def";; (* - : bool = false *)
+```
+
+## 4. Character Type (`char`)
+
+### Basic Character Values
+```ocaml
+(* Regular characters *)
+'a';;          (* - : char = 'a' *)
+'Z';;          (* - : char = 'Z' *)
+'1';;          (* - : char = '1' *)
+' ';;          (* - : char = ' ' *)
+```
+
+### Escape Sequences
+```ocaml
+(* Common escape sequences *)
+'\n';;         (* Newline: - : char = '\n' *)
+'\t';;         (* Tab: - : char = '\t' *)
+'\r';;         (* Carriage return: - : char = '\r' *)
+'\\';;         (* Backslash: - : char = '\\' *)
+'\'';;         (* Single quote: - : char = '\'' *)
+'\"';;         (* Double quote: - : char = '"' *)
+
+(* Octal escape sequences *)
+'\065';;       (* 'A' in octal: - : char = 'A' *)
+'\097';;       (* 'a' in octal: - : char = 'a' *)
+
+(* Hexadecimal escape sequences *)
+'\x41';;       (* 'A' in hex: - : char = 'A' *)
+'\x61';;       (* 'a' in hex: - : char = 'a' *)
+```
+
+### Character Operations
+```ocaml
+(* Character to integer conversion *)
+Char.code 'A';;    (* - : int = 65 *)
+Char.code 'a';;    (* - : int = 97 *)
+
+(* Integer to character conversion *)
+Char.chr 65;;      (* - : char = 'A' *)
+Char.chr 97;;      (* - : char = 'a' *)
+
+(* Character comparison *)
+'a' < 'b';;        (* - : bool = true *)
+'A' < 'a';;        (* - : bool = true *)
+
+(* Character classification *)
+let is_digit c = c >= '0' && c <= '9';;
+let is_uppercase c = c >= 'A' && c <= 'Z';;
+let is_lowercase c = c >= 'a' && c <= 'z';;
+```
+
+## 5. String Type (`string`)
+
+### Basic String Values
+```ocaml
+(* Simple strings *)
+"hello";;           (* - : string = "hello" *)
+"";;                (* Empty string: - : string = "" *)
+"Hello, World!";;   (* - : string = "Hello, World!" *)
+
+(* Strings with escape sequences *)
+"line 1\nline 2";;  (* - : string = "line 1\nline 2" *)
+"He said \"Hello\"";;  (* - : string = "He said \"Hello\"" *)
+```
+
+### Multi-line and Raw Strings
+```ocaml
+(* Multi-line strings with quoted string literals *)
+{|This is a 
+multi-line string
+with "quotes" and \backslashes|};;
+
+(* Custom delimiters *)
+{hello|This string contains |} easily|hello};;
+
+(* Here documents (OCaml 5.2+) *)
+{%hello|
+  This is a here document
+  with custom delimiter
+|hello%};;
+```
+
+### String Operations
+```ocaml
+(* String concatenation *)
+"Hello" ^ " " ^ "World";;  (* - : string = "Hello World" *)
+
+(* String length *)
+String.length "hello";;    (* - : int = 5 *)
+
+(* String indexing *)
+"hello".[0];;              (* - : char = 'h' *)
+"hello".[4];;              (* - : char = 'o' *)
+
+(* String comparison *)
+"abc" = "abc";;            (* - : bool = true *)
+"abc" < "def";;            (* - : bool = true *)
+String.compare "abc" "def";;  (* - : int = -1 *)
+
+(* String functions *)
+String.uppercase_ascii "hello";;  (* - : string = "HELLO" *)
+String.lowercase_ascii "WORLD";;  (* - : string = "world" *)
+String.capitalize_ascii "hello";; (* - : string = "Hello" *)
+
+(* Substring operations *)
+String.sub "hello world" 0 5;;    (* - : string = "hello" *)
+String.sub "hello world" 6 5;;    (* - : string = "world" *)
+```
+
+### String Immutability
+```ocaml
+(* Strings are immutable in OCaml *)
+let s = "hello";;
+(* s.[0] <- 'H';;  This would cause an error! *)
+
+(* To modify strings, create new ones *)
+let capitalize_first s = 
+  if String.length s = 0 then s
+  else 
+    let first = Char.uppercase_ascii s.[0] in
+    String.mapi (fun i c -> if i = 0 then first else c) s;;
+```
+
+## 6. Unit Type (`unit`)
+
+### The Unit Value
+```ocaml
+();;           (* - : unit = () *)
+```
+
+### Unit Type Usage
+```ocaml
+(* Functions with side effects return unit *)
+print_endline "Hello";;    (* - : unit = () *)
+
+(* Unit in function definitions *)
+let greet () = print_endline "Hello!";;
+greet ();;     (* Prints "Hello!" and returns () *)
+
+(* Unit in sequences *)
+print_endline "First"; print_endline "Second"; ();;
+
+(* Ignoring values *)
+let _ = expensive_computation () in  (* Ignore result *)
+();;
+```
+
+## Type Conversions Between Primitives
+
+### Integer ↔ Float
+```ocaml
+(* Integer to float *)
+float_of_int 42;;          (* - : float = 42. *)
+Float.of_int 42;;          (* Alternative syntax *)
+
+(* Float to integer (truncates) *)
+int_of_float 3.14;;        (* - : int = 3 *)
+Float.to_int 3.14;;        (* Alternative syntax *)
+
+(* Rounding functions *)
+floor 3.7;;                (* - : float = 3. *)
+ceil 3.2;;                 (* - : float = 4. *)
+round 3.6;;                (* - : float = 4. *)
+```
+
+### String Conversions
+```ocaml
+(* Integer to string *)
+string_of_int 42;;         (* - : string = "42" *)
+Int.to_string 42;;         (* Alternative syntax *)
+
+(* String to integer *)
+int_of_string "42";;       (* - : int = 42 *)
+Int.of_string "42";;       (* Alternative syntax *)
+
+(* Float to string *)
+string_of_float 3.14;;     (* - : string = "3.14" *)
+Float.to_string 3.14;;     (* Alternative syntax *)
+
+(* String to float *)
+float_of_string "3.14";;   (* - : string = 3.14 *)
+Float.of_string "3.14";;   (* Alternative syntax *)
+
+(* Boolean to string *)
+string_of_bool true;;      (* - : string = "true" *)
+Bool.to_string false;;     (* - : string = "false" *)
+```
+
+### Character ↔ String
+```ocaml
+(* Character to string *)
+String.make 1 'A';;        (* - : string = "A" *)
+Char.escaped 'A';;         (* - : string = "A" *)
+
+(* String to character (first character) *)
+"Hello".[0];;              (* - : char = 'H' *)
+```
+
+## Memory Representation
+
+### Immediate Values (No Heap Allocation)
+- **Integers**: Stored directly in machine words
+- **Characters**: Stored as small integers
+- **Booleans**: Represented as integers (0 for false, 1 for true)
+- **Unit**: Special constant value
+
+### Heap-Allocated Values
+- **Strings**: Stored as arrays of bytes on the heap
+- **Floats**: Usually boxed (heap-allocated) unless in arrays
+
+```ocaml
+(* Physical equality vs structural equality *)
+let x = 42 in x == x;;     (* - : bool = true (same memory) *)
+let s1 = "hello" in 
+let s2 = "hello" in 
+s1 == s2;;                 (* May be true (string interning) *)
+
+(* But for new strings *)
+let s3 = "he" ^ "llo" in
+let s4 = "hello" in
+s3 == s4;;                 (* - : bool = false (different objects) *)
+s3 = s4;;                  (* - : bool = true (same content) *)
+```
+
+## Pattern Matching with Primitives
+
+### Matching on Different Types
+```ocaml
+(* Integer patterns *)
+let classify_int n =
+  match n with
+  | 0 -> "zero"
+  | 1 -> "one"
+  | n when n > 0 -> "positive"
+  | _ -> "negative";;
+
+(* Character patterns *)
+let classify_char c =
+  match c with
+  | 'a'..'z' -> "lowercase"
+  | 'A'..'Z' -> "uppercase"  
+  | '0'..'9' -> "digit"
+  | _ -> "other";;
+
+(* Boolean patterns *)
+let bool_to_int b =
+  match b with
+  | true -> 1
+  | false -> 0;;
+```
+
+## Key Characteristics of OCaml Primitives
+
+### 1. **Strong Static Typing**
+```ocaml
+(* Type errors caught at compile time *)
+5 + 3.14;;  (* Error: This expression has type float but an expression was expected of type int *)
+```
+
+### 2. **Type Inference**
+```ocaml
+let add_numbers x y = x + y;;  (* Inferred as: int -> int -> int *)
+let add_floats x y = x +. y;;  (* Inferred as: float -> float -> float *)
+```
+
+### 3. **No Implicit Conversions**
+```ocaml
+(* Must be explicit about conversions *)
+let mixed_calc x y = float_of_int x +. y;;  (* int -> float -> float *)
+```
+
+### 4. **Immutability**
+```ocaml
+(* Primitive values are immutable *)
+let x = 42;;
+(* x = 43;;  This creates a new binding, doesn't modify x *)
+```
+
+### 5. **Performance Characteristics**
+- **Integers**: Very fast, no allocation
+- **Floats**: May be boxed, slightly slower
+- **Characters**: Very fast, stored as integers
+- **Strings**: Efficient for immutable operations
+- **Booleans**: Very fast, stored as integers
+
+## Best Practices
+
+### 1. **Use Appropriate Types**
+```ocaml
+(* Use int for counting, indices *)
+let count = ref 0;;
+
+(* Use float for mathematical calculations *)
+let area = 3.14159 *. radius *. radius;;
+
+(* Use char for single characters *)
+let first_letter = name.[0];;
+
+(* Use string for text *)
+let message = "Hello, " ^ name;;
+```
+
+### 2. **Handle Edge Cases**
+```ocaml
+(* Safe division *)
+let safe_divide x y =
+  if y = 0 then None else Some (x / y);;
+
+(* Safe string indexing *)
+let safe_char_at s i =
+  if i >= 0 && i < String.length s then Some s.[i] else None;;
+```
+
+### 3. **Use Appropriate Comparison**
+```ocaml
+(* For exact equality *)
+x = y;;
+
+(* For floating-point comparison *)
+abs_float (x -. y) < epsilon;;
+
+(* For string comparison *)
+String.compare s1 s2;;
+```
+
+Understanding OCaml's primitive values is crucial because they form the foundation for all other data types and operations in the language. The type system's strength comes from these well-defined primitive types and their clear conversion rules.

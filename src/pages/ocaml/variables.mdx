@@ -1,0 +1,630 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Variables
+
+## Table of Contents
+1. [Variable Concept in OCaml](#variable-concept-in-ocaml)
+2. [Let Bindings](#let-bindings)
+3. [Variable Scoping](#variable-scoping)
+4. [Immutable vs Mutable Variables](#immutable-vs-mutable-variables)
+5. [Pattern Matching in Let Bindings](#pattern-matching-in-let-bindings)
+6. [Local vs Global Bindings](#local-vs-global-bindings)
+7. [Variable Shadowing](#variable-shadowing)
+8. [References (Mutable Variables)](#references-mutable-variables)
+9. [Mutable Record Fields](#mutable-record-fields)
+10. [Advanced Variable Concepts](#advanced-variable-concepts)
+
+## Variable Concept in OCaml
+
+In OCaml, **variables are actually immutable bindings** by default. This is fundamentally different from imperative languages where variables are mutable memory locations. In OCaml, a "variable" is a name bound to a value, and this binding cannot be changed once established.
+
+```ocaml
+(* This is not a "variable" in the traditional sense *)
+(* It's an immutable binding of the name 'x' to the value 42 *)
+let x = 42;;
+(* val x : int = 42 *)
+
+(* This doesn't "change" x, it creates a new binding *)
+let x = x + 1;;
+(* val x : int = 43 *)
+(* The old binding is shadowed, not modified *)
+```
+
+## Let Bindings
+
+### Basic Let Bindings
+```ocaml
+(* Simple binding *)
+let name = "Alice";;
+(* val name : string = "Alice" *)
+
+let age = 25;;
+(* val age : int = 25 *)
+
+let height = 5.6;;
+(* val height : float = 5.6 *)
+
+let is_student = true;;
+(* val is_student : bool = true *)
+```
+
+### Let Expressions (Local Bindings)
+```ocaml
+(* Local binding with 'let...in' *)
+let x = 10 in x * 2;;
+(* - : int = 20 *)
+
+(* Multiple local bindings *)
+let x = 5 in
+let y = 3 in
+let z = x + y in
+z * 2;;
+(* - : int = 16 *)
+
+(* Nested local bindings *)
+let outer = 10 in
+let inner = 
+  let temp = outer * 2 in
+  temp + 5
+in
+inner;;
+(* - : int = 25 *)
+```
+
+### Function Bindings
+```ocaml
+(* Function binding *)
+let add x y = x + y;;
+(* val add : int -> int -> int = <fun> *)
+
+(* Recursive function binding *)
+let rec factorial n =
+  if n <= 1 then 1
+  else n * factorial (n - 1);;
+(* val factorial : int -> int = <fun> *)
+
+(* Mutually recursive functions *)
+let rec is_even n =
+  if n = 0 then true
+  else is_odd (n - 1)
+and is_odd n =
+  if n = 0 then false
+  else is_even (n - 1);;
+```
+
+## Variable Scoping
+
+### Lexical Scoping
+```ocaml
+(* Global scope *)
+let global_var = 100;;
+
+let example_function x =
+  (* Function parameter 'x' is in function scope *)
+  let local_var = 20 in  (* Local variable *)
+  let inner_function y = 
+    (* Can access: y, local_var, x, global_var *)
+    y + local_var + x + global_var
+  in
+  inner_function 5;;
+
+example_function 10;;
+(* - : int = 135 (5 + 20 + 10 + 100) *)
+```
+
+### Scope Demonstration
+```ocaml
+(* Outer scope *)
+let x = 1;;
+let y = 2;;
+
+let demo () =
+  (* Inner scope *)
+  let x = 10 in  (* Shadows outer x *)
+  let z = 3 in   (* New binding *)
+  Printf.printf "Inner x: %d, y: %d, z: %d\n" x y z;
+  (* Inner x: 10, y: 2, z: 3 *)
+  x + y + z;;
+
+demo ();;
+(* - : int = 15 *)
+
+(* Back in outer scope *)
+Printf.printf "Outer x: %d, y: %d\n" x y;;
+(* Outer x: 1, y: 2 *)
+(* z is not accessible here *)
+```
+
+## Immutable vs Mutable Variables
+
+### Immutable Bindings (Default)
+```ocaml
+(* Immutable binding *)
+let x = 42;;
+(* val x : int = 42 *)
+
+(* This creates a NEW binding, doesn't change the old one *)
+let x = x + 1;;
+(* val x : int = 43 *)
+
+(* Demonstration of immutability *)
+let original = 5;;
+let doubled = original * 2;;
+(* original is still 5, doubled is 10 *)
+
+(* Cannot modify immutable bindings *)
+(* x := 50;;  (* This would cause a syntax error *) *)
+```
+
+### Creating "Variables" Through Rebinding
+```ocaml
+(* Simulating mutability through rebinding *)
+let counter = 0;;
+let counter = counter + 1;;  (* counter = 1 *)
+let counter = counter + 1;;  (* counter = 2 *)
+let counter = counter + 1;;  (* counter = 3 *)
+
+(* Function that returns updated value *)
+let increment x = x + 1;;
+let counter = increment counter;;  (* counter = 4 *)
+```
+
+## Pattern Matching in Let Bindings
+
+### Tuple Destructuring
+```ocaml
+(* Destructuring tuples *)
+let point = (3, 4);;
+let (x, y) = point;;
+(* val x : int = 3 *)
+(* val y : int = 4 *)
+
+(* Direct destructuring *)
+let (a, b, c) = (1, 2, 3);;
+(* val a : int = 1 *)
+(* val b : int = 2 *)
+(* val c : int = 3 *)
+
+(* Nested tuple destructuring *)
+let nested = ((1, 2), (3, 4));;
+let ((x1, y1), (x2, y2)) = nested;;
+```
+
+### List Pattern Matching
+```ocaml
+(* List destructuring *)
+let numbers = [1; 2; 3; 4];;
+
+(* Extract head and tail *)
+let head :: tail = numbers;;
+(* val head : int = 1 *)
+(* val tail : int list = [2; 3; 4] *)
+
+(* Extract first two elements *)
+let first :: second :: rest = numbers;;
+(* val first : int = 1 *)
+(* val second : int = 2 *)
+(* val rest : int list = [3; 4] *)
+```
+
+### Record Destructuring
+```ocaml
+(* Define a record type *)
+type person = { name: string; age: int; city: string };;
+
+let alice = { name = "Alice"; age = 25; city = "New York" };;
+
+(* Destructure record *)
+let { name; age; city } = alice;;
+(* val name : string = "Alice" *)
+(* val age : int = 25 *)
+(* val city : string = "New York" *)
+
+(* Partial destructuring *)
+let { name = person_name; age = person_age; _ } = alice;;
+```
+
+## Local vs Global Bindings
+
+### Global Bindings
+```ocaml
+(* File-level bindings are global *)
+let pi = 3.14159;;
+let max_size = 1000;;
+
+(* These can be accessed anywhere in the file/module *)
+let circle_area radius = pi *. radius *. radius;;
+```
+
+### Local Bindings
+```ocaml
+(* Local bindings in functions *)
+let calculate_stats numbers =
+  let length = List.length numbers in  (* Local to this function *)
+  let sum = List.fold_left (+) 0 numbers in  (* Local to this function *)
+  let average = float_of_int sum /. float_of_int length in
+  (sum, average);;
+
+(* length and sum are not accessible outside the function *)
+```
+
+### Nested Local Bindings
+```ocaml
+let complex_calculation x y =
+  let intermediate1 = 
+    let temp1 = x * 2 in
+    let temp2 = y * 3 in
+    temp1 + temp2
+  in
+  let intermediate2 = 
+    let temp3 = x + y in
+    let temp4 = x - y in
+    temp3 * temp4
+  in
+  intermediate1 + intermediate2;;
+```
+
+## Variable Shadowing
+
+### Basic Shadowing
+```ocaml
+(* Original binding *)
+let x = 10;;
+Printf.printf "x = %d\n" x;;  (* x = 10 *)
+
+(* Shadow with new binding *)
+let x = 20;;
+Printf.printf "x = %d\n" x;;  (* x = 20 *)
+
+(* The original binding still exists but is inaccessible *)
+```
+
+### Shadowing in Different Scopes
+```ocaml
+let x = 1;;  (* Global x *)
+
+let demo_shadowing () =
+  Printf.printf "Global x: %d\n" x;  (* Global x: 1 *)
+  
+  let x = 2 in  (* Shadow global x *)
+  Printf.printf "Shadowed x: %d\n" x;  (* Shadowed x: 2 *)
+  
+  let inner_demo () =
+    let x = 3 in  (* Shadow the shadowed x *)
+    Printf.printf "Inner x: %d\n" x  (* Inner x: 3 *)
+  in
+  inner_demo ();
+  
+  Printf.printf "Back to shadowed x: %d\n" x;;  (* Back to shadowed x: 2 *)
+
+demo_shadowing ();;
+Printf.printf "Back to global x: %d\n" x;;  (* Back to global x: 1 *)
+```
+
+### Function Parameter Shadowing
+```ocaml
+let x = 100;;
+
+let my_function x =  (* Parameter x shadows global x *)
+  Printf.printf "Function parameter x: %d\n" x;
+  let x = x * 2 in  (* Local x shadows parameter x *)
+  Printf.printf "Local x: %d\n" x;;
+
+my_function 5;;
+(* Function parameter x: 5 *)
+(* Local x: 10 *)
+
+Printf.printf "Global x: %d\n" x;;
+(* Global x: 100 *)
+```
+
+## References (Mutable Variables)
+
+### Creating References
+```ocaml
+(* Create a mutable reference *)
+let counter = ref 0;;
+(* val counter : int ref = {contents = 0} *)
+
+let name = ref "Alice";;
+(* val name : string ref = {contents = "Alice"} *)
+
+let is_active = ref true;;
+(* val is_active : bool ref = {contents = true} *)
+```
+
+### Reference Operations
+```ocaml
+(* Dereferencing (getting the value) *)
+let current_count = !counter;;
+(* val current_count : int = 0 *)
+
+Printf.printf "Counter: %d\n" !counter;;
+(* Counter: 0 *)
+
+(* Assignment (changing the value) *)
+counter := !counter + 1;;
+Printf.printf "Counter after increment: %d\n" !counter;;
+(* Counter after increment: 1 *)
+
+(* Direct assignment *)
+counter := 42;;
+Printf.printf "Counter after direct assignment: %d\n" !counter;;
+(* Counter after direct assignment: 42 *)
+```
+
+### Reference Examples
+```ocaml
+(* Mutable counter example *)
+let make_counter () =
+  let count = ref 0 in
+  fun () ->
+    count := !count + 1;
+    !count;;
+
+let counter1 = make_counter ();;
+let counter2 = make_counter ();;
+
+Printf.printf "Counter1: %d\n" (counter1 ());;  (* Counter1: 1 *)
+Printf.printf "Counter1: %d\n" (counter1 ());;  (* Counter1: 2 *)
+Printf.printf "Counter2: %d\n" (counter2 ());;  (* Counter2: 1 *)
+
+(* Mutable accumulator *)
+let sum_with_ref numbers =
+  let total = ref 0 in
+  List.iter (fun x -> total := !total + x) numbers;
+  !total;;
+
+sum_with_ref [1; 2; 3; 4; 5];;
+(* - : int = 15 *)
+```
+
+### Reference vs Rebinding
+```ocaml
+(* Rebinding (creates new binding) *)
+let x = 10;;
+let x = x + 1;;  (* New binding, old one shadowed *)
+
+(* Reference (true mutability) *)
+let y = ref 10;;
+y := !y + 1;;    (* Same reference, value changed *)
+
+(* Demonstration *)
+let demo_difference () =
+  let immutable_var = 5 in
+  let mutable_ref = ref 5 in
+  
+  Printf.printf "Before: immutable=%d, mutable=%d\n" immutable_var !mutable_ref;
+  (* Before: immutable=5, mutable=5 *)
+  
+  (* This creates new binding in inner scope *)
+  let immutable_var = immutable_var + 1 in
+  (* This modifies the reference *)
+  mutable_ref := !mutable_ref + 1;
+  
+  Printf.printf "After: immutable=%d, mutable=%d\n" immutable_var !mutable_ref;;
+  (* After: immutable=6, mutable=6 *)
+
+demo_difference ();;
+```
+
+## Mutable Record Fields
+
+### Defining Mutable Records
+```ocaml
+(* Record with mutable fields *)
+type person = {
+  name: string;                (* Immutable *)
+  mutable age: int;           (* Mutable *)
+  mutable email: string;      (* Mutable *)
+  city: string;               (* Immutable *)
+};;
+
+(* Create a person *)
+let alice = {
+  name = "Alice";
+  age = 25;
+  email = "alice@example.com";
+  city = "New York";
+};;
+```
+
+### Modifying Mutable Fields
+```ocaml
+(* Access fields *)
+Printf.printf "Name: %s, Age: %d\n" alice.name alice.age;;
+(* Name: Alice, Age: 25 *)
+
+(* Modify mutable fields *)
+alice.age <- 26;;
+alice.email <- "alice.smith@example.com";;
+
+Printf.printf "Updated - Name: %s, Age: %d, Email: %s\n" 
+  alice.name alice.age alice.email;;
+(* Updated - Name: Alice, Age: 26, Email: alice.smith@example.com *)
+
+(* Cannot modify immutable fields *)
+(* alice.name <- "Bob";;  (* This would cause an error *) *)
+(* alice.city <- "Boston";;  (* This would cause an error *) *)
+```
+
+### Mutable Record Examples
+```ocaml
+(* Bank account example *)
+type account = {
+  account_number: string;        (* Immutable *)
+  mutable balance: float;        (* Mutable *)
+  mutable last_transaction: string; (* Mutable *)
+};;
+
+let my_account = {
+  account_number = "12345";
+  balance = 1000.0;
+  last_transaction = "Initial deposit";
+};;
+
+(* Functions to operate on account *)
+let deposit account amount =
+  account.balance <- account.balance +. amount;
+  account.last_transaction <- Printf.sprintf "Deposited %.2f" amount;;
+
+let withdraw account amount =
+  if account.balance >= amount then (
+    account.balance <- account.balance -. amount;
+    account.last_transaction <- Printf.sprintf "Withdrew %.2f" amount;
+    true
+  ) else (
+    account.last_transaction <- Printf.sprintf "Failed to withdraw %.2f (insufficient funds)" amount;
+    false
+  );;
+
+(* Use the account *)
+deposit my_account 500.0;;
+Printf.printf "Balance: %.2f, Last: %s\n" 
+  my_account.balance my_account.last_transaction;;
+(* Balance: 1500.00, Last: Deposited 500.00 *)
+
+let success = withdraw my_account 200.0;;
+Printf.printf "Withdrawal success: %b, Balance: %.2f\n" 
+  success my_account.balance;;
+(* Withdrawal success: true, Balance: 1300.00 *)
+```
+
+## Advanced Variable Concepts
+
+### Lazy Variables
+```ocaml
+(* Lazy evaluation - computed only when needed *)
+let expensive_computation = lazy (
+  Printf.printf "Computing expensive value...\n";
+  List.fold_left (+) 0 (List.init 1000000 (fun i -> i))
+);;
+
+(* Value not computed yet *)
+Printf.printf "Lazy variable created\n";;
+
+(* Force computation *)
+let result = Lazy.force expensive_computation;;
+Printf.printf "Result: %d\n" result;;
+
+(* Second access uses cached result *)
+let result2 = Lazy.force expensive_computation;;
+Printf.printf "Result2: %d\n" result2;;
+```
+
+### Weak References
+```ocaml
+(* Weak references don't prevent garbage collection *)
+let create_weak_ref value =
+  let weak_array = Weak.create 1 in
+  Weak.set weak_array 0 (Some value);
+  weak_array;;
+
+let test_weak_ref () =
+  let weak_ref = create_weak_ref "Hello" in
+  match Weak.get weak_ref 0 with
+  | Some value -> Printf.printf "Value still exists: %s\n" value
+  | None -> Printf.printf "Value was garbage collected\n";;
+```
+
+### Global Mutable State
+```ocaml
+(* Global mutable counter *)
+let global_counter = ref 0;;
+
+let next_id () =
+  global_counter := !global_counter + 1;
+  !global_counter;;
+
+let id1 = next_id ();;  (* 1 *)
+let id2 = next_id ();;  (* 2 *)
+let id3 = next_id ();;  (* 3 *)
+
+Printf.printf "Generated IDs: %d, %d, %d\n" id1 id2 id3;;
+```
+
+### Variable Lifetime and Closures
+```ocaml
+(* Closures capture variables from their environment *)
+let make_adder increment =
+  fun x -> x + increment;;  (* 'increment' is captured *)
+
+let add_five = make_adder 5;;
+let add_ten = make_adder 10;;
+
+Printf.printf "5 + 5 = %d\n" (add_five 5);;    (* 5 + 5 = 10 *)
+Printf.printf "5 + 10 = %d\n" (add_ten 5);;    (* 5 + 10 = 15 *)
+
+(* Capturing mutable references *)
+let make_stateful_adder initial =
+  let state = ref initial in
+  fun x -> 
+    state := !state + x;
+    !state;;
+
+let stateful_adder = make_stateful_adder 0;;
+Printf.printf "First call: %d\n" (stateful_adder 5);;   (* First call: 5 *)
+Printf.printf "Second call: %d\n" (stateful_adder 3);;  (* Second call: 8 *)
+Printf.printf "Third call: %d\n" (stateful_adder 2);;   (* Third call: 10 *)
+```
+
+## Key Principles and Best Practices
+
+### 1. **Prefer Immutable Bindings**
+```ocaml
+(* Good: Immutable, functional style *)
+let process_numbers numbers =
+  let doubled = List.map (fun x -> x * 2) numbers in
+  let filtered = List.filter (fun x -> x > 10) doubled in
+  List.fold_left (+) 0 filtered;;
+
+(* Avoid: Unnecessary mutability *)
+let process_numbers_mutable numbers =
+  let result = ref 0 in
+  List.iter (fun x ->
+    let doubled = x * 2 in
+    if doubled > 10 then
+      result := !result + doubled
+  ) numbers;
+  !result;;
+```
+
+### 2. **Use References for True Mutability**
+```ocaml
+(* When you need mutability, use references explicitly *)
+let counter = ref 0;;
+
+let increment_counter () =
+  counter := !counter + 1;
+  !counter;;
+
+let reset_counter () =
+  counter := 0;;
+```
+
+### 3. **Understand Scoping Rules**
+```ocaml
+(* Be aware of variable shadowing *)
+let x = 10;;
+
+let confusing_function () =
+  let x = 20 in  (* Shadows outer x *)
+  fun y -> x + y;;  (* Uses inner x (20) *)
+
+let adder = confusing_function ();;
+adder 5;;  (* Returns 25, not 15 *)
+```
+
+### 4. **Pattern Matching for Destructuring**
+```ocaml
+(* Use pattern matching for clean variable binding *)
+let process_point point =
+  match point with
+  | (0, 0) -> "Origin"
+  | (x, 0) -> Printf.sprintf "On X-axis at %d" x
+  | (0, y) -> Printf.sprintf "On Y-axis at %d" y
+  | (x, y) -> Printf.sprintf "Point at (%d, %d)" x y;;
+```

@@ -1,0 +1,717 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Functions
+
+## Table of Contents
+1. [Basic Function Declaration](#basic-function-declaration)
+2. [Function Syntax Variations](#function-syntax-variations)
+3. [Anonymous Functions (Lambdas)](#anonymous-functions-lambdas)
+4. [Recursive Functions](#recursive-functions)
+5. [Multiple Parameter Functions](#multiple-parameter-functions)
+6. [Type Annotations](#type-annotations)
+7. [Higher-Order Functions](#higher-order-functions)
+8. [Partial Application and Currying](#partial-application-and-currying)
+9. [Local Functions](#local-functions)
+10. [Pattern Matching in Functions](#pattern-matching-in-functions)
+11. [Function Composition](#function-composition)
+12. [Advanced Function Features](#advanced-function-features)
+
+## Basic Function Declaration
+
+### Simple Function Declaration
+```ocaml
+(* Basic function with one parameter *)
+let greet name = "Hello, " ^ name;;
+(* val greet : string -> string = <fun> *)
+
+(* Calling the function *)
+greet "Alice";;
+(* - : string = "Hello, Alice" *)
+
+(* Function with multiple parameters *)
+let add x y = x + y;;
+(* val add : int -> int -> int = <fun> *)
+
+add 5 3;;
+(* - : int = 8 *)
+
+(* Function with no parameters (takes unit) *)
+let get_current_time () = Unix.time ();;
+(* val get_current_time : unit -> float = <fun> *)
+
+get_current_time ();;
+```
+
+### Function Return Values
+```ocaml
+(* Functions always return a value (last expression) *)
+let calculate_area radius =
+  let pi = 3.14159 in
+  pi *. radius *. radius;;
+(* val calculate_area : float -> float = <fun> *)
+
+(* Function returning unit (for side effects) *)
+let print_greeting name =
+  Printf.printf "Hello, %s!\n" name;;
+(* val print_greeting : string -> unit = <fun> *)
+
+(* Function returning tuple *)
+let get_name_and_age person =
+  ("John Doe", 30);;
+(* val get_name_and_age : 'a -> string * int = <fun> *)
+
+(* Function returning boolean *)
+let is_even number =
+  number mod 2 = 0;;
+(* val is_even : int -> bool = <fun> *)
+```
+
+## Function Syntax Variations
+
+### Standard Syntax
+```ocaml
+let function_name parameter1 parameter2 = expression;;
+```
+
+### Explicit Function Syntax
+```ocaml
+(* Using 'fun' keyword *)
+let add = fun x y -> x + y;;
+(* val add : int -> int -> int = <fun> *)
+
+(* Equivalent to: *)
+let add x y = x + y;;
+
+(* Single parameter with fun *)
+let double = fun x -> x * 2;;
+(* val double : int -> int = <fun> *)
+```
+
+### Function with Body Block
+```ocaml
+(* Multi-line function body *)
+let complex_calculation x y =
+  let intermediate1 = x * x in
+  let intermediate2 = y * y in
+  let sum = intermediate1 + intermediate2 in
+  sqrt (float_of_int sum);;
+(* val complex_calculation : int -> int -> float = <fun> *)
+```
+
+## Anonymous Functions (Lambdas)
+
+### Basic Anonymous Functions
+```ocaml
+(* Anonymous function (lambda) *)
+fun x -> x + 1;;
+(* - : int -> int = <fun> *)
+
+(* Using anonymous function directly *)
+(fun x -> x * 2) 5;;
+(* - : int = 10 *)
+
+(* Anonymous function with multiple parameters *)
+fun x y -> x + y;;
+(* - : int -> int -> int = <fun> *)
+
+(* Assigning anonymous function to variable *)
+let multiply = fun x y -> x * y;;
+(* val multiply : int -> int -> int = <fun> *)
+```
+
+### Anonymous Functions in Higher-Order Functions
+```ocaml
+(* Using with List.map *)
+List.map (fun x -> x * x) [1; 2; 3; 4];;
+(* - : int list = [1; 4; 9; 16] *)
+
+(* Using with List.filter *)
+List.filter (fun x -> x > 5) [1; 3; 7; 2; 9; 4];;
+(* - : int list = [7; 9] *)
+
+(* Using with List.fold_left *)
+List.fold_left (fun acc x -> acc + x) 0 [1; 2; 3; 4];;
+(* - : int = 10 *)
+
+(* Complex anonymous function *)
+List.map (fun (name, age) -> 
+  Printf.sprintf "%s is %d years old" name age
+) [("Alice", 25); ("Bob", 30); ("Carol", 28)];;
+```
+
+## Recursive Functions
+
+### Simple Recursive Functions
+```ocaml
+(* Recursive function requires 'rec' keyword *)
+let rec factorial n =
+  if n <= 1 then 1
+  else n * factorial (n - 1);;
+(* val factorial : int -> int = <fun> *)
+
+factorial 5;;
+(* - : int = 120 *)
+
+(* Recursive function with pattern matching *)
+let rec sum_list lst =
+  match lst with
+  | [] -> 0
+  | head :: tail -> head + sum_list tail;;
+(* val sum_list : int list -> int = <fun> *)
+
+sum_list [1; 2; 3; 4; 5];;
+(* - : int = 15 *)
+```
+
+### Tail-Recursive Functions
+```ocaml
+(* Non-tail-recursive (can cause stack overflow) *)
+let rec factorial_simple n =
+  if n <= 1 then 1
+  else n * factorial_simple (n - 1);;
+
+(* Tail-recursive version (more efficient) *)
+let factorial_tail n =
+  let rec aux acc n =
+    if n <= 1 then acc
+    else aux (acc * n) (n - 1)
+  in
+  aux 1 n;;
+(* val factorial_tail : int -> int = <fun> *)
+
+(* Tail-recursive list reversal *)
+let reverse_list lst =
+  let rec aux acc = function
+    | [] -> acc
+    | head :: tail -> aux (head :: acc) tail
+  in
+  aux [] lst;;
+(* val reverse_list : 'a list -> 'a list = <fun> *)
+```
+
+### Mutually Recursive Functions
+```ocaml
+(* Mutually recursive functions use 'and' keyword *)
+let rec is_even n =
+  if n = 0 then true
+  else is_odd (n - 1)
+and is_odd n =
+  if n = 0 then false
+  else is_even (n - 1);;
+(* val is_even : int -> bool = <fun> *)
+(* val is_odd : int -> bool = <fun> *)
+
+is_even 4;;  (* - : bool = true *)
+is_odd 4;;   (* - : bool = false *)
+```
+
+## Multiple Parameter Functions
+
+### Curried Functions (Default)
+```ocaml
+(* Standard curried function *)
+let add x y = x + y;;
+(* val add : int -> int -> int = <fun> *)
+
+(* Can be partially applied *)
+let add_five = add 5;;
+(* val add_five : int -> int = <fun> *)
+
+add_five 3;;
+(* - : int = 8 *)
+
+(* Three parameter function *)
+let add_three x y z = x + y + z;;
+(* val add_three : int -> int -> int -> int = <fun> *)
+
+(* Partial applications *)
+let add_to_10 = add_three 10;;
+let add_to_10_and_5 = add_to_10 5;;
+add_to_10_and_5 3;;  (* 10 + 5 + 3 = 18 *)
+```
+
+### Uncurried Functions (Tuple Parameters)
+```ocaml
+(* Function taking tuple parameter *)
+let add_tuple (x, y) = x + y;;
+(* val add_tuple : int * int -> int = <fun> *)
+
+add_tuple (5, 3);;
+(* - : int = 8 *)
+
+(* Cannot be partially applied *)
+(* let add_five = add_tuple 5;;  (* Error! *) *)
+
+(* Three parameter tuple function *)
+let add_three_tuple (x, y, z) = x + y + z;;
+(* val add_three_tuple : int * int * int -> int = <fun> *)
+
+add_three_tuple (1, 2, 3);;
+(* - : int = 6 *)
+```
+
+### Mixed Parameter Styles
+```ocaml
+(* Function with both curried and tuple parameters *)
+let distance_from_point point (x, y) =
+  let (px, py) = point in
+  sqrt (float_of_int ((x - px) * (x - px) + (y - py) * (y - py)));;
+(* val distance_from_point : int * int -> int * int -> float = <fun> *)
+
+let origin = (0, 0);;
+distance_from_point origin (3, 4);;
+(* - : float = 5. *)
+```
+
+## Type Annotations
+
+### Basic Type Annotations
+```ocaml
+(* Function with explicit type annotations *)
+let add (x : int) (y : int) : int = x + y;;
+(* val add : int -> int -> int = <fun> *)
+
+(* Function with return type annotation *)
+let to_string (n : int) : string = string_of_int n;;
+(* val to_string : int -> string = <fun> *)
+
+(* Function with complex type annotation *)
+let process_list (f : int -> int) (lst : int list) : int list =
+  List.map f lst;;
+(* val process_list : (int -> int) -> int list -> int list = <fun> *)
+```
+
+### Polymorphic Type Annotations
+```ocaml
+(* Polymorphic function without annotation (inferred) *)
+let identity x = x;;
+(* val identity : 'a -> 'a = <fun> *)
+
+(* Explicit polymorphic type annotation *)
+let identity (x : 'a) : 'a = x;;
+
+(* Function working with any list type *)
+let get_length (lst : 'a list) : int = List.length lst;;
+(* val get_length : 'a list -> int = <fun> *)
+
+(* Generic comparison function *)
+let compare_and_pick (compare : 'a -> 'a -> bool) (x : 'a) (y : 'a) : 'a =
+  if compare x y then x else y;;
+(* val compare_and_pick : ('a -> 'a -> bool) -> 'a -> 'a -> 'a = <fun> *)
+```
+
+### Constraining Polymorphic Types
+```ocaml
+(* Function that works only with comparable types *)
+let max_of_two x y = if x > y then x else y;;
+(* val max_of_two : 'a -> 'a -> 'a = <fun> *)
+
+(* This works with any type that supports comparison *)
+max_of_two 5 3;;        (* - : int = 5 *)
+max_of_two 3.14 2.71;;  (* - : float = 3.14 *)
+max_of_two "hello" "world";;  (* - : string = "world" *)
+```
+
+## Higher-Order Functions
+
+### Functions Taking Functions as Parameters
+```ocaml
+(* Function that takes another function *)
+let apply_twice f x = f (f x);;
+(* val apply_twice : ('a -> 'a) -> 'a -> 'a = <fun> *)
+
+let increment x = x + 1;;
+apply_twice increment 5;;
+(* - : int = 7 *)
+
+(* Function taking predicate function *)
+let find_first predicate lst =
+  let rec aux = function
+    | [] -> None
+    | head :: tail -> 
+        if predicate head then Some head
+        else aux tail
+  in
+  aux lst;;
+(* val find_first : ('a -> bool) -> 'a list -> 'a option = <fun> *)
+
+find_first (fun x -> x > 5) [1; 3; 7; 2; 9];;
+(* - : int option = Some 7 *)
+```
+
+### Functions Returning Functions
+```ocaml
+(* Function returning another function *)
+let make_adder n = fun x -> x + n;;
+(* val make_adder : int -> int -> int = <fun> *)
+
+let add_ten = make_adder 10;;
+add_ten 5;;
+(* - : int = 15 *)
+
+(* Function returning specialized function *)
+let make_multiplier factor =
+  fun x -> x * factor;;
+(* val make_multiplier : int -> int -> int = <fun> *)
+
+let double = make_multiplier 2;;
+let triple = make_multiplier 3;;
+
+List.map double [1; 2; 3; 4];;   (* [2; 4; 6; 8] *)
+List.map triple [1; 2; 3; 4];;   (* [3; 6; 9; 12] *)
+```
+
+### Function Combinators
+```ocaml
+(* Compose two functions *)
+let compose f g x = f (g x);;
+(* val compose : ('a -> 'b) -> ('c -> 'a) -> 'c -> 'b = <fun> *)
+
+let add_one x = x + 1;;
+let multiply_by_two x = x * 2;;
+
+let add_one_then_double = compose multiply_by_two add_one;;
+add_one_then_double 5;;  (* (5 + 1) * 2 = 12 *)
+
+(* Pipeline function *)
+let (|>) x f = f x;;
+(* val ( |> ) : 'a -> ('a -> 'b) -> 'b = <fun> *)
+
+5 |> add_one |> multiply_by_two;;  (* 12 *)
+```
+
+## Partial Application and Currying
+
+### Understanding Currying
+```ocaml
+(* All multi-parameter functions are curried by default *)
+let add x y = x + y;;
+(* This is equivalent to: *)
+let add = fun x -> fun y -> x + y;;
+
+(* Partial application creates new functions *)
+let add_5 = add 5;;         (* 'y -> 5 + y *)
+let add_10 = add 10;;       (* 'y -> 10 + y *)
+
+List.map add_5 [1; 2; 3];;   (* [6; 7; 8] *)
+List.map add_10 [1; 2; 3];;  (* [11; 12; 13] *)
+```
+
+### Practical Partial Application Examples
+```ocaml
+(* String formatting function *)
+let format_message prefix suffix message =
+  prefix ^ message ^ suffix;;
+
+let error_msg = format_message "[ERROR] " " - Please fix this";;
+let info_msg = format_message "[INFO] " " - FYI";;
+
+error_msg "File not found";;  (* "[ERROR] File not found - Please fix this" *)
+info_msg "Process started";;  (* "[INFO] Process started - FYI" *)
+
+(* List processing with partial application *)
+let filter_and_map predicate mapper lst =
+  List.filter predicate lst |> List.map mapper;;
+
+let process_positive_numbers = filter_and_map (fun x -> x > 0) (fun x -> x * 2);;
+
+process_positive_numbers [-2; -1; 0; 1; 2; 3];;  (* [2; 4; 6] *)
+```
+
+### Currying vs Uncurrying
+```ocaml
+(* Convert uncurried function to curried *)
+let uncurried_add (x, y) = x + y;;
+let curry f x y = f (x, y);;
+let curried_add = curry uncurried_add;;
+
+curried_add 5 3;;  (* 8 *)
+
+(* Convert curried function to uncurried *)
+let curried_multiply x y = x * y;;
+let uncurry f (x, y) = f x y;;
+let uncurried_multiply = uncurry curried_multiply;;
+
+uncurried_multiply (4, 6);;  (* 24 *)
+```
+
+## Local Functions
+
+### Functions Defined Inside Other Functions
+```ocaml
+let process_data data =
+  (* Local helper function *)
+  let normalize x = x / 100 in
+  let validate x = x >= 0 && x <= 1 in
+  
+  (* Process the data using local functions *)
+  let normalized = List.map normalize data in
+  List.filter validate normalized;;
+
+process_data [50; 150; -10; 80; 120];;  (* [0; 1] *)
+```
+
+### Nested Local Functions
+```ocaml
+let complex_calculation x =
+  let helper1 y =
+    let inner_helper z = z * z in
+    inner_helper (y + 1)
+  in
+  let helper2 y = y * 2 in
+  helper1 x + helper2 x;;
+
+complex_calculation 3;;  (* (3+1)^2 + (3*2) = 16 + 6 = 22 *)
+```
+
+### Local Functions with Closures
+```ocaml
+let make_counter initial_value =
+  let count = ref initial_value in
+  
+  (* Local function that captures 'count' *)
+  let increment () =
+    count := !count + 1;
+    !count
+  in
+  
+  (* Local function that captures 'count' *)
+  let decrement () =
+    count := !count - 1;
+    !count
+  in
+  
+  (* Return both functions *)
+  (increment, decrement);;
+
+let (inc, dec) = make_counter 10;;
+inc ();;  (* 11 *)
+inc ();;  (* 12 *)
+dec ();;  (* 11 *)
+```
+
+## Pattern Matching in Functions
+
+### Function Parameters with Pattern Matching
+```ocaml
+(* Pattern matching in parameter *)
+let describe_list = function
+  | [] -> "empty list"
+  | [x] -> "single element: " ^ string_of_int x
+  | x :: xs -> "starts with " ^ string_of_int x;;
+
+describe_list [];;         (* "empty list" *)
+describe_list [5];;        (* "single element: 5" *)
+describe_list [1; 2; 3];;  (* "starts with 1" *)
+
+(* Multiple parameters with pattern matching *)
+let add_points (x1, y1) (x2, y2) = (x1 + x2, y1 + y2);;
+add_points (1, 2) (3, 4);;  (* (4, 6) *)
+
+(* Pattern matching with guards *)
+let classify_number = function
+  | n when n < 0 -> "negative"
+  | 0 -> "zero"
+  | n when n < 10 -> "small positive"
+  | _ -> "large positive";;
+```
+
+### Complex Pattern Matching
+```ocaml
+(* Option type pattern matching *)
+let safe_divide x y =
+  match y with
+  | 0 -> None
+  | _ -> Some (x / y);;
+
+let handle_division_result result =
+  match result with
+  | None -> "Division by zero"
+  | Some value -> "Result: " ^ string_of_int value;;
+
+(* Record pattern matching *)
+type person = { name: string; age: int; city: string };;
+
+let describe_person { name; age; city } =
+  Printf.sprintf "%s is %d years old and lives in %s" name age city;;
+
+let describe_person_alt = function
+  | { name; age; _ } when age < 18 -> name ^ " is a minor"
+  | { name; age; _ } -> name ^ " is an adult";;
+```
+
+## Function Composition
+
+### Basic Composition
+```ocaml
+(* Function composition operator *)
+let (<<) f g x = f (g x);;  (* Right-to-left composition *)
+let (>>) f g x = g (f x);;  (* Left-to-right composition *)
+
+let add_one x = x + 1;;
+let multiply_by_two x = x * 2;;
+
+(* Right-to-left: first multiply_by_two, then add_one *)
+let double_then_add = add_one << multiply_by_two;;
+double_then_add 5;;  (* (5 * 2) + 1 = 11 *)
+
+(* Left-to-right: first add_one, then multiply_by_two *)
+let add_then_double = add_one >> multiply_by_two;;
+add_then_double 5;;  (* (5 + 1) * 2 = 12 *)
+```
+
+### Pipeline Composition
+```ocaml
+(* Pipeline operator *)
+let (|>) x f = f x;;
+
+(* Chain multiple function applications *)
+let process_number n =
+  n
+  |> (fun x -> x + 1)      (* Add 1 *)
+  |> (fun x -> x * 2)      (* Multiply by 2 *)
+  |> (fun x -> x - 3);;    (* Subtract 3 *)
+
+process_number 5;;  (* ((5 + 1) * 2) - 3 = 9 *)
+
+(* Pipeline with named functions *)
+let double x = x * 2;;
+let square x = x * x;;
+let to_string x = string_of_int x;;
+
+let process_and_format n =
+  n |> double |> square |> to_string;;
+
+process_and_format 3;;  (* "36" *)
+```
+
+## Advanced Function Features
+
+### Labeled Parameters
+```ocaml
+(* Function with labeled parameters *)
+let create_person ~name ~age ~city =
+  { name = name; age = age; city = city };;
+
+(* Can call with parameters in any order *)
+let alice = create_person ~age:25 ~name:"Alice" ~city:"New York";;
+let bob = create_person ~name:"Bob" ~city:"Boston" ~age:30;;
+```
+
+### Optional Parameters
+```ocaml
+(* Function with optional parameters *)
+let greet ?(greeting="Hello") name =
+  greeting ^ ", " ^ name ^ "!";;
+
+greet "Alice";;                    (* "Hello, Alice!" *)
+greet ~greeting:"Hi" "Bob";;       (* "Hi, Bob!" *)
+
+(* Multiple optional parameters *)
+let format_message ?(prefix="") ?(suffix="") message =
+  prefix ^ message ^ suffix;;
+
+format_message "test";;                           (* "test" *)
+format_message ~prefix:"[INFO] " "test";;         (* "[INFO] test" *)
+format_message ~prefix:"[ERROR] " ~suffix:" !!!" "test";;  (* "[ERROR] test !!!" *)
+```
+
+### Polymorphic Variants in Functions
+```ocaml
+(* Function using polymorphic variants *)
+let string_of_color = function
+  | `Red -> "red"
+  | `Green -> "green"
+  | `Blue -> "blue"
+  | `RGB (r, g, b) -> Printf.sprintf "rgb(%d,%d,%d)" r g b;;
+
+string_of_color `Red;;              (* "red" *)
+string_of_color (`RGB (255, 0, 0));; (* "rgb(255,0,0)" *)
+```
+
+### Functions with Exception Handling
+```ocaml
+(* Function that may raise exceptions *)
+let safe_head lst =
+  try Some (List.hd lst)
+  with Failure _ -> None;;
+
+safe_head [1; 2; 3];;  (* Some 1 *)
+safe_head [];;         (* None *)
+
+(* Function with custom exception *)
+exception InvalidInput of string;;
+
+let validate_age age =
+  if age < 0 then raise (InvalidInput "Age cannot be negative")
+  else if age > 150 then raise (InvalidInput "Age seems unrealistic")
+  else age;;
+
+try validate_age 25 with
+| InvalidInput msg -> Printf.printf "Error: %s\n" msg; -1;;
+```
+
+## Best Practices and Common Patterns
+
+### 1. **Prefer Pure Functions**
+```ocaml
+(* Good: Pure function *)
+let calculate_tax income tax_rate = income *. tax_rate;;
+
+(* Avoid: Function with side effects (when possible) *)
+let global_total = ref 0.0;;
+let add_to_total amount = 
+  global_total := !global_total +. amount;;
+```
+
+### 2. **Use Descriptive Names**
+```ocaml
+(* Good: Descriptive names *)
+let calculate_compound_interest principal rate time =
+  principal *. ((1.0 +. rate) ** time);;
+
+(* Poor: Non-descriptive names *)
+let calc p r t = p *. ((1.0 +. r) ** t);;
+```
+
+### 3. **Keep Functions Small and Focused**
+```ocaml
+(* Good: Small, focused functions *)
+let is_valid_email email = String.contains email '@';;
+let format_user_display name email = 
+  if is_valid_email email then name ^ " (" ^ email ^ ")"
+  else name ^ " (invalid email)";;
+
+(* Better: Break down complex logic *)
+let validate_and_format_user name email =
+  let is_valid = is_valid_email email in
+  let formatted_email = if is_valid then " (" ^ email ^ ")" else " (invalid email)" in
+  name ^ formatted_email;;
+```
+
+### 4. **Use Type Annotations for Complex Functions**
+```ocaml
+(* Complex function with clear type annotation *)
+let process_user_data 
+  (validator : string -> bool) 
+  (transformer : string -> string) 
+  (users : string list) : string list =
+  users
+  |> List.filter validator
+  |> List.map transformer;;
+```
+
+### 5. **Leverage Pattern Matching**
+```ocaml
+(* Good: Clear pattern matching *)
+let handle_result = function
+  | Ok value -> "Success: " ^ value
+  | Error err -> "Error: " ^ err;;
+
+(* Instead of nested if-then-else *)
+```
+
+Functions in OCaml are first-class citizens and form the core of functional programming. Understanding these patterns and features will help you write more expressive and maintainable OCaml code.
