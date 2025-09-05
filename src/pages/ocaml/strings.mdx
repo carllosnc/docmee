@@ -1,0 +1,176 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← Strings</a> <br /> <br />
+
+# Strings
+
+## Overview
+In OCaml 5.2.0 (latest as of September 2025), strings are immutable sequences of bytes, typically representing UTF-8 encoded Unicode text. This document provides a comprehensive guide to OCaml strings, focusing on practical code examples with concise explanations. All examples are compatible with OCaml 5.2.0 and use the standard `String` module unless specified.
+
+## String Basics
+- **Type**: `string` (immutable).
+- **Syntax**: Enclosed in double quotes, e.g., `"Hello"`.
+- **Unicode**: Strings are byte sequences, so Unicode handling may require external libraries like `Uutf` for proper character-level operations.
+- **Immutability**: Operations create new strings rather than modifying existing ones.
+
+### Example: Creating a String
+```ocaml
+let s = "Hello, OCaml!" ;; (* Defines a string *)
+```
+
+## Core String Operations
+Below are key string operations with code examples and brief descriptions.
+
+### 1. **Length**
+Returns the number of bytes in a string.
+```ocaml
+let len = String.length "OCaml" ;; (* Returns 5 *)
+```
+
+### 2. **Concatenation**
+Joins two strings using the `^` operator.
+```ocaml
+let combined = "Hello, " ^ "World!" ;; (* Returns "Hello, World!" *)
+```
+
+### 3. **Accessing Characters**
+Access a character at index `n` (zero-based) using `.[n]`.
+```ocaml
+let s = "OCaml" ;;
+let c = s.[1] ;; (* Returns 'C' *)
+```
+
+### 4. **Substrings**
+Extracts a substring with `String.sub` (start index, length).
+```ocaml
+let substr = String.sub "OCaml" 1 3 ;; (* Returns "Cam" *)
+```
+
+### 5. **Comparison**
+Compares strings using standard operators (`=`, `<`, `>`, etc.).
+```ocaml
+let eq = "abc" = "abc" ;; (* Returns true *)
+let lt = "abc" < "def" ;; (* Returns true *)
+```
+
+### 6. **Iteration**
+Iterates over characters using `String.iter`.
+```ocaml
+String.iter (fun c -> print_char c; print_char ' ') "OCaml" ;; (* Prints: O C a m l *)
+```
+
+### 7. **Trimming**
+Removes leading and trailing whitespace with `String.trim`.
+```ocaml
+let trimmed = String.trim "  Hello  " ;; (* Returns "Hello" *)
+```
+
+### 8. **Case Conversion**
+Converts strings to uppercase or lowercase (ASCII only).
+```ocaml
+let upper = String.uppercase_ascii "ocaml" ;; (* Returns "OCAML" *)
+let lower = String.lowercase_ascii "OCAML" ;; (* Returns "ocaml" *)
+```
+
+### 9. **Splitting**
+Splits a string on a delimiter using `String.split_on_char`.
+```ocaml
+let parts = String.split_on_char ',' "a,b,c" ;; (* Returns ["a"; "b"; "c"] *)
+```
+
+### 10. **Searching**
+Checks if a character exists with `String.contains` or finds a substring with `String.index_opt`.
+```ocaml
+let has_a = String.contains "OCaml" 'a' ;; (* Returns true *)
+let pos = String.index_opt "OCaml" 'm' ;; (* Returns Some 3 *)
+```
+
+### 11. **Replacing**
+Replaces all occurrences of a substring using `String.replace_first` (new in OCaml 5.2.0).
+```ocaml
+let replaced = String.replace_first "cat" "dog" "The cat runs" ;; (* Returns "The dog runs" *)
+```
+
+## Mutable Strings with `Bytes`
+For mutable sequences, use the `Bytes` module, which can be converted to/from strings.
+```ocaml
+let b = Bytes.of_string "Hello" ;;
+Bytes.set b 0 'h' ;;
+let new_str = Bytes.to_string b ;; (* Returns "hello" *)
+```
+
+## Building Strings Efficiently
+For large-scale string construction, use `Buffer.t` to avoid the performance cost of repeated concatenation.
+```ocaml
+let buf = Buffer.create 16 ;;
+Buffer.add_string buf "Hello, ";
+Buffer.add_string buf "World!";
+let result = Buffer.contents buf ;; (* Returns "Hello, World!" *)
+```
+
+## Unicode Considerations
+OCaml strings are byte-based, so Unicode character counts differ from byte counts.
+```ocaml
+let s = "π" ;; (* UTF-8 encoded, 2 bytes *)
+let len = String.length s ;; (* Returns 2, not 1 *)
+```
+For proper Unicode support, use libraries like `Uutf` or `Camomile`.
+
+## Advanced String Functions
+### 1. **Mapping**
+Applies a function to each character with `String.map`.
+```ocaml
+let mapped = String.map (fun c -> Char.uppercase_ascii c) "ocaml" ;; (* Returns "OCAML" *)
+```
+
+### 2. **Folding**
+Reduces a string to a single value with `String.fold_left`.
+```ocaml
+let sum = String.fold_left (fun acc c -> acc + Char.code c) 0 "abc" ;; (* Returns 294 *)
+```
+
+### 3. **Blitting**
+Copies part of a string to a `Bytes.t` with `String.blit`.
+```ocaml
+let b = Bytes.create 5 ;;
+String.blit "OCaml" 0 b 0 5 ;;
+let result = Bytes.to_string b ;; (* Returns "OCaml" *)
+```
+
+### 4. **Splitting with Delimiters**
+Splits on multiple delimiters using `String.split_on_chars` (new in OCaml 5.2.0).
+```ocaml
+let parts = String.split_on_chars [';'; ','] "a;b,c" ;; (* Returns ["a"; "b"; "c"] *)
+```
+
+## Example Program
+A sample program demonstrating various string operations:
+```ocaml
+let process_string s =
+  let len = String.length s in
+  let upper = String.uppercase_ascii s in
+  let trimmed = String.trim s in
+  let parts = String.split_on_char ' ' s in
+  Printf.printf "Original: %s\nLength: %d\nUppercase: %s\nTrimmed: %s\nWords: %s\n"
+    s len upper trimmed (String.concat ", " parts) ;;
+
+process_string "  Hello OCaml World  " ;;
+(* Output:
+   Original:   Hello OCaml World  
+   Length: 20
+   Uppercase:   HELLO OCAML WORLD  
+   Trimmed: Hello OCaml World
+   Words: Hello, OCaml, World
+*)
+```
+
+## Best Practices
+- **Use `String` Module**: Prefer standard functions like `String.trim`, `String.split_on_char`, etc.
+- **Handle Unicode Carefully**: Use external libraries for robust Unicode support.
+- **Optimize Concatenation**: Use `Buffer.t` for building large strings.
+- **Leverage New Features**: Use `String.replace_first` and `String.split_on_chars` for modern string manipulation (OCaml 5.2.0).
+- **Type Safety**: Ensure string operations match expected types to avoid runtime errors.
+
+## Conclusion
+OCaml 5.2.0 provides a robust `String` module for text manipulation, with new functions like `String.replace_first` and `String.split_on_chars` enhancing flexibility. Use `Bytes` for mutability and `Buffer` for efficient construction. For Unicode, consider external libraries. The examples above cover common use cases for practical string handling.
