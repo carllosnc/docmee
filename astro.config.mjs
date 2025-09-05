@@ -14,7 +14,7 @@ export default defineConfig({
   },
 
   integrations: [mdx({
-    shikiConfig: { theme: "github-dark" }
+    shikiConfig: { theme: "material-theme-palenight" }
   })],
 
   adapter: vercel()
