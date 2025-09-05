@@ -1,0 +1,168 @@
+# OCaml Data Structures Documentation
+
+## Overview
+In OCaml 5.2.0 (latest as of September 2025), data structures are fundamental for organizing and manipulating data efficiently. OCaml provides built-in data structures like lists, arrays, strings, and tuples, as well as modules for advanced structures like sets, maps, and hash tables. This document focuses on practical code examples with concise explanations, covering key data structures in OCaml's standard library, compatible with OCaml 5.2.0.
+
+## Core Data Structures
+Below are the primary data structures in OCaml, with examples and brief descriptions.
+
+### 1. **Lists**
+- **Description**: Immutable, singly-linked lists for sequential data. Ideal for recursive processing.
+- **Type**: `'a list`.
+- **Syntax**: `[1; 2; 3]` or `1 :: [2; 3]`.
+
+#### Example: Creating and Manipulating Lists
+```ocaml
+let nums = [1; 2; 3] ;; (* Create a list *)
+let head = List.hd nums ;; (* Returns 1 *)
+let tail = List.tl nums ;; (* Returns [2; 3] *)
+let doubled = List.map (fun x -> x * 2) nums ;; (* Returns [2; 4; 6] *)
+let sum = List.fold_left (fun acc x -> acc + x) 0 nums ;; (* Returns 6 *)
+```
+
+### 2. **Arrays**
+- **Description**: Mutable, fixed-size sequences with constant-time access.
+- **Type**: `'a array`.
+- **Syntax**: `[|1; 2; 3|]`.
+
+#### Example: Array Operations
+```ocaml
+let arr = [|1; 2; 3|] ;; (* Create an array *)
+let first = arr.(0) ;; (* Returns 1 *)
+arr.(1) <- 5 ;; (* Updates index 1 to 5; arr is now [|1; 5; 3|] *)
+let sliced = Array.sub arr 1 2 ;; (* Returns [|5; 3|] *)
+let total = Array.fold_left (fun acc x -> acc + x) 0 arr ;; (* Returns 9 *)
+```
+
+### 3. **Strings**
+- **Description**: Immutable sequences of bytes (UTF-8 encoded text). See `String` module for details.
+- **Type**: `string`.
+
+#### Example: String Manipulation
+```ocaml
+let s = "Hello" ;; (* Create a string *)
+let len = String.length s ;; (* Returns 5 *)
+let upper = String.uppercase_ascii s ;; (* Returns "HELLO" *)
+let parts = String.split_on_char 'l' s ;; (* Returns ["He"; ""; "o"] *)
+```
+
+### 4. **Tuples**
+- **Description**: Immutable, fixed-size collections of heterogeneous elements.
+- **Type**: `'a * 'b * ...`.
+
+#### Example: Tuple Operations
+```ocaml
+let t = (1, "two", 3.0) ;; (* Create a tuple *)
+let (a, b, c) = t ;; (* Pattern match: a=1, b="two", c=3.0 *)
+let first = fst (1, "one") ;; (* Returns 1 *)
+```
+
+### 5. **Records**
+- **Description**: Immutable (or mutable with `mutable`) labeled collections of values.
+- **Type**: User-defined.
+
+#### Example: Defining and Using Records
+```ocaml
+type point = { x : int; y : int } ;; (* Define a record type *)
+let p = { x = 3; y = 4 } ;; (* Create a record *)
+let dist = p.x * p.x + p.y * p.y ;; (* Returns 25 *)
+```
+
+### 6. **Option**
+- **Description**: Represents optional values (`Some v` or `None`) to handle absence of data.
+- **Type**: `'a option`.
+
+#### Example: Using Options
+```ocaml
+let maybe_num = Some 42 ;; (* Create an option *)
+let none_val = None ;; (* No value *)
+let value = Option.value maybe_num ~default:0 ;; (* Returns 42 *)
+let incremented = Option.map (fun x -> x + 1) maybe_num ;; (* Returns Some 43 *)
+```
+
+### 7. **Sets**
+- **Description**: Immutable collections of unique elements, provided by the `Set` module.
+- **Type**: `'a Set.t`.
+
+#### Example: Set Operations
+```ocaml
+module IntSet = Set.Make(Int) ;; (* Create a set module for integers *)
+let s = IntSet.of_list [1; 2; 3] ;; (* Create a set *)
+let added = IntSet.add 4 s ;; (* Adds 4 *)
+let union = IntSet.union s (IntSet.of_list [3; 4; 5]) ;; (* Returns {1, 2, 3, 4, 5} *)
+let has_2 = IntSet.mem 2 s ;; (* Returns true *)
+```
+
+### 8. **Maps**
+- **Description**: Immutable key-value mappings, provided by the `Map` module.
+- **Type**: `'a Map.t`.
+
+#### Example: Map Operations
+```ocaml
+module StrMap = Map.Make(String) ;; (* Create a map module for strings *)
+let m = StrMap.of_list [("a", 1); ("b", 2)] ;; (* Create a map *)
+let updated = StrMap.add "c" 3 m ;; (* Adds key "c" with value 3 *)
+let value = StrMap.find_opt "a" m ;; (* Returns Some 1 *)
+let keys = StrMap.bindings m ;; (* Returns [("a", 1); ("b", 2)] *)
+```
+
+### 9. **Hash Tables**
+- **Description**: Mutable key-value mappings, provided by the `Hashtbl` module.
+- **Type**: `('a, 'b) Hashtbl.t`.
+
+#### Example: Hash Table Operations
+```ocaml
+let ht = Hashtbl.create 10 ;; (* Create a hash table *)
+let () = Hashtbl.add ht "x" 10 ;; (* Add key "x" with value 10 *)
+let value = Hashtbl.find_opt ht "x" ;; (* Returns Some 10 *)
+let () = Hashtbl.replace ht "x" 20 ;; (* Updates "x" to 20 *)
+let has_key = Hashtbl.mem ht "x" ;; (* Returns true *)
+```
+
+## Custom Data Structures
+OCaml supports algebraic data types (ADTs) for custom structures like trees or queues.
+
+### Example: Binary Tree
+```ocaml
+type 'a tree = Leaf | Node of 'a * 'a tree * 'a tree ;; (* Define a binary tree *)
+let t = Node (1, Node (2, Leaf, Leaf), Node (3, Leaf, Leaf)) ;; (* Create a tree *)
+let rec count_nodes = function
+  | Leaf -> 0
+  | Node (_, left, right) -> 1 + count_nodes left + count_nodes right ;; (* Count nodes *)
+let nodes = count_nodes t ;; (* Returns 3 *)
+```
+
+## Example Program
+A program combining multiple data structures:
+```ocaml
+type person = { name : string; age : int } ;;
+module NameMap = Map.Make(String) ;;
+
+let people = [
+  { name = "Alice"; age = 30 };
+  { name = "Bob"; age = 25 }
+] ;;
+let name_map = NameMap.of_list [("Alice", 30); ("Bob", 25)] ;;
+let ages = List.map (fun p -> p.age) people ;; (* Returns [30; 25] *)
+let bob_age = NameMap.find_opt "Bob" name_map ;; (* Returns Some 25 *)
+let total_age = List.fold_left (fun acc p -> acc + p.age) 0 people ;; (* Returns 55 *)
+
+let () = Printf.printf "Total age: %d\nBob's age: %s\n"
+  total_age
+  (match bob_age with Some a -> string_of_int a | None -> "Not found") ;;
+(* Output:
+   Total age: 55
+   Bob's age: 25
+*)
+```
+
+## Best Practices
+- **Use Immutable Structures**: Prefer lists, sets, and maps for immutability and functional programming.
+- **Leverage Pattern Matching**: Use pattern matching for lists, options, and custom ADTs.
+- **Optimize with Arrays/Hash Tables**: Use arrays or hash tables for performance-critical mutable operations.
+- **Type Safety**: Define precise types for records and ADTs to catch errors at compile time.
+- **Module Functors**: Use `Set.Make` and `Map.Make` for type-safe sets and maps.
+- **Avoid Excessive List Concatenation**: Use `::` or `List.append` judiciously due to O(n) complexity.
+
+## Conclusion
+OCaml 5.2.0 offers a rich set of data structures, from immutable lists and tuples to mutable arrays and hash tables. The `Set`, `Map`, and `Hashtbl` modules provide flexible collections, while custom ADTs enable tailored solutions. The examples above demonstrate practical usage for common tasks, emphasizing OCaml’s functional and type-safe approach.
