@@ -1,0 +1,118 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Pipe Operator
+
+## Pipe Operator Basics
+- **Purpose**: The pipe operator (`|>`) applies a value to a function, making code more readable by expressing operations in a left-to-right data flow.
+- **Syntax**: `x |> f` is equivalent to `f x`, where `x` is the input to function `f`.
+- **Type**: `'a -> ('a -> 'b) -> 'b`, meaning it takes a value and a function, returning the function’s result.
+- **Associativity**: Left-associative, allowing chaining (e.g., `x |> f |> g`).
+
+### Example: Basic Pipe Usage
+```ocaml
+let double x = x * 2 ;;
+let result = 5 |> double ;; (* Returns 10 *)
+```
+
+## Using the Pipe Operator
+The pipe operator is particularly useful for composing operations, avoiding nested function calls, and improving readability.
+
+### 1. **Single Function Application**
+- **Description**: Pass a value to a single function.
+- **Example**:
+```ocaml
+let square x = x * x ;;
+let result = 4 |> square ;; (* Returns 16 *)
+```
+
+### 2. **Chaining Functions**
+- **Description**: Chain multiple functions to process a value sequentially.
+- **Example**:
+```ocaml
+let double x = x * 2 ;;
+let add_one x = x + 1 ;;
+let result = 5 |> double |> add_one ;; (* Returns (5 * 2) + 1 = 11 *)
+```
+
+### 3. **Working with Lists**
+- **Description**: Combine with `List` module functions for data transformations.
+- **Example**:
+```ocaml
+let numbers = [1; 2; 3] ;;
+let result = numbers |> List.map (fun x -> x * 2) |> List.filter (fun x -> x > 2) ;;
+(* Returns [4; 6] *)
+```
+
+### 4. **String Manipulation**
+- **Description**: Apply string operations in a readable pipeline.
+- **Example**:
+```ocaml
+let result = "hello" |> String.uppercase_ascii |> String.trim ;;
+(* Returns "HELLO" *)
+```
+
+### 5. **Combining with Higher-Order Functions**
+- **Description**: Use with functions that take other functions as arguments.
+- **Example**:
+```ocaml
+let apply_twice f x = f (f x) ;;
+let result = 3 |> apply_twice (fun x -> x + 1) ;; (* Returns (3 + 1) + 1 = 5 *)
+```
+
+### 6. **Working with Options**
+- **Description**: Process optional values in a pipeline.
+- **Example**:
+```ocaml
+let safe_div x y = if y = 0 then None else Some (x / y) ;;
+let result = 10 |> safe_div 2 |> Option.map (fun x -> x * 2) ;;
+(* Returns Some 10 *)
+```
+
+## Advanced Pipe Operator Usage
+
+### 1. **Combining with Pattern Matching**
+- **Description**: Use pipes with functions that involve pattern matching.
+- **Example**:
+```ocaml
+let describe = function
+  | 0 -> "Zero"
+  | n -> Printf.sprintf "Number %d" n ;;
+let result = 42 |> describe ;; (* Returns "Number 42" *)
+```
+
+### 2. **Piping with Labeled Arguments**
+- **Description**: Use with functions that have labeled arguments by defining an auxiliary function.
+- **Example**:
+```ocaml
+let greet ~name ~age = Printf.sprintf "%s is %d" name age ;;
+let greet_alice age = greet ~name:"Alice" ~age ;;
+let result = 30 |> greet_alice ;; (* Returns "Alice is 30" *)
+```
+
+### 3. **Piping with Custom Operators**
+- **Description**: Combine with user-defined operators for expressive pipelines.
+- **Example**:
+```ocaml
+let (>>|) x f = f x ;; (* Custom pipe operator *)
+let result = 5 >>| double >>| add_one ;; (* Returns 11 *)
+```
+
+### 4. **Piping with Modules**
+- **Description**: Use with module functions for structured data processing.
+- **Example**:
+```ocaml
+module IntSet = Set.Make(Int) ;;
+let result = [1; 2; 3] |> IntSet.of_list |> IntSet.add 4 |> IntSet.elements ;;
+(* Returns [1; 2; 3; 4] *)
+```
+
+## Example Program
+A program demonstrating various uses of the pipe operator:
+```ocaml
+let process_text text =
+  text
+  |> String.lowercase_ascii
+  |> String.split

@@ -1,0 +1,190 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Pattern Matching
+
+## Pattern Matching Basics
+- **Purpose**: Decomposes data (e.g., lists, tuples, variants) and binds components to variables.
+- **Syntax**: Uses `match` expressions, `function` keyword, or direct pattern matching in function definitions.
+- **Exhaustiveness**: OCaml warns about non-exhaustive matches, ensuring all cases are handled.
+- **Immutability**: Patterns work with immutable data, though mutable fields can be matched.
+
+### Example: Basic Pattern Matching
+```ocaml
+let is_zero x = match x with
+  | 0 -> true
+  | _ -> false ;; (* Wildcard matches any value *)
+let result = is_zero 0 ;; (* Returns true *)
+```
+
+## Types of Patterns
+OCaml supports various pattern types for different data structures.
+
+### 1. **Literal Patterns**
+- **Description**: Match specific values (e.g., integers, strings, booleans).
+- **Example**:
+```ocaml
+let describe_number n = match n with
+  | 0 -> "Zero"
+  | 1 -> "One"
+  | _ -> "Other" ;;
+let result = describe_number 1 ;; (* Returns "One" *)
+```
+
+### 2. **Variable Patterns**
+- **Description**: Bind any value to a variable for use in the expression.
+- **Example**:
+```ocaml
+let describe x = match x with
+  | n -> Printf.sprintf "Value: %d" n ;;
+let result = describe 42 ;; (* Returns "Value: 42" *)
+```
+
+### 3. **Wildcard Pattern**
+- **Description**: Uses `_` to match any value without binding.
+- **Example**:
+```ocaml
+let is_empty s = match s with
+  | "" -> true
+  | _ -> false ;;
+let result = is_empty "" ;; (* Returns true *)
+```
+
+### 4. **Tuple Patterns**
+- **Description**: Deconstruct tuples into components.
+- **Example**:
+```ocaml
+let swap (x, y) = match (x, y) with
+  | (a, b) -> (b, a) ;;
+let result = swap (1, "two") ;; (* Returns ("two", 1) *)
+```
+
+### 5. **List Patterns**
+- **Description**: Match lists using `[]` (empty) or `head :: tail`.
+- **Example**:
+```ocaml
+let rec sum_list lst = match lst with
+  | [] -> 0
+  | x :: xs -> x + sum_list xs ;;
+let total = sum_list [1; 2; 3] ;; (* Returns 6 *)
+```
+
+### 6. **Record Patterns**
+- **Description**: Match record fields by name.
+- **Example**:
+```ocaml
+type point = { x : int; y : int } ;;
+let is_origin p = match p with
+  | { x = 0; y = 0 } -> true
+  | _ -> false ;;
+let result = is_origin { x = 0; y = 0 } ;; (* Returns true *)
+```
+
+### 7. **Variant Patterns**
+- **Description**: Match user-defined algebraic data types (variants).
+- **Example**:
+```ocaml
+type shape = Circle of float | Rectangle of float * float ;;
+let area s = match s with
+  | Circle r -> 3.14 *. r *. r
+  | Rectangle (w, h) -> w *. h ;;
+let result = area (Circle 2.0) ;; (* Returns ~12.56 *)
+```
+
+### 8. **Option Patterns**
+- **Description**: Match `Some` or `None` for optional values.
+- **Example**:
+```ocaml
+let safe_head lst = match lst with
+  | [] -> None
+  | x :: _ -> Some x ;;
+let result = safe_head [1; 2; 3] ;; (* Returns Some 1 *)
+```
+
+### 9. **Nested Patterns**
+- **Description**: Combine patterns for complex structures.
+- **Example**:
+```ocaml
+let describe_pair (lst, n) = match (lst, n) with
+  | ([], _) -> "Empty list"
+  | (x :: _, n) -> Printf.sprintf "First: %d, Number: %d" x n ;;
+let result = describe_pair ([1; 2], 3) ;; (* Returns "First: 1, Number: 3" *)
+```
+
+## Advanced Pattern Matching Features
+
+### 1. **Guards**
+- **Description**: Add conditions to patterns using `when`.
+- **Example**:
+```ocaml
+let is_positive_even n = match n with
+  | x when x > 0 && x mod 2 = 0 -> true
+  | _ -> false ;;
+let result = is_positive_even 4 ;; (* Returns true *)
+```
+
+### 2. **Or Patterns**
+- **Description**: Match multiple patterns with the same result using `|`.
+- **Example**:
+```ocaml
+let is_special n = match n with
+  | 0 | 1 -> true
+  | _ -> false ;;
+let result = is_special 0 ;; (* Returns true *)
+```
+
+### 3. **As Patterns**
+- **Description**: Bind a value to a name while matching its structure.
+- **Example**:
+```ocaml
+let describe_list lst = match lst with
+  | x :: _ as full_list -> Printf.sprintf "Head: %d, List: %s" x (String.concat ", " (List.map string_of_int full_list))
+  | [] -> "Empty" ;;
+let result = describe_list [1; 2; 3] ;; (* Returns "Head: 1, List: 1, 2, 3" *)
+```
+
+### 4. **Pattern Matching in Function Definitions**
+- **Description**: Define functions directly with patterns using `function` or `let`.
+- **Example**:
+```ocaml
+let rec length = function
+  | [] -> 0
+  | _ :: xs -> 1 + length xs ;;
+let result = length [1; 2; 3] ;; (* Returns 3 *)
+```
+
+### 5. **Exception Handling**
+- **Description**: Match exceptions in `try ... with` blocks.
+- **Example**:
+```ocaml
+let safe_div x y = try x / y with
+  | Division_by_zero -> 0 ;;
+let result = safe_div 10 0 ;; (* Returns 0 *)
+```
+
+## Example Program
+A program combining multiple pattern matching techniques:
+```ocaml
+type expr = Num of int | Add of expr * expr | Mul of expr * expr ;;
+let rec eval expr = match expr with
+  | Num n -> n
+  | Add (e1, e2) -> eval e1 + eval e2
+  | Mul (e1, e2) when eval e1 = 0 -> 0 (* Guard for optimization *)
+  | Mul (e1, e2) -> eval e1 * eval e2 ;;
+let result = eval (Mul (Num 2, Add (Num 3, Num 4))) ;; (* Returns 2 * (3 + 4) = 14 *)
+let () = Printf.printf "Result: %d\n" result ;;
+(* Output: Result: 14 *)
+```
+
+## Best Practices
+- **Cover All Cases**: Ensure exhaustiveness to avoid runtime errors; handle `_` explicitly if needed.
+- **Use Guards Judiciously**: Prefer simple patterns for clarity; use `when` for specific conditions.
+- **Leverage Type Safety**: Define precise types (e.g., variants) to catch errors at compile time.
+- **Keep Patterns Simple**: Refactor complex matches into smaller functions for readability.
+- **Use `function` for Conciseness**: For single-argument functions, use `function` to streamline pattern matching.
+- **Test Edge Cases**: Verify behavior for empty lists, `None`, or invalid inputs.
+
+## Conclusion
+Pattern matching in OCaml 5.2.0 is a versatile and expressive feature for handling data structures and control flow. It supports literals, variables, tuples, lists, records, variants, options, and more, with advanced features like guards, or-patterns, and as-patterns. The examples above demonstrate practical usage, showcasing OCaml’s type-safe and functional programming strengths.
