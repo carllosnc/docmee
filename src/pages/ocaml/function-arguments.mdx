@@ -1,0 +1,176 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Function Arguments
+
+## Function Argument Basics
+- **Immutability**: Function arguments are immutable within the function body.
+- **Currying**: Functions are automatically curried, allowing partial application.
+- **Type Inference**: OCaml infers argument types when possible, but explicit annotations can be added for clarity.
+- **Syntax**: Defined using `fun` or `let` with parameters before `->` or `=`.
+
+### Example: Basic Function
+```ocaml
+let add x y = x + y ;; (* Defines a function with two arguments *)
+let result = add 3 4 ;; (* Returns 7 *)
+```
+
+## Types of Function Arguments
+
+### 1. **Positional Arguments**
+- **Description**: Standard arguments passed in order, matched by position.
+- **Type**: Any valid OCaml type (e.g., `int`, `string`, `'a`).
+
+#### Example: Positional Arguments
+```ocaml
+let greet name age = Printf.sprintf "Hello, %s! You are %d." name age ;;
+let message = greet "Alice" 30 ;; (* Returns "Hello, Alice! You are 30." *)
+```
+
+### 2. **Labeled Arguments**
+- **Description**: Arguments with labels for clarity and flexibility in order. Labels start with `~`.
+- **Syntax**: `~label:param`.
+
+#### Example: Labeled Arguments
+```ocaml
+let greet ~name ~age = Printf.sprintf "Hello, %s! You are %d." name age ;;
+let message = greet ~age:25 ~name:"Bob" ;; (* Returns "Hello, Bob! You are 25." *)
+```
+
+### 3. **Optional Arguments**
+- **Description**: Arguments that can be omitted, defaulting to `None` or a specified value. Defined with `?`.
+- **Type**: `'a option` internally.
+
+#### Example: Optional Arguments
+```ocaml
+let greet ?(greeting="Hello") name = Printf.sprintf "%s, %s!" greeting name ;;
+let msg1 = greet "Alice" ;; (* Returns "Hello, Alice!" *)
+let msg2 = greet ~greeting:"Hi" "Bob" ;; (* Returns "Hi, Bob!" *)
+```
+
+### 4. **Polymorphic Arguments**
+- **Description**: Functions can accept arguments of any type using polymorphic types (e.g., `'a`).
+- **Use Case**: Generic functions like `List.map`.
+
+#### Example: Polymorphic Arguments
+```ocaml
+let id x = x ;; (* Polymorphic function *)
+let int_result = id 42 ;; (* Returns 42 *)
+let str_result = id "OCaml" ;; (* Returns "OCaml" *)
+```
+
+### 5. **Function Arguments**
+- **Description**: Functions can take other functions as arguments, enabling higher-order functions.
+- **Type**: `(arg_type -> return_type)`.
+
+#### Example: Function as Argument
+```ocaml
+let apply_twice f x = f (f x) ;;
+let double x = x * 2 ;;
+let result = apply_twice double 5 ;; (* Returns 20 *)
+```
+
+### 6. **Tuple Arguments**
+- **Description**: A single argument can be a tuple, allowing multiple values to be passed as one.
+- **Type**: `'a * 'b * ...`.
+
+#### Example: Tuple Argument
+```ocaml
+let add_pair (x, y) = x + y ;;
+let result = add_pair (3, 4) ;; (* Returns 7 *)
+```
+
+### 7. **Pattern-Matched Arguments**
+- **Description**: Arguments can be pattern-matched directly in the function definition.
+- **Use Case**: Lists, records, or custom types.
+
+#### Example: Pattern-Matched List
+```ocaml
+let rec sum_list = function
+  | [] -> 0
+  | x :: xs -> x + sum_list xs ;;
+let total = sum_list [1; 2; 3] ;; (* Returns 6 *)
+```
+
+## Currying and Partial Application
+- **Description**: Functions are curried by default, allowing partial application to create new functions.
+- **Syntax**: Apply fewer arguments than required.
+
+#### Example: Partial Application
+```ocaml
+let add x y = x + y ;;
+let add_5 = add 5 ;; (* Partially applied, creates a function *)
+let result = add_5 3 ;; (* Returns 8 *)
+```
+
+## Advanced Argument Features
+
+### 1. **Default Values for Optional Arguments**
+- **Description**: Optional arguments can have default values other than `None`.
+- **Example**:
+```ocaml
+let format_number ?(base=10) n =
+  if base = 16 then Printf.sprintf "0x%x" n else string_of_int n ;;
+let dec = format_number 42 ;; (* Returns "42" *)
+let hex = format_number ~base:16 42 ;; (* Returns "0x2a" *)
+```
+
+### 2. **Combining Labeled and Optional Arguments**
+- **Description**: Labeled and optional arguments can be mixed for flexibility.
+- **Example**:
+```ocaml
+let describe ~name ?(age=0) () = Printf.sprintf "%s is %d years old." name age ;;
+let desc1 = describe ~name:"Alice" () ;; (* Returns "Alice is 0 years old." *)
+let desc2 = describe ~name:"Bob" ~age:25 () ;; (* Returns "Bob is 25 years old." *)
+```
+
+### 3. **Recursive Functions with Arguments**
+- **Description**: Recursive functions often use pattern matching or accumulators.
+- **Example**:
+```ocaml
+let rec factorial n =
+  if n <= 1 then 1 else n * factorial (n - 1) ;;
+let result = factorial 5 ;; (* Returns 120 *)
+```
+
+### 4. **Higher-Order Functions with Multiple Arguments**
+- **Description**: Functions can take multiple functions or combine with other argument types.
+- **Example**:
+```ocaml
+let compose f g x = f (g x) ;;
+let square x = x * x ;;
+let inc x = x + 1 ;;
+let result = compose square inc 4 ;; (* Returns (4+1)^2 = 25 *)
+```
+
+## Example Program
+A program demonstrating various argument types:
+```ocaml
+let process_person ~name ?(age=0) ?(greeting="Hello") transform =
+  let transformed_name = transform name in
+  Printf.sprintf "%s, %s! You are %d." greeting transformed_name age ;;
+
+let capitalize s = String.uppercase_ascii s ;;
+let result1 = process_person ~name:"alice" capitalize ;; (* Returns "Hello, ALICE! You are 0." *)
+let result2 = process_person ~name:"bob" ~age:25 ~greeting:"Hi" String.lowercase_ascii ;;
+(* Returns "Hi, bob! You are 25." *)
+
+let () = Printf.printf "%s\n%s\n" result1 result2 ;;
+(* Output:
+   Hello, ALICE! You are 0.
+   Hi, bob! You are 25.
+*)
+```
+
+## Best Practices
+- **Use Labeled Arguments**: Improve readability and allow flexible argument order.
+- **Leverage Optional Arguments**: Use for defaults but avoid overuse to maintain clarity.
+- **Exploit Currying**: Use partial application for reusable function instances.
+- **Type Annotations**: Add types (e.g., `x:int`) for complex functions to catch errors.
+- **Pattern Matching**: Use for concise argument handling, especially with lists or ADTs.
+- **Avoid Excessive Arguments**: Refactor functions with many arguments into records or labeled arguments.
+
+## Conclusion
+OCaml 5.2.0 provides a powerful and flexible system for function arguments, supporting positional, labeled, optional, and polymorphic arguments, as well as currying and pattern matching. The examples above demonstrate practical usage, emphasizing OCaml’s functional programming strengths and type safety for robust code.
