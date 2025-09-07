@@ -1,0 +1,186 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Higher Order Functions
+
+Higher order functions in OCaml are functions that can either take other functions as arguments, return functions as results, or both. This is a fundamental concept in functional programming and OCaml's strong type system makes working with higher order functions both safe and expressive.
+
+## Functions as First-Class Values
+
+In OCaml, functions are first-class values, meaning they can be:
+- Passed as arguments to other functions
+- Returned from functions
+- Stored in data structures
+- Assigned to variables
+
+## Taking Functions as Arguments
+
+Here are some common examples:
+
+```ocaml
+(* A function that applies another function twice *)
+let apply_twice f x = f (f x)
+
+(* Usage *)
+let double x = x * 2;;
+apply_twice double 5;; (* Returns 20 *)
+
+(* The map function - applies a function to each element of a list *)
+let rec map f = function
+  | [] -> []
+  | x :: xs -> f x :: map f xs
+
+(* Usage *)
+map (fun x -> x + 1) [1; 2; 3];; (* Returns [2; 3; 4] *)
+```
+
+## Returning Functions
+
+Functions can also return other functions:
+
+```ocaml
+(* A function that creates specialized adder functions *)
+let make_adder n = fun x -> x + n
+
+let add_five = make_adder 5;;
+add_five 10;; (* Returns 15 *)
+
+(* Function composition *)
+let compose f g = fun x -> f (g x)
+
+let add_one x = x + 1;;
+let multiply_two x = x * 2;;
+let add_then_multiply = compose multiply_two add_one;;
+add_then_multiply 5;; (* Returns 12: (5+1)*2 *)
+```
+
+## Common Higher Order Functions
+
+OCaml's standard library includes many useful higher order functions:
+
+```ocaml
+(* List.fold_left - reduces a list using an accumulator *)
+List.fold_left (+) 0 [1; 2; 3; 4];; (* Sum: returns 10 *)
+List.fold_left (fun acc x -> acc ^ string_of_int x) "" [1; 2; 3];; (* Returns "123" *)
+
+(* List.filter - keeps elements that satisfy a predicate *)
+List.filter (fun x -> x mod 2 = 0) [1; 2; 3; 4; 5];; (* Returns [2; 4] *)
+
+(* List.find - finds the first element satisfying a predicate *)
+List.find (fun x -> x > 3) [1; 2; 3; 4; 5];; (* Returns 4 *)
+```
+
+## Partial Application and Currying
+
+OCaml functions are automatically curried, which works beautifully with higher order functions:
+
+```ocaml
+(* All OCaml functions with multiple parameters are curried *)
+let add x y = x + y;;
+let add_ten = add 10;; (* Partial application *)
+add_ten 5;; (* Returns 15 *)
+
+(* This makes it easy to create specialized functions *)
+let multiply x y = x * y;;
+let double = multiply 2;;
+List.map double [1; 2; 3; 4];; (* Returns [2; 4; 6; 8] *)
+```
+
+## Anonymous Functions (Lambdas)
+
+Anonymous functions are frequently used with higher order functions:
+
+```ocaml
+(* Using fun keyword for anonymous functions *)
+List.map (fun x -> x * x) [1; 2; 3; 4];; (* Returns [1; 4; 9; 16] *)
+
+(* More complex anonymous functions *)
+List.filter (fun (name, age) -> age >= 18) 
+  [("Alice", 20); ("Bob", 16); ("Charlie", 25)];;
+```
+
+## Practical Example: Building a Simple Pipeline
+
+Here's how higher order functions can be composed to build data processing pipelines:
+
+```ocaml
+let numbers = [1; 2; 3; 4; 5; 6; 7; 8; 9; 10];;
+
+let result = numbers
+  |> List.filter (fun x -> x mod 2 = 0)  (* Keep even numbers *)
+  |> List.map (fun x -> x * x)           (* Square them *)
+  |> List.fold_left (+) 0                (* Sum them up *)
+;;
+(* result is 220: (2² + 4² + 6² + 8² + 10²) *)
+```
+
+## Type Inference with Higher Order Functions
+
+OCaml's type system automatically infers the types of higher order functions:
+
+```ocaml
+let apply_twice f x = f (f x);;
+(* Inferred type: ('a -> 'a) -> 'a -> 'a *)
+
+let map_option f = function
+  | None -> None
+  | Some x -> Some (f x);;
+(* Inferred type: ('a -> 'b) -> 'a option -> 'b option *)
+```
+
+## Advanced Examples
+
+### Custom Higher Order Functions
+
+```ocaml
+(* A function that repeats an operation n times *)
+let rec repeat n f x =
+  if n <= 0 then x
+  else repeat (n - 1) f (f x);;
+
+repeat 3 (fun x -> x * 2) 5;; (* Returns 40: 5 * 2 * 2 * 2 *)
+
+(* Function that applies different functions based on a condition *)
+let conditional_apply predicate f g x =
+  if predicate x then f x else g x;;
+
+let process_number = conditional_apply 
+  (fun x -> x > 0) 
+  (fun x -> x * 2) 
+  (fun x -> x * (-1));;
+
+process_number 5;;   (* Returns 10 *)
+process_number (-3);; (* Returns 3 *)
+```
+
+### Working with Options and Results
+
+```ocaml
+(* Option.map equivalent *)
+let map_option f = function
+  | None -> None
+  | Some x -> Some (f x);;
+
+(* Chain operations on options *)
+let (>>=) opt f = match opt with
+  | None -> None
+  | Some x -> f x;;
+
+Some 10 
+>>= (fun x -> Some (x + 5))
+>>= (fun x -> Some (x * 2));; (* Returns Some 30 *)
+```
+
+## Best Practices
+
+1. **Use partial application** to create specialized functions from general ones
+2. **Compose functions** rather than writing large monolithic functions
+3. **Leverage the pipe operator** (`|>`) for readable data transformation pipelines
+4. **Use anonymous functions** for simple, one-off operations
+5. **Name higher order functions** descriptively to make code self-documenting
+
+## Conclusion
+
+Higher order functions make OCaml code more modular, reusable, and expressive. They allow you to abstract over common patterns and build powerful, composable operations that work with the language's strong type system to catch errors at compile time. Mastering higher order functions is essential for writing idiomatic and effective OCaml code.
