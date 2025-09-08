@@ -1,0 +1,194 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Pipe
+
+## Introduction
+
+Kotlin doesn't have a built-in pipe operator like some functional programming languages, but you can achieve similar functionality using several approaches. This guide covers different ways to implement and use pipe-like operations in Kotlin.
+
+## Method 1: Using `let` Function
+
+The most common way to achieve pipe-like behavior in Kotlin is using the `let` scope function:
+
+```kotlin
+fun main() {
+    val result = "Hello World"
+        .let { it.lowercase() }
+        .let { it.replace(" ", "_") }
+        .let { it.take(5) }
+    
+    println(result) // Output: hello
+}
+```
+
+## Method 2: Using `run` Function
+
+Similar to `let`, but doesn't pass the receiver as a parameter:
+
+```kotlin
+fun main() {
+    val result = "Hello World".run {
+        lowercase()
+    }.run {
+        replace(" ", "_")
+    }.run {
+        take(5)
+    }
+    
+    println(result) // Output: hello
+}
+```
+
+## Method 3: Custom Pipe Operator
+
+You can create a custom infix function to simulate a pipe operator:
+
+```kotlin
+infix fun <T, R> T.pipe(transform: (T) -> R): R {
+    return transform(this)
+}
+
+fun main() {
+    val result = "Hello World" pipe { it.lowercase() } pipe { it.replace(" ", "_") } pipe { it.take(5) }
+    println(result) // Output: hello
+}
+```
+
+## Method 4: Extension Functions for Chaining
+
+Create extension functions for more readable chaining:
+
+```kotlin
+fun String.toLowerCaseAndReplace(oldValue: String, newValue: String): String {
+    return this.lowercase().replace(oldValue, newValue)
+}
+
+fun String.takeFirst(n: Int): String {
+    return this.take(n)
+}
+
+fun main() {
+    val result = "Hello World"
+        .toLowerCaseAndReplace(" ", "_")
+        .takeFirst(5)
+    
+    println(result) // Output: hello
+}
+```
+
+## Method 5: Using `also` for Side Effects
+
+When you need to perform side effects while chaining:
+
+```kotlin
+fun main() {
+    val result = "Hello World"
+        .also { println("Original: $it") }
+        .lowercase()
+        .also { println("Lowercased: $it") }
+        .replace(" ", "_")
+        .also { println("Replaced: $it") }
+        .take(5)
+    
+    println("Final: $result")
+}
+```
+
+## Method 6: Functional Composition
+
+For more complex transformations, you can use function composition:
+
+```kotlin
+fun <T, R> ((T) -> R).andThen(next: (R) -> R): (T) -> R {
+    return { next(this(it)) }
+}
+
+fun main() {
+    val transform = { s: String -> s.lowercase() }
+        .andThen { it.replace(" ", "_") }
+        .andThen { it.take(5) }
+    
+    val result = transform("Hello World")
+    println(result) // Output: hello
+}
+```
+
+## Practical Examples
+
+### Example 1: Data Processing Pipeline
+
+```kotlin
+data class User(val name: String, val email: String, val age: Int)
+
+fun main() {
+    val users = listOf(
+        User("John Doe", "john@example.com", 25),
+        User("Jane Smith", "jane@example.com", 30),
+        User("Bob Johnson", "bob@example.com", 35)
+    )
+    
+    val result = users
+        .filter { it.age >= 30 }
+        .map { it.name.uppercase() }
+        .joinToString(", ")
+    
+    println(result) // Output: JANE SMITH, BOB JOHNSON
+}
+```
+
+### Example 2: String Processing
+
+```kotlin
+fun main() {
+    val processedText = "  Hello, World! This is a TEST.  "
+        .trim()
+        .lowercase()
+        .replace(",", "")
+        .replace(".", "")
+        .split(" ")
+        .filter { it.isNotEmpty() }
+        .joinToString("-")
+    
+    println(processedText) // Output: hello-world-this-is-a-test
+}
+```
+
+### Example 3: Mathematical Operations
+
+```kotlin
+infix fun <T, R> T.pipe(transform: (T) -> R): R = transform(this)
+
+fun Double.square(): Double = this * this
+fun Double.sqrt(): Double = kotlin.math.sqrt(this)
+fun Double.round(decimals: Int): Double = "%.${decimals}f".format(this).toDouble()
+
+fun main() {
+    val result = 16.0
+        .pipe { it.sqrt() }
+        .pipe { it.square() }
+        .pipe { it + 10 }
+        .pipe { it.round(2) }
+    
+    println(result) // Output: 26.0
+}
+```
+
+## Best Practices
+
+1. **Use `let` for simple transformations** where you need to pass the value as a parameter
+2. **Use `run` when working with the receiver directly** without needing it as a parameter
+3. **Use `also` for side effects** like logging or debugging without changing the value
+4. **Create custom extension functions** for domain-specific operations that you use frequently
+5. **Keep chains readable** - break long chains into multiple variables if they become hard to read
+6. **Consider performance** - excessive chaining can create unnecessary intermediate objects
+
+## Comparison with Other Languages
+
+Unlike languages like F# (`|>`), Elixir (`|>`), or Unix shell (`|`), Kotlin achieves similar functionality through its scope functions and method chaining. While not as concise as dedicated pipe operators, Kotlin's approach is more flexible and integrates well with the language's type system.
+
+## Conclusion
+
+While Kotlin doesn't have a built-in pipe operator, the language provides several elegant ways to achieve similar functionality through scope functions, extension functions, and custom infix operators. Choose the approach that best fits your use case and makes your code most readable and maintainable.
