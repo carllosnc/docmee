@@ -1,0 +1,722 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Data Classes
+
+## Overview
+
+Data classes in Kotlin are a special type of class designed to hold data. They automatically generate useful methods like `equals()`, `hashCode()`, `toString()`, and `copy()`, eliminating boilerplate code that's common when creating data-holding classes.
+
+## Basic Data Class Declaration
+
+A data class is declared using the `data` keyword:
+
+```kotlin
+data class Person(val name: String, val age: Int)
+```
+
+This simple declaration automatically provides:
+- `equals()` and `hashCode()` methods
+- `toString()` method
+- `copy()` method
+- `componentN()` methods for destructuring
+
+## Auto-Generated Methods
+
+### toString()
+
+```kotlin
+data class Person(val name: String, val age: Int)
+
+fun main() {
+    val person = Person("Alice", 25)
+    println(person)  // Person(name=Alice, age=25)
+}
+```
+
+### equals() and hashCode()
+
+```kotlin
+data class Point(val x: Int, val y: Int)
+
+fun main() {
+    val point1 = Point(1, 2)
+    val point2 = Point(1, 2)
+    val point3 = Point(2, 1)
+    
+    println(point1 == point2)  // true (structural equality)
+    println(point1 === point2) // false (different objects)
+    println(point1 == point3)  // false (different values)
+    
+    // HashCode consistency
+    println(point1.hashCode() == point2.hashCode())  // true
+    
+    // Can be used as keys in maps/sets
+    val pointSet = setOf(point1, point2, point3)
+    println(pointSet.size)  // 2 (point1 and point2 are considered equal)
+}
+```
+
+### copy() Method
+
+The `copy()` method creates a new instance with some properties changed:
+
+```kotlin
+data class User(val name: String, val email: String, val age: Int)
+
+fun main() {
+    val user = User("Alice", "alice@example.com", 25)
+    
+    // Copy with some changes
+    val updatedUser = user.copy(age = 26)
+    println(updatedUser)  // User(name=Alice, email=alice@example.com, age=26)
+    
+    // Copy with multiple changes
+    val newUser = user.copy(name = "Bob", email = "bob@example.com")
+    println(newUser)  // User(name=Bob, email=bob@example.com, age=25)
+    
+    // Copy without changes (creates a new instance)
+    val duplicateUser = user.copy()
+    println(user === duplicateUser)  // false (different objects)
+    println(user == duplicateUser)   // true (same data)
+}
+```
+
+## Destructuring Declarations
+
+Data classes automatically generate `componentN()` methods that enable destructuring:
+
+```kotlin
+data class Point(val x: Int, val y: Int)
+data class Person(val name: String, val age: Int, val email: String)
+
+fun main() {
+    val point = Point(10, 20)
+    val (x, y) = point  // Destructuring
+    println("x: $x, y: $y")  // x: 10, y: 20
+    
+    val person = Person("Alice", 25, "alice@example.com")
+    val (name, age) = person  // Only destructure first two components
+    println("Name: $name, Age: $age")
+    
+    // You can also use underscore to skip components
+    val (_, personAge, email) = person
+    println("Age: $personAge, Email: $email")
+}
+```
+
+### Destructuring in Loops
+
+```kotlin
+data class KeyValue(val key: String, val value: Int)
+
+fun main() {
+    val items = listOf(
+        KeyValue("apple", 5),
+        KeyValue("banana", 3),
+        KeyValue("orange", 8)
+    )
+    
+    for ((key, value) in items) {
+        println("$key: $value")
+    }
+    
+    // Or with indices
+    for ((index, item) in items.withIndex()) {
+        val (key, value) = item
+        println("$index: $key = $value")
+    }
+}
+```
+
+## Data Class Requirements and Limitations
+
+### Requirements
+
+1. **Primary constructor must have at least one parameter**
+2. **All primary constructor parameters must be marked with `val` or `var`**
+3. **Cannot be abstract, open, sealed, or inner**
+
+```kotlin
+// Valid data classes
+data class Point(val x: Int, val y: Int)
+data class MutablePoint(var x: Int, var y: Int)
+
+// Invalid data classes
+// data class Empty()  // Error: no parameters
+// data class Invalid(name: String)  // Error: parameter not marked with val/var
+// abstract data class AbstractData(val x: Int)  // Error: cannot be abstract
+```
+
+### What's Included in Generated Methods
+
+Only properties declared in the primary constructor are used in the generated methods:
+
+```kotlin
+data class Person(val name: String, val age: Int) {
+    var email: String = ""  // Not included in equals, hashCode, toString, etc.
+    
+    fun displayInfo(): String = "$name ($age) - $email"
+}
+
+fun main() {
+    val person1 = Person("Alice", 25)
+    person1.email = "alice@example.com"
+    
+    val person2 = Person("Alice", 25)
+    person2.email = "alice@work.com"
+    
+    println(person1 == person2)  // true - email is not considered
+    println(person1)  // Person(name=Alice, age=25) - email not shown
+}
+```
+
+## Mutable vs Immutable Data Classes
+
+### Immutable Data Classes (Recommended)
+
+```kotlin
+data class ImmutablePerson(val name: String, val age: Int) {
+    // All properties are val (read-only)
+}
+
+fun main() {
+    val person = ImmutablePerson("Alice", 25)
+    // person.age = 26  // Compilation error
+    
+    // Use copy() to create modified versions
+    val olderPerson = person.copy(age = person.age + 1)
+    println(olderPerson)
+}
+```
+
+### Mutable Data Classes
+
+```kotlin
+data class MutablePerson(var name: String, var age: Int)
+
+fun main() {
+    val person = MutablePerson("Alice", 25)
+    person.age = 26  // Can modify
+    println(person)
+    
+    // Be careful with collections - mutating objects can break hash-based collections
+    val people = mutableSetOf(person)
+    person.name = "Alicia"  // Changing the object after adding to set
+    println(people.contains(person))  // May return false due to hash change
+}
+```
+
+## Nested and Complex Data Classes
+
+### Nested Data Classes
+
+```kotlin
+data class Address(val street: String, val city: String, val zipCode: String)
+data class Person(val name: String, val age: Int, val address: Address)
+
+fun main() {
+    val address = Address("123 Main St", "Springfield", "12345")
+    val person = Person("Alice", 25, address)
+    
+    println(person)
+    
+    // Copy with nested object changes
+    val newAddress = address.copy(street = "456 Oak Ave")
+    val movedPerson = person.copy(address = newAddress)
+    println(movedPerson)
+}
+```
+
+### Data Classes with Collections
+
+```kotlin
+data class Team(val name: String, val members: List<String>)
+
+fun main() {
+    val team = Team("Developers", listOf("Alice", "Bob", "Charlie"))
+    println(team)
+    
+    // Adding members (creates new list)
+    val expandedTeam = team.copy(members = team.members + "Diana")
+    println(expandedTeam)
+    
+    // Be careful with mutable collections
+    data class MutableTeam(val name: String, val members: MutableList<String>)
+    
+    val mutableTeam1 = MutableTeam("Team A", mutableListOf("Alice"))
+    val mutableTeam2 = mutableTeam1.copy()
+    
+    // Both teams share the same mutable list!
+    mutableTeam2.members.add("Bob")
+    println(mutableTeam1)  // Team A now also has Bob
+    
+    // Better approach: copy with new list
+    val safeTeam2 = mutableTeam1.copy(members = mutableTeam1.members.toMutableList())
+}
+```
+
+## Data Classes with Validation
+
+```kotlin
+data class Email(val address: String) {
+    init {
+        require(address.contains("@")) { "Invalid email format: $address" }
+        require(address.isNotBlank()) { "Email cannot be blank" }
+    }
+}
+
+data class User(val name: String, val email: Email, val age: Int) {
+    init {
+        require(name.isNotBlank()) { "Name cannot be blank" }
+        require(age >= 0) { "Age cannot be negative: $age" }
+    }
+}
+
+fun main() {
+    try {
+        val user = User("Alice", Email("alice@example.com"), 25)
+        println(user)
+        
+        // This will throw an exception
+        val invalidUser = user.copy(email = Email("invalid-email"))
+    } catch (e: IllegalArgumentException) {
+        println("Validation error: ${e.message}")
+    }
+}
+```
+
+## Data Classes with Default Values
+
+```kotlin
+data class Product(
+    val name: String,
+    val price: Double,
+    val category: String = "General",
+    val inStock: Boolean = true,
+    val tags: List<String> = emptyList()
+)
+
+fun main() {
+    // Using defaults
+    val product1 = Product("Laptop", 999.99)
+    println(product1)
+    
+    // Overriding some defaults
+    val product2 = Product(
+        name = "Book",
+        price = 19.99,
+        category = "Education",
+        tags = listOf("programming", "kotlin")
+    )
+    println(product2)
+    
+    // Using named parameters with copy
+    val discountedProduct = product1.copy(price = 799.99)
+    println(discountedProduct)
+}
+```
+
+## Comprehensive Example: E-commerce System
+
+Here's a complete example showing data classes in a practical scenario:
+
+```kotlin
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+// Basic data classes
+data class Money(val amount: Double, val currency: String = "USD") {
+    init {
+        require(amount >= 0) { "Amount cannot be negative: $amount" }
+        require(currency.isNotBlank()) { "Currency cannot be blank" }
+    }
+    
+    operator fun plus(other: Money): Money {
+        require(currency == other.currency) { "Cannot add different currencies" }
+        return copy(amount = amount + other.amount)
+    }
+    
+    operator fun times(multiplier: Double): Money {
+        require(multiplier >= 0) { "Multiplier cannot be negative: $multiplier" }
+        return copy(amount = amount * multiplier)
+    }
+    
+    fun format(): String = "$${String.format("%.2f", amount)} $currency"
+}
+
+data class ProductId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "Product ID cannot be blank" }
+    }
+}
+
+data class Product(
+    val id: ProductId,
+    val name: String,
+    val description: String,
+    val price: Money,
+    val category: String,
+    val inStock: Boolean = true,
+    val tags: Set<String> = emptySet()
+) {
+    init {
+        require(name.isNotBlank()) { "Product name cannot be blank" }
+        require(category.isNotBlank()) { "Category cannot be blank" }
+    }
+}
+
+data class CustomerId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "Customer ID cannot be blank" }
+    }
+}
+
+data class Customer(
+    val id: CustomerId,
+    val name: String,
+    val email: String,
+    val phoneNumber: String? = null,
+    val isVip: Boolean = false
+) {
+    init {
+        require(name.isNotBlank()) { "Customer name cannot be blank" }
+        require(email.contains("@")) { "Invalid email format: $email" }
+    }
+}
+
+data class OrderItem(
+    val product: Product,
+    val quantity: Int,
+    val unitPrice: Money = product.price
+) {
+    init {
+        require(quantity > 0) { "Quantity must be positive: $quantity" }
+        require(unitPrice.currency == product.price.currency) { "Currency mismatch" }
+    }
+    
+    val totalPrice: Money
+        get() = unitPrice * quantity.toDouble()
+}
+
+data class ShippingAddress(
+    val street: String,
+    val city: String,
+    val state: String,
+    val zipCode: String,
+    val country: String = "USA"
+) {
+    init {
+        require(street.isNotBlank()) { "Street cannot be blank" }
+        require(city.isNotBlank()) { "City cannot be blank" }
+        require(state.isNotBlank()) { "State cannot be blank" }
+        require(zipCode.isNotBlank()) { "ZIP code cannot be blank" }
+    }
+    
+    fun format(): String = "$street, $city, $state $zipCode, $country"
+}
+
+enum class OrderStatus { PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED }
+
+data class Order(
+    val id: String,
+    val customer: Customer,
+    val items: List<OrderItem>,
+    val shippingAddress: ShippingAddress,
+    val orderDate: LocalDateTime = LocalDateTime.now(),
+    val status: OrderStatus = OrderStatus.PENDING,
+    val discountPercentage: Double = 0.0
+) {
+    init {
+        require(id.isNotBlank()) { "Order ID cannot be blank" }
+        require(items.isNotEmpty()) { "Order must have at least one item" }
+        require(discountPercentage in 0.0..1.0) { "Discount must be between 0 and 1" }
+    }
+    
+    val subtotal: Money
+        get() = items.fold(Money(0.0, "USD")) { acc, item ->
+            acc + item.totalPrice
+        }
+    
+    val discountAmount: Money
+        get() = subtotal * discountPercentage
+    
+    val total: Money
+        get() = Money(subtotal.amount - discountAmount.amount, subtotal.currency)
+    
+    val itemCount: Int
+        get() = items.sumOf { it.quantity }
+    
+    fun addItem(item: OrderItem): Order = copy(items = items + item)
+    
+    fun removeItem(productId: ProductId): Order = 
+        copy(items = items.filterNot { it.product.id == productId })
+    
+    fun updateQuantity(productId: ProductId, newQuantity: Int): Order {
+        val updatedItems = items.map { item ->
+            if (item.product.id == productId) {
+                item.copy(quantity = newQuantity)
+            } else {
+                item
+            }
+        }
+        return copy(items = updatedItems)
+    }
+    
+    fun applyDiscount(percentage: Double): Order = copy(discountPercentage = percentage)
+    
+    fun updateStatus(newStatus: OrderStatus): Order = copy(status = newStatus)
+    
+    fun generateInvoice(): String {
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        
+        return buildString {
+            appendLine("==================== INVOICE ====================")
+            appendLine("Order ID: $id")
+            appendLine("Date: ${orderDate.format(dateFormatter)}")
+            appendLine("Status: $status")
+            appendLine()
+            
+            appendLine("Customer:")
+            appendLine("  ${customer.name}${if (customer.isVip) " (VIP)" else ""}")
+            appendLine("  ${customer.email}")
+            customer.phoneNumber?.let { appendLine("  $it") }
+            appendLine()
+            
+            appendLine("Shipping Address:")
+            appendLine("  ${shippingAddress.format()}")
+            appendLine()
+            
+            appendLine("Items:")
+            items.forEach { item ->
+                val (product, quantity, unitPrice) = item  // Destructuring
+                appendLine("  ${product.name}")
+                appendLine("    Quantity: $quantity x ${unitPrice.format()} = ${item.totalPrice.format()}")
+                appendLine("    Category: ${product.category}")
+                if (product.tags.isNotEmpty()) {
+                    appendLine("    Tags: ${product.tags.joinToString(", ")}")
+                }
+                appendLine()
+            }
+            
+            appendLine("Summary:")
+            appendLine("  Subtotal: ${subtotal.format()}")
+            if (discountPercentage > 0) {
+                appendLine("  Discount (${(discountPercentage * 100).toInt()}%): -${discountAmount.format()}")
+            }
+            appendLine("  Total: ${total.format()}")
+            appendLine("  Items: $itemCount")
+            appendLine("==================================================")
+        }
+    }
+}
+
+// Extension functions for collections
+fun List<Order>.totalRevenue(): Money = 
+    fold(Money(0.0)) { acc, order -> acc + order.total }
+
+fun List<Order>.averageOrderValue(): Money {
+    if (isEmpty()) return Money(0.0)
+    val total = totalRevenue()
+    return Money(total.amount / size, total.currency)
+}
+
+fun main() {
+    // Create sample data
+    val laptop = Product(
+        id = ProductId("LAPTOP001"),
+        name = "Gaming Laptop",
+        description = "High-performance laptop for gaming",
+        price = Money(1299.99),
+        category = "Electronics",
+        tags = setOf("gaming", "laptop", "high-performance")
+    )
+    
+    val mouse = Product(
+        id = ProductId("MOUSE001"),
+        name = "Wireless Mouse",
+        description = "Ergonomic wireless mouse",
+        price = Money(49.99),
+        category = "Accessories",
+        tags = setOf("wireless", "ergonomic")
+    )
+    
+    val customer = Customer(
+        id = CustomerId("CUST001"),
+        name = "Alice Johnson",
+        email = "alice.johnson@example.com",
+        phoneNumber = "+1-555-0123",
+        isVip = true
+    )
+    
+    val shippingAddress = ShippingAddress(
+        street = "123 Main Street",
+        city = "Springfield",
+        state = "IL",
+        zipCode = "62701"
+    )
+    
+    // Create order
+    val order = Order(
+        id = "ORDER001",
+        customer = customer,
+        items = listOf(
+            OrderItem(laptop, 1),
+            OrderItem(mouse, 2)
+        ),
+        shippingAddress = shippingAddress
+    )
+    
+    println("Initial Order:")
+    println(order.generateInvoice())
+    
+    // Demonstrate immutability and copy operations
+    val discountedOrder = order.applyDiscount(0.1)  // 10% discount
+    val shippedOrder = discountedOrder.updateStatus(OrderStatus.SHIPPED)
+    
+    println("\nAfter applying discount and updating status:")
+    println(shippedOrder.generateInvoice())
+    
+    // Demonstrate destructuring
+    val (orderId, orderCustomer, orderItems) = shippedOrder
+    println("Destructured - Order ID: $orderId, Customer: ${orderCustomer.name}, Items: ${orderItems.size}")
+    
+    // Working with collections
+    val orders = listOf(order, discountedOrder, shippedOrder)
+    println("\nOrder Analysis:")
+    println("Total Revenue: ${orders.totalRevenue().format()}")
+    println("Average Order Value: ${orders.averageOrderValue().format()}")
+    
+    // Demonstrate validation
+    try {
+        val invalidProduct = laptop.copy(name = "")  // Will throw exception
+    } catch (e: IllegalArgumentException) {
+        println("\nValidation works: ${e.message}")
+    }
+}
+```
+
+## Data Classes vs Regular Classes
+
+### When to Use Data Classes
+
+**Use data classes when:**
+- Primary purpose is to hold data
+- You need automatic `equals()`, `hashCode()`, and `toString()`
+- You want the `copy()` method for creating modified instances
+- You plan to use destructuring declarations
+- The class is relatively simple without complex business logic
+
+```kotlin
+// Perfect for data classes
+data class Point(val x: Int, val y: Int)
+data class User(val id: String, val name: String, val email: String)
+data class Config(val timeout: Long, val retries: Int, val debug: Boolean)
+```
+
+### When to Use Regular Classes
+
+**Use regular classes when:**
+- The class has complex behavior or business logic
+- You need inheritance (open/abstract classes)
+- You want to control which properties are used in `equals()`/`hashCode()`
+- You need custom implementations of generated methods
+
+```kotlin
+// Better as regular classes
+class DatabaseConnection(private val url: String) {
+    private var isConnected = false
+    
+    fun connect() { /* complex connection logic */ }
+    fun disconnect() { /* cleanup logic */ }
+    fun executeQuery(sql: String): ResultSet { /* query execution */ }
+}
+
+open class Shape(val color: String) {
+    open fun area(): Double = 0.0
+    open fun draw() { /* drawing logic */ }
+}
+```
+
+## Best Practices
+
+### 1. Prefer Immutability
+
+```kotlin
+// Good - immutable
+data class Point(val x: Int, val y: Int)
+
+// Avoid - mutable (unless specifically needed)
+data class MutablePoint(var x: Int, var y: Int)
+```
+
+### 2. Be Careful with Collections
+
+```kotlin
+// Problematic - shared mutable state
+data class Team(val members: MutableList<String>)
+
+// Better - immutable collections
+data class Team(val members: List<String>) {
+    fun addMember(name: String) = copy(members = members + name)
+    fun removeMember(name: String) = copy(members = members - name)
+}
+```
+
+### 3. Use Validation in init Blocks
+
+```kotlin
+data class Email(val address: String) {
+    init {
+        require(address.contains("@") && address.contains(".")) {
+            "Invalid email format: $address"
+        }
+    }
+}
+```
+
+### 4. Consider Using Inline/Value Classes for Type Safety
+
+```kotlin
+@JvmInline
+value class UserId(val value: String)
+
+@JvmInline
+value class ProductId(val value: String)
+
+data class Order(val id: String, val userId: UserId, val productId: ProductId)
+// Now you can't accidentally mix up user IDs and product IDs
+```
+
+### 5. Use Meaningful Names and Documentation
+
+```kotlin
+/**
+ * Represents a geographic coordinate point.
+ * @property latitude Latitude in decimal degrees (-90 to 90)
+ * @property longitude Longitude in decimal degrees (-180 to 180)
+ */
+data class Coordinate(val latitude: Double, val longitude: Double) {
+    init {
+        require(latitude in -90.0..90.0) { "Invalid latitude: $latitude" }
+        require(longitude in -180.0..180.0) { "Invalid longitude: $longitude" }
+    }
+}
+```
+
+## Key Takeaways
+
+- **Data classes automatically generate** `equals()`, `hashCode()`, `toString()`, `copy()`, and `componentN()` methods
+- **Only primary constructor parameters** marked with `val`/`var` are included in generated methods
+- **The `copy()` method** enables easy creation of modified instances while maintaining immutability
+- **Destructuring declarations** allow easy extraction of property values
+- **Prefer immutable data classes** using `val` properties
+- **Use validation in init blocks** to ensure data integrity
+- **Be careful with mutable collections** as they can break equality contracts
+- **Data classes are perfect for DTOs, configuration objects, and simple data containers**
+- **Use regular classes for complex behavior** or when you need inheritance
+- Data classes promote **functional programming patterns** and make code more readable and maintainable
+
+Data classes are one of Kotlin's most powerful features for reducing boilerplate code while maintaining type safety and providing useful functionality out of the box.

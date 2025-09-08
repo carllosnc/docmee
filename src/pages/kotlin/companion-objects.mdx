@@ -1,0 +1,228 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Companion Objects
+
+## Overview
+Companion objects in Kotlin are a special type of object declaration that allows you to define static-like behavior within a class. They are tied to the class rather than an instance of the class, similar to static members in Java, but with more flexibility and object-oriented features.
+
+## Key Characteristics
+- **Declared Inside a Class**: A companion object is defined using the `companion object` keywords within a class or interface.
+- **Single Instance per Class**: There is only one companion object per class, acting as a singleton associated with the class.
+- **Access to Class Members**: Companion objects can access private members of the containing class, including private constructors.
+- **Nameable**: You can optionally give a companion object a name, or it remains unnamed and is accessed as `Companion`.
+- **Implements Interfaces**: Companion objects can implement interfaces, allowing for more complex behavior.
+- **Static-like Behavior**: They are often used to define factory methods, constants, or utility functions related to the class.
+
+## Syntax
+```kotlin
+class MyClass {
+    companion object {
+        // Members of the companion object
+        const val CONSTANT = "I am constant"
+        fun factoryMethod(): MyClass = MyClass()
+    }
+}
+```
+
+### Named Companion Object
+```kotlin
+class MyClass {
+    companion object MyCompanion {
+        fun sayHello() = "Hello from MyCompanion!"
+    }
+}
+```
+
+## Usage
+### Accessing Companion Object Members
+You can access companion object members directly through the class name without needing an instance:
+```kotlin
+fun main() {
+    println(MyClass.CONSTANT) // Output: I am constant
+    val instance = MyClass.factoryMethod()
+    println(MyClass.MyCompanion.sayHello()) // Output: Hello from MyCompanion!
+}
+```
+
+### Factory Methods
+Companion objects are commonly used to implement factory methods, allowing controlled instantiation:
+```kotlin
+class MyClass private constructor(val value: Int) {
+    companion object {
+        fun create(value: Int): MyClass {
+            return MyClass(value)
+        }
+    }
+}
+```
+
+### Implementing Interfaces
+Companion objects can implement interfaces, enabling polymorphic behavior:
+```kotlin
+interface Factory {
+    fun create(): String
+}
+
+class MyClass {
+    companion object : Factory {
+        override fun create() = "Instance created"
+    }
+}
+```
+
+## Additional Examples
+### Example 1: Configuration Holder
+Companion objects can store configuration settings or constants for a class:
+```kotlin
+class DatabaseConnection private constructor(val url: String) {
+    companion object {
+        const val DEFAULT_URL = "jdbc:mysql://localhost:3306/mydb"
+        const val DEFAULT_USER = "admin"
+        
+        fun connect(): DatabaseConnection {
+            return DatabaseConnection(DEFAULT_URL)
+        }
+        
+        fun connect(url: String): DatabaseConnection {
+            return DatabaseConnection(url)
+        }
+    }
+}
+
+fun main() {
+    val defaultConn = DatabaseConnection.connect()
+    println("Connected to: ${defaultConn.url}") // Output: Connected to: jdbc:mysql://localhost:3306/mydb
+    val customConn = DatabaseConnection.connect("jdbc:mysql://remote:3306/otherdb")
+    println("Connected to: ${customConn.url}") // Output: Connected to: jdbc:mysql://remote:3306/otherdb
+}
+```
+
+### Example 2: Counter for Instances
+Companion objects can maintain shared state, such as counting instances of a class:
+```kotlin
+class Product(val name: String) {
+    init {
+        instanceCount++
+    }
+    
+    companion object {
+        private var instanceCount = 0
+        
+        fun getInstanceCount(): Int = instanceCount
+    }
+}
+
+fun main() {
+    val product1 = Product("Laptop")
+    val product2 = Product("Phone")
+    println("Total products created: ${Product.getInstanceCount()}") // Output: Total products created: 2
+}
+```
+
+### Example 3: Utility Functions
+Companion objects can provide utility functions related to the class:
+```kotlin
+class TextProcessor(val text: String) {
+    companion object {
+        fun isValidText(input: String): Boolean {
+            return input.isNotBlank() && input.length >= 3
+        }
+        
+        fun normalizeText(input: String): String {
+            return input.trim().lowercase()
+        }
+    }
+}
+
+fun main() {
+    println(TextProcessor.isValidText("Hello")) // Output: true
+    println(TextProcessor.isValidText("")) // Output: false
+    println(TextProcessor.normalizeText("  HeLLo  ")) // Output: hello
+}
+```
+
+### Example 4: Implementing Multiple Interfaces
+Companion objects can implement multiple interfaces for more complex behavior:
+```kotlin
+interface Logger {
+    fun log(message: String)
+}
+
+interface Config {
+    fun getConfig(): String
+}
+
+class Service private constructor(val config: String) {
+    companion object ServiceCompanion : Logger, Config {
+        override fun log(message: String) {
+            println("Log: $message")
+        }
+        
+        override fun getConfig(): String = "Default Config"
+        
+        fun create(): Service {
+            return Service(getConfig())
+        }
+    }
+}
+
+fun main() {
+    Service.ServiceCompanion.log("Service starting") // Output: Log: Service starting
+    val service = Service.create()
+    println("Service config: ${service.config}") // Output: Service config: Default Config
+}
+```
+
+## Benefits
+- **Encapsulation**: Keeps related utility methods and constants within the class, improving organization.
+- **Access to Private Members**: Unlike Java’s static methods, companion objects can access private members of the class.
+- **Object-Oriented**: Companion objects are proper objects, supporting inheritance and interface implementation.
+- **No Need for External Utilities**: Reduces the need for separate utility classes or top-level functions for class-related logic.
+
+## Limitations
+- **Not Truly Static**: While similar to static members, companion objects are still objects, so they have a slight overhead compared to Java’s static members.
+- **Single Companion per Class**: You cannot define multiple companion objects in a single class.
+- **Initialization Cost**: Companion objects are initialized lazily when first accessed, which might introduce a minor delay.
+
+## Practical Example
+Here’s a practical example combining multiple features of companion objects:
+```kotlin
+interface IdProvider {
+    fun getId(): String
+}
+
+class User private constructor(val id: String, val name: String) {
+    companion object UserFactory : IdProvider {
+        const val DEFAULT_ID = "USER_001"
+        override fun getId() = DEFAULT_ID
+        fun create(name: String): User {
+            return User(getId(), name)
+        }
+    }
+}
+
+fun main() {
+    val user = User.create("Alice")
+    println("User ID: ${user.id}, Name: ${user.name}") // Output: User ID: USER_001, Name: Alice
+    println(User.UserFactory.getId()) // Output: USER_001
+}
+```
+
+## When to Use
+- Use companion objects for factory methods, constants, or utility functions tied to a class.
+- Prefer companion objects over top-level functions when the logic is tightly coupled to the class.
+- Use them to implement interfaces or provide default behavior for the class.
+
+## Comparison with Java
+| Feature                  | Kotlin Companion Object                  | Java Static Members                     |
+|--------------------------|-----------------------------------------|-----------------------------------------|
+| Access to private members| Yes                                     | No (except via reflection)              |
+| Implements interfaces    | Yes                                     | No                                      |
+| Singleton behavior       | Yes (lazy initialization)               | Yes (eager or lazy with holder pattern) |
+| Inheritance              | Yes (via interfaces)                    | No                                      |
+
+## Conclusion
+Companion objects in Kotlin provide a powerful way to encapsulate class-related utility functions, constants, and factory methods while maintaining an object-oriented approach. They bridge the gap between static members and object-oriented programming, offering flexibility and better encapsulation compared to traditional static members in Java. The additional examples demonstrate their versatility in handling configurations, counters, utility functions, and multiple interface implementations.

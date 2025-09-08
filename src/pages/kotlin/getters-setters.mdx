@@ -1,0 +1,622 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Properties (Getters/Setters)
+
+## Overview
+
+Kotlin properties provide a powerful and concise way to manage class data. Unlike Java's fields with separate getter/setter methods, Kotlin properties combine field declaration with automatic accessor generation, while still allowing custom implementations when needed.
+
+## Basic Property Declaration
+
+### Read-Only Properties (val)
+
+```kotlin
+class Person {
+    val name: String = "John"  // Read-only property with initializer
+    val id: Int                // Read-only property (must be initialized in constructor)
+}
+```
+
+### Mutable Properties (var)
+
+```kotlin
+class Person {
+    var name: String = "John"  // Mutable property with initializer
+    var age: Int = 0          // Mutable property with default value
+}
+```
+
+## Property Usage
+
+Properties are accessed directly, but Kotlin automatically calls getters/setters:
+
+```kotlin
+class Person(var name: String, var age: Int)
+
+fun main() {
+    val person = Person("Alice", 25)
+    
+    // Getting values (calls getter)
+    println(person.name)  // prints "Alice"
+    println(person.age)   // prints 25
+    
+    // Setting values (calls setter)
+    person.name = "Bob"   // calls setter
+    person.age = 30       // calls setter
+}
+```
+
+## Custom Getters and Setters
+
+### Custom Getter
+
+```kotlin
+class Rectangle(val width: Double, val height: Double) {
+    val area: Double
+        get() = width * height  // Custom getter
+    
+    val isSquare: Boolean
+        get() = width == height
+}
+
+fun main() {
+    val rect = Rectangle(5.0, 3.0)
+    println(rect.area)     // 15.0 (calculated each time)
+    println(rect.isSquare) // false
+}
+```
+
+### Custom Setter
+
+```kotlin
+class Person {
+    var name: String = ""
+        set(value) {
+            field = value.trim().replaceFirstChar { it.uppercaseChar() }
+        }
+    
+    var age: Int = 0
+        set(value) {
+            if (value >= 0) {
+                field = value
+            } else {
+                throw IllegalArgumentException("Age cannot be negative")
+            }
+        }
+}
+
+fun main() {
+    val person = Person()
+    person.name = "  alice  "  // Will be stored as "Alice"
+    person.age = 25           // Valid
+    // person.age = -5        // Would throw exception
+}
+```
+
+### The `field` Identifier
+
+The `field` identifier refers to the backing field of the property:
+
+```kotlin
+class Temperature {
+    var celsius: Double = 0.0
+        set(value) {
+            field = value  // 'field' refers to the backing field
+        }
+        get() = field     // 'field' refers to the backing field
+    
+    var fahrenheit: Double
+        get() = celsius * 9/5 + 32
+        set(value) {
+            celsius = (value - 32) * 5/9  // No backing field needed
+        }
+}
+```
+
+## Property Initialization
+
+### Late Initialization (lateinit)
+
+For properties that cannot be initialized during construction but are guaranteed to be initialized before use:
+
+```kotlin
+class DatabaseManager {
+    lateinit var connection: Connection
+    
+    fun initialize() {
+        connection = DriverManager.getConnection("jdbc:...")
+    }
+    
+    fun query(sql: String): ResultSet {
+        // Can use connection here safely after initialize() is called
+        return connection.prepareStatement(sql).executeQuery()
+    }
+    
+    fun isInitialized(): Boolean {
+        return ::connection.isInitialized
+    }
+}
+```
+
+**Note**: `lateinit` can only be used with:
+- `var` properties (not `val`)
+- Non-nullable types
+- Properties that don't have custom getters/setters
+
+### Lazy Initialization
+
+For properties that should be computed only when first accessed:
+
+```kotlin
+class DataProcessor {
+    val expensiveData: List<String> by lazy {
+        println("Computing expensive data...")
+        // Expensive computation here
+        (1..1000).map { "Item $it" }
+    }
+    
+    val configData: Map<String, String> by lazy(LazyThreadSafetyMode.NONE) {
+        // Non-thread-safe lazy (faster, use only if accessed from single thread)
+        loadConfigFromFile()
+    }
+    
+    private fun loadConfigFromFile(): Map<String, String> {
+        // Load configuration from file
+        return mapOf("key1" to "value1", "key2" to "value2")
+    }
+}
+
+fun main() {
+    val processor = DataProcessor()
+    // expensiveData is not computed yet
+    
+    println("About to access expensive data")
+    println(processor.expensiveData.size)  // Now it's computed
+    println(processor.expensiveData.size)  // Uses cached value
+}
+```
+
+## Delegated Properties
+
+Kotlin provides several built-in property delegates:
+
+### Observable Properties
+
+```kotlin
+import kotlin.properties.Delegates
+
+class User {
+    var name: String by Delegates.observable("Initial") { property, oldValue, newValue ->
+        println("${property.name}: $oldValue -> $newValue")
+    }
+    
+    var email: String by Delegates.vetoable("") { property, oldValue, newValue ->
+        // Veto the change if new value doesn't contain @
+        newValue.contains("@")
+    }
+}
+
+fun main() {
+    val user = User()
+    user.name = "Alice"    // Prints: name: Initial -> Alice
+    user.name = "Bob"      // Prints: name: Alice -> Bob
+    
+    user.email = "invalid" // Change is vetoed, email remains ""
+    user.email = "alice@example.com"  // This change is allowed
+}
+```
+
+### Map-Backed Properties
+
+```kotlin
+class User(map: Map<String, Any>) {
+    val name: String by map
+    val age: Int by map
+}
+
+class MutableUser(map: MutableMap<String, Any>) {
+    var name: String by map
+    var age: Int by map
+}
+
+fun main() {
+    val userData = mapOf("name" to "Alice", "age" to 25)
+    val user = User(userData)
+    println("${user.name} is ${user.age} years old")
+    
+    val mutableUserData = mutableMapOf("name" to "Bob", "age" to 30)
+    val mutableUser = MutableUser(mutableUserData)
+    mutableUser.age = 31  // Updates the map
+}
+```
+
+## Visibility Modifiers
+
+### Property Visibility
+
+```kotlin
+class BankAccount {
+    private val accountNumber: String = "123456"  // Private property
+    protected var balance: Double = 0.0          // Protected property
+    internal val bankCode: String = "BANK001"    // Internal property
+    public var isActive: Boolean = true          // Public property (default)
+}
+```
+
+### Setter Visibility
+
+```kotlin
+class Counter {
+    var count: Int = 0
+        private set  // Getter is public, setter is private
+    
+    fun increment() {
+        count++  // Can modify from within class
+    }
+    
+    fun reset() {
+        count = 0  // Can modify from within class
+    }
+}
+
+fun main() {
+    val counter = Counter()
+    println(counter.count)  // Can read
+    counter.increment()     // Can increment through method
+    // counter.count = 5    // Compilation error - setter is private
+}
+```
+
+## Backing Fields and Properties
+
+### When Backing Fields Are Created
+
+Kotlin automatically creates a backing field when:
+- Property uses default getter/setter
+- Custom getter/setter references `field`
+
+```kotlin
+class Example {
+    val simple: String = "test"  // Has backing field
+    
+    val computed: String         // No backing field
+        get() = "computed"
+    
+    var withBackingField: String = ""  // Has backing field
+        set(value) {
+            field = value.uppercase()  // References 'field'
+        }
+    
+    var withoutBackingField: String    // No backing field
+        get() = someOtherProperty
+        set(value) {
+            someOtherProperty = value
+        }
+    
+    private var someOtherProperty: String = ""
+}
+```
+
+### Backing Properties
+
+Sometimes you need to expose a read-only view of a mutable property:
+
+```kotlin
+class Repository {
+    private val _items = mutableListOf<String>()
+    val items: List<String>  // Read-only view
+        get() = _items
+    
+    fun addItem(item: String) {
+        _items.add(item)
+    }
+    
+    fun removeItem(item: String) {
+        _items.remove(item)
+    }
+}
+
+fun main() {
+    val repo = Repository()
+    repo.addItem("Item 1")
+    
+    val items = repo.items  // Returns List<String>, not MutableList
+    // items.add("Item 2")  // Compilation error
+    
+    println(items)  // [Item 1]
+}
+```
+
+## Extension Properties
+
+You can add properties to existing classes:
+
+```kotlin
+val String.lastChar: Char
+    get() = this[length - 1]
+
+var StringBuilder.lastChar: Char
+    get() = this[length - 1]
+    set(value) {
+        setCharAt(length - 1, value)
+    }
+
+fun main() {
+    println("Kotlin".lastChar)  // n
+    
+    val sb = StringBuilder("Hello")
+    sb.lastChar = '!'
+    println(sb)  // Hell!
+}
+```
+
+## Comprehensive Example: Smart Home Device
+
+Here's a complete example demonstrating various property features:
+
+```kotlin
+import kotlin.properties.Delegates
+
+abstract class SmartDevice(val name: String) {
+    var isOn: Boolean by Delegates.observable(false) { _, oldValue, newValue ->
+        if (oldValue != newValue) {
+            println("$name turned ${if (newValue) "ON" else "OFF"}")
+        }
+    }
+    
+    protected var _powerConsumption: Double = 0.0
+    val powerConsumption: Double
+        get() = if (isOn) _powerConsumption else 0.0
+}
+
+class SmartThermostat(name: String) : SmartDevice(name) {
+    init {
+        _powerConsumption = 50.0  // 50W
+    }
+    
+    private var _temperature: Double = 20.0
+    
+    var targetTemperature: Double
+        get() = _temperature
+        set(value) {
+            when {
+                value < 10.0 -> {
+                    println("Temperature too low, setting to 10°C")
+                    _temperature = 10.0
+                }
+                value > 35.0 -> {
+                    println("Temperature too high, setting to 35°C")
+                    _temperature = 35.0
+                }
+                else -> _temperature = value
+            }
+        }
+    
+    var currentTemperature: Double by Delegates.vetoable(20.0) { _, _, newValue ->
+        // Only allow reasonable temperature readings
+        newValue in -50.0..60.0
+    }
+    
+    val isHeating: Boolean
+        get() = isOn && currentTemperature < targetTemperature
+    
+    val isCooling: Boolean
+        get() = isOn && currentTemperature > targetTemperature
+    
+    val temperatureStatus: String
+        get() = when {
+            !isOn -> "OFF"
+            isHeating -> "HEATING to ${targetTemperature}°C"
+            isCooling -> "COOLING to ${targetTemperature}°C"
+            else -> "MAINTAINING ${targetTemperature}°C"
+        }
+}
+
+class SmartLight(name: String) : SmartDevice(name) {
+    init {
+        _powerConsumption = 10.0  // 10W base consumption
+    }
+    
+    private var _brightness: Int = 100
+    var brightness: Int
+        get() = if (isOn) _brightness else 0
+        set(value) {
+            _brightness = value.coerceIn(1, 100)
+            _powerConsumption = 10.0 * (_brightness / 100.0)
+        }
+    
+    var color: String by Delegates.observable("white") { _, oldValue, newValue ->
+        if (isOn && oldValue != newValue) {
+            println("$name color changed from $oldValue to $newValue")
+        }
+    }
+    
+    // Extension-like computed properties
+    val isLowLight: Boolean
+        get() = isOn && brightness < 30
+    
+    val isDimmed: Boolean
+        get() = isOn && brightness in 30..70
+}
+
+class HomeAutomationSystem {
+    private val _devices = mutableListOf<SmartDevice>()
+    val devices: List<SmartDevice>
+        get() = _devices.toList()  // Return defensive copy
+    
+    val totalPowerConsumption: Double
+        get() = _devices.sumOf { it.powerConsumption }
+    
+    val activeDevicesCount: Int
+        get() = _devices.count { it.isOn }
+    
+    fun addDevice(device: SmartDevice) {
+        _devices.add(device)
+        println("Added ${device.name} to home automation system")
+    }
+    
+    fun toggleAllDevices() {
+        val shouldTurnOn = _devices.any { !it.isOn }
+        _devices.forEach { it.isOn = shouldTurnOn }
+    }
+    
+    fun getSystemStatus(): String {
+        return buildString {
+            appendLine("=== Home Automation System Status ===")
+            appendLine("Active devices: $activeDevicesCount/${_devices.size}")
+            appendLine("Total power consumption: ${totalPowerConsumption}W")
+            appendLine()
+            _devices.forEach { device ->
+                appendLine("${device.name}: ${if (device.isOn) "ON" else "OFF"} (${device.powerConsumption}W)")
+                when (device) {
+                    is SmartThermostat -> {
+                        appendLine("  Temperature: ${device.currentTemperature}°C")
+                        appendLine("  Target: ${device.targetTemperature}°C")
+                        appendLine("  Status: ${device.temperatureStatus}")
+                    }
+                    is SmartLight -> {
+                        if (device.isOn) {
+                            appendLine("  Brightness: ${device.brightness}%")
+                            appendLine("  Color: ${device.color}")
+                        }
+                    }
+                }
+                appendLine()
+            }
+        }
+    }
+}
+
+fun main() {
+    val homeSystem = HomeAutomationSystem()
+    
+    // Create devices
+    val thermostat = SmartThermostat("Living Room Thermostat")
+    val light1 = SmartLight("Bedroom Light")
+    val light2 = SmartLight("Kitchen Light")
+    
+    // Add to system
+    homeSystem.addDevice(thermostat)
+    homeSystem.addDevice(light1)
+    homeSystem.addDevice(light2)
+    
+    // Configure devices
+    thermostat.isOn = true
+    thermostat.targetTemperature = 22.0
+    thermostat.currentTemperature = 18.0
+    
+    light1.isOn = true
+    light1.brightness = 80
+    light1.color = "warm white"
+    
+    light2.isOn = true
+    light2.brightness = 45
+    light2.color = "blue"
+    
+    // Display status
+    println(homeSystem.getSystemStatus())
+    
+    // Demonstrate property validation
+    thermostat.targetTemperature = 40.0  // Will be clamped to 35.0
+    thermostat.currentTemperature = -100.0  // Will be rejected
+    
+    // Toggle all devices
+    println("Toggling all devices...")
+    homeSystem.toggleAllDevices()
+    
+    println("\nFinal status:")
+    println("Total power consumption: ${homeSystem.totalPowerConsumption}W")
+}
+```
+
+## Property Best Practices
+
+### 1. Use Properties Instead of Getter/Setter Methods
+
+```kotlin
+// Good - Kotlin style
+class Circle(val radius: Double) {
+    val area: Double
+        get() = Math.PI * radius * radius
+    
+    val diameter: Double
+        get() = radius * 2
+}
+
+// Avoid - Java style
+class Circle(private val radius: Double) {
+    fun getArea(): Double = Math.PI * radius * radius
+    fun getDiameter(): Double = radius * 2
+}
+```
+
+### 2. Validate in Setters
+
+```kotlin
+class Person {
+    var age: Int = 0
+        set(value) {
+            require(value >= 0) { "Age cannot be negative: $value" }
+            field = value
+        }
+    
+    var email: String = ""
+        set(value) {
+            require(value.contains("@")) { "Invalid email format: $value" }
+            field = value.lowercase()
+        }
+}
+```
+
+### 3. Use Lazy for Expensive Computations
+
+```kotlin
+class DataAnalyzer(private val data: List<Int>) {
+    val average: Double by lazy {
+        data.average()  // Only computed when first accessed
+    }
+    
+    val sortedData: List<Int> by lazy {
+        data.sorted()  // Only computed when first accessed
+    }
+}
+```
+
+### 4. Provide Read-Only Views of Mutable Collections
+
+```kotlin
+class Playlist {
+    private val _songs = mutableListOf<String>()
+    val songs: List<String> get() = _songs  // Read-only view
+    
+    fun addSong(song: String) { _songs.add(song) }
+    fun removeSong(song: String) { _songs.remove(song) }
+}
+```
+
+### 5. Use Extension Properties for Utility Functions
+
+```kotlin
+val String.isEmailValid: Boolean
+    get() = contains("@") && contains(".")
+
+val List<Int>.secondLargest: Int?
+    get() = if (size < 2) null else sorted().let { it[it.size - 2] }
+```
+
+## Key Takeaways
+
+- **Properties combine field declaration with accessor methods** in a clean, concise syntax
+- **Custom getters/setters** allow validation and computed properties
+- **The `field` identifier** refers to the backing field within custom accessors
+- **Lazy properties** defer expensive computations until needed
+- **Delegated properties** provide powerful patterns for common use cases
+- **Visibility modifiers** can be applied separately to getters and setters
+- **Extension properties** add functionality to existing classes without modification
+- **Backing properties** provide controlled access to mutable state
+- Properties make Kotlin code more readable and maintainable than traditional getter/setter methods
+
+This approach makes property management in Kotlin both powerful and intuitive, supporting everything from simple data storage to complex computed properties and validation logic.

@@ -1,0 +1,392 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Class Declarations and Constructors
+
+## Overview
+
+In Kotlin, class declarations and constructors work together to define how objects are created and initialized. This guide covers all aspects of class declarations, primary constructors, secondary constructors, and property initialization.
+
+## Basic Class Declaration
+
+A basic class in Kotlin is declared using the `class` keyword:
+
+```kotlin
+class Person {
+    // class body
+}
+```
+
+## Primary Constructor
+
+The primary constructor is part of the class header and comes immediately after the class name:
+
+```kotlin
+class Person(firstName: String, lastName: String) {
+    // class body
+}
+```
+
+### Constructor Parameters vs Properties
+
+Parameters in the primary constructor can be:
+- **Just parameters** (used only during initialization)
+- **Properties** (using `val` or `var`)
+
+```kotlin
+class Person(
+    name: String,           // just a parameter
+    val age: Int,          // read-only property
+    var email: String      // mutable property
+) {
+    // name is only available during initialization
+    // age and email become class properties
+}
+```
+
+### Initializer Blocks
+
+Code in the primary constructor goes in `init` blocks:
+
+```kotlin
+class Person(firstName: String, lastName: String) {
+    val fullName: String
+    
+    init {
+        fullName = "$firstName $lastName"
+        println("Person created: $fullName")
+    }
+}
+```
+
+Multiple `init` blocks execute in the order they appear:
+
+```kotlin
+class Example(value: Int) {
+    init {
+        println("First init: $value")
+    }
+    
+    val doubled = value * 2
+    
+    init {
+        println("Second init: $doubled")
+    }
+}
+```
+
+## Secondary Constructors
+
+Secondary constructors are defined using the `constructor` keyword and must delegate to the primary constructor:
+
+```kotlin
+class Person(val name: String) {
+    var age: Int = 0
+    var email: String = ""
+    
+    // Secondary constructor
+    constructor(name: String, age: Int) : this(name) {
+        this.age = age
+    }
+    
+    // Another secondary constructor
+    constructor(name: String, age: Int, email: String) : this(name, age) {
+        this.email = email
+    }
+}
+```
+
+### Usage Example
+
+```kotlin
+val person1 = Person("John")                    // Primary constructor
+val person2 = Person("Jane", 25)                // Secondary constructor
+val person3 = Person("Bob", 30, "bob@example.com")  // Another secondary constructor
+```
+
+## Default Parameter Values
+
+Primary constructors can have default values, reducing the need for secondary constructors:
+
+```kotlin
+class Person(
+    val name: String,
+    val age: Int = 0,
+    val email: String = ""
+)
+
+// Usage with named parameters
+val person1 = Person("John")
+val person2 = Person("Jane", age = 25)
+val person3 = Person("Bob", 30, "bob@example.com")
+val person4 = Person(name = "Alice", email = "alice@example.com")
+```
+
+## Visibility Modifiers on Constructors
+
+Constructors can have visibility modifiers:
+
+```kotlin
+class Person private constructor(val name: String) {
+    companion object {
+        fun create(name: String): Person {
+            require(name.isNotBlank()) { "Name cannot be blank" }
+            return Person(name)
+        }
+    }
+}
+
+// Usage
+val person = Person.create("John")  // Must use factory method
+```
+
+## Property Initialization
+
+Properties must be initialized either:
+- In the primary constructor
+- With a default value
+- In an `init` block
+- As a lazy property
+
+```kotlin
+class Example(input: String) {
+    val property1 = input.uppercase()              // initialized with expression
+    val property2: String                          // initialized in init block
+    val property3 by lazy { expensiveOperation() } // lazy initialization
+    lateinit var property4: String                 // late initialization
+    
+    init {
+        property2 = input.lowercase()
+    }
+    
+    private fun expensiveOperation(): String {
+        // Some expensive computation
+        return "computed value"
+    }
+}
+```
+
+## Complete Example: Bank Account Class
+
+Here's a comprehensive example showing various constructor features:
+
+```kotlin
+class BankAccount(
+    val accountNumber: String,
+    initialBalance: Double = 0.0,
+    val accountType: String = "Checking"
+) {
+    var balance: Double = 0.0
+        private set  // only this class can modify balance
+    
+    val transactions = mutableListOf<String>()
+    val createdAt = System.currentTimeMillis()
+    
+    init {
+        require(accountNumber.isNotBlank()) { "Account number cannot be blank" }
+        require(initialBalance >= 0) { "Initial balance cannot be negative" }
+        
+        balance = initialBalance
+        transactions.add("Account opened with balance: $$initialBalance")
+        println("Account $accountNumber created successfully")
+    }
+    
+    // Secondary constructor for business accounts
+    constructor(
+        accountNumber: String,
+        initialBalance: Double,
+        businessName: String
+    ) : this(accountNumber, initialBalance, "Business") {
+        require(businessName.isNotBlank()) { "Business name cannot be blank" }
+        transactions.add("Business account for: $businessName")
+    }
+    
+    // Secondary constructor with just account number (minimum required)
+    constructor(accountNumber: String) : this(accountNumber, 0.0, "Basic")
+    
+    fun deposit(amount: Double) {
+        require(amount > 0) { "Deposit amount must be positive" }
+        balance += amount
+        transactions.add("Deposited: $$amount (New balance: $$balance)")
+    }
+    
+    fun withdraw(amount: Double): Boolean {
+        return if (amount > 0 && amount <= balance) {
+            balance -= amount
+            transactions.add("Withdrew: $$amount (New balance: $$balance)")
+            true
+        } else {
+            transactions.add("Failed withdrawal attempt: $$amount")
+            false
+        }
+    }
+    
+    fun getStatement(): String {
+        return buildString {
+            appendLine("Account: $accountNumber ($accountType)")
+            appendLine("Current Balance: $$balance")
+            appendLine("Transactions:")
+            transactions.forEach { transaction ->
+                appendLine("  - $transaction")
+            }
+        }
+    }
+}
+```
+
+### Usage of the BankAccount Class
+
+```kotlin
+fun main() {
+    // Using primary constructor with defaults
+    val account1 = BankAccount("ACC001")
+    
+    // Using primary constructor with all parameters
+    val account2 = BankAccount("ACC002", 1000.0, "Savings")
+    
+    // Using secondary constructor for business account
+    val businessAccount = BankAccount("BUS001", 5000.0, "Tech Startup LLC")
+    
+    // Operations
+    account1.deposit(500.0)
+    account1.withdraw(100.0)
+    
+    println(account1.getStatement())
+}
+```
+
+## Data Classes
+
+For simple data containers, Kotlin provides data classes that automatically generate useful methods:
+
+```kotlin
+data class User(
+    val id: Long,
+    val name: String,
+    val email: String,
+    val isActive: Boolean = true
+) {
+    // Additional properties and methods can be added
+    val displayName: String = name.uppercase()
+    
+    init {
+        require(email.contains("@")) { "Invalid email format" }
+    }
+}
+```
+
+Data classes automatically generate:
+- `equals()` and `hashCode()`
+- `toString()`
+- `copy()` function
+- `componentN()` functions for destructuring
+
+## Constructor Execution Order
+
+Understanding the execution order is important:
+
+1. Primary constructor parameters are evaluated
+2. Property initializers (in declaration order)
+3. `init` blocks (in declaration order)
+4. Secondary constructor body (if called)
+
+```kotlin
+class ExecutionOrder(val param: String) {
+    val prop1 = run {
+        println("Property 1 initialized")
+        "prop1"
+    }
+    
+    init {
+        println("First init block")
+    }
+    
+    val prop2 = run {
+        println("Property 2 initialized")
+        "prop2"
+    }
+    
+    init {
+        println("Second init block")
+    }
+    
+    constructor(param: String, extra: String) : this(param) {
+        println("Secondary constructor body")
+    }
+}
+```
+
+## Best Practices
+
+### 1. Use Primary Constructor When Possible
+```kotlin
+// Good - concise and clear
+class Person(val name: String, val age: Int, val email: String = "")
+
+// Avoid unless necessary
+class Person {
+    val name: String
+    val age: Int
+    val email: String
+    
+    constructor(name: String, age: Int, email: String = "") {
+        this.name = name
+        this.age = age
+        this.email = email
+    }
+}
+```
+
+### 2. Validate Input Early
+```kotlin
+class User(val email: String, val age: Int) {
+    init {
+        require(email.contains("@")) { "Invalid email: $email" }
+        require(age >= 0) { "Age cannot be negative: $age" }
+    }
+}
+```
+
+### 3. Use Default Parameters Instead of Multiple Constructors
+```kotlin
+// Good
+class HttpClient(
+    val baseUrl: String,
+    val timeout: Long = 30_000,
+    val retries: Int = 3
+)
+
+// Avoid
+class HttpClient(val baseUrl: String) {
+    constructor(baseUrl: String, timeout: Long) : this(baseUrl)
+    constructor(baseUrl: String, timeout: Long, retries: Int) : this(baseUrl)
+    // ... property assignments
+}
+```
+
+### 4. Consider Data Classes for Simple Data Containers
+```kotlin
+// For simple data holders
+data class Point(val x: Double, val y: Double)
+
+// For classes with behavior, use regular classes
+class Circle(val center: Point, val radius: Double) {
+    fun area(): Double = Math.PI * radius * radius
+    fun contains(point: Point): Boolean = /* implementation */
+}
+```
+
+## Key Takeaways
+
+- **Primary constructors** are concise and should be preferred when possible
+- **Init blocks** execute in order and are part of primary constructor execution
+- **Secondary constructors** must delegate to the primary constructor
+- **Default parameters** reduce the need for constructor overloading
+- **Property initialization** must happen before object construction completes
+- **Data classes** are perfect for simple data containers
+- **Validation** should happen early in `init` blocks
+- Constructor parameters without `val`/`var` are only available during initialization
+
+This approach makes Kotlin constructors both powerful and concise, enabling flexible object initialization while maintaining type safety and readability.

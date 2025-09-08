@@ -1,0 +1,900 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Object Declarations and Expressions
+
+## Overview
+
+Kotlin provides the `object` keyword for creating singleton instances and anonymous objects. This feature supports object-oriented patterns like singletons, object expressions (anonymous objects), and companion objects, making it easy to implement these patterns without boilerplate code.
+
+## Object Declarations (Singletons)
+
+Object declarations create singleton instances that are initialized lazily when first accessed.
+
+### Basic Object Declaration
+
+```kotlin
+object DatabaseManager {
+    private var connectionCount = 0
+    
+    fun connect(): String {
+        connectionCount++
+        return "Connected to database (connection #$connectionCount)"
+    }
+    
+    fun getConnectionCount(): Int = connectionCount
+    
+    fun disconnect() {
+        println("Disconnected from database")
+    }
+}
+
+fun main() {
+    // Access the singleton instance
+    println(DatabaseManager.connect())  // Connected to database (connection #1)
+    println(DatabaseManager.connect())  // Connected to database (connection #2)
+    println("Total connections: ${DatabaseManager.getConnectionCount()}")  // 2
+    
+    DatabaseManager.disconnect()
+}
+```
+
+### Object Declaration with Properties
+
+```kotlin
+object AppConfig {
+    const val APP_NAME = "MyApplication"
+    const val VERSION = "1.0.0"
+    
+    var debugMode: Boolean = false
+        private set
+    
+    var apiUrl: String = "https://api.production.com"
+        private set
+    
+    fun enableDebugMode() {
+        debugMode = true
+        apiUrl = "https://api.development.com"
+        println("Debug mode enabled")
+    }
+    
+    fun getFullVersion(): String = "$APP_NAME v$VERSION"
+}
+
+fun main() {
+    println(AppConfig.getFullVersion())  // MyApplication v1.0.0
+    println("Debug mode: ${AppConfig.debugMode}")  // false
+    println("API URL: ${AppConfig.apiUrl}")
+    
+    AppConfig.enableDebugMode()
+    println("Debug mode: ${AppConfig.debugMode}")  // true
+    println("API URL: ${AppConfig.apiUrl}")
+}
+```
+
+### Object Declaration Implementing Interfaces
+
+```kotlin
+interface Logger {
+    fun log(message: String, level: LogLevel = LogLevel.INFO)
+    fun error(message: String)
+    fun debug(message: String)
+}
+
+enum class LogLevel { DEBUG, INFO, WARN, ERROR }
+
+object ConsoleLogger : Logger {
+    override fun log(message: String, level: LogLevel) {
+        val timestamp = System.currentTimeMillis()
+        println("[$timestamp] [$level] $message")
+    }
+    
+    override fun error(message: String) {
+        log("ERROR: $message", LogLevel.ERROR)
+    }
+    
+    override fun debug(message: String) {
+        log("DEBUG: $message", LogLevel.DEBUG)
+    }
+}
+
+// Usage in other classes
+class UserService {
+    private val logger = ConsoleLogger
+    
+    fun createUser(name: String): String {
+        logger.log("Creating user: $name")
+        // User creation logic
+        logger.log("User created successfully: $name")
+        return "User $name created"
+    }
+    
+    fun deleteUser(id: String) {
+        logger.debug("Attempting to delete user with ID: $id")
+        try {
+            // Delete logic
+            logger.log("User deleted: $id")
+        } catch (e: Exception) {
+            logger.error("Failed to delete user $id: ${e.message}")
+        }
+    }
+}
+```
+
+## Object Expressions (Anonymous Objects)
+
+Object expressions create anonymous objects that can implement interfaces or extend classes on the fly.
+
+### Basic Object Expression
+
+```kotlin
+interface ClickListener {
+    fun onClick()
+    fun onDoubleClick()
+}
+
+fun main() {
+    val button = "Submit Button"
+    
+    // Create anonymous object implementing interface
+    val clickListener = object : ClickListener {
+        override fun onClick() {
+            println("Button '$button' clicked")
+        }
+        
+        override fun onDoubleClick() {
+            println("Button '$button' double-clicked")
+        }
+    }
+    
+    // Simulate button clicks
+    clickListener.onClick()
+    clickListener.onDoubleClick()
+}
+```
+
+### Object Expression with Additional Properties
+
+```kotlin
+abstract class Animal {
+    abstract val name: String
+    abstract fun makeSound()
+}
+
+fun main() {
+    val pet = object : Animal() {
+        override val name = "Fluffy"
+        
+        // Additional properties not in the abstract class
+        val breed = "Golden Retriever"
+        val age = 3
+        
+        override fun makeSound() {
+            println("$name the $breed says Woof!")
+        }
+        
+        // Additional methods
+        fun play() {
+            println("$name is playing fetch")
+        }
+        
+        fun getInfo() = "$name is a $age-year-old $breed"
+    }
+    
+    pet.makeSound()
+    println(pet.getInfo())
+    pet.play()
+}
+```
+
+### Object Expression Without Supertype
+
+When you don't need to implement an interface or extend a class:
+
+```kotlin
+fun main() {
+    val data = object {
+        val name = "John Doe"
+        val age = 30
+        val email = "john@example.com"
+        
+        fun getDisplayName() = "$name ($age)"
+        fun isAdult() = age >= 18
+    }
+    
+    println(data.getDisplayName())  // John Doe (30)
+    println("Is adult: ${data.isAdult()}")  // true
+    println("Email: ${data.email}")
+}
+```
+
+## Companion Objects
+
+Companion objects provide a way to associate functions and properties with a class rather than instances of the class.
+
+### Basic Companion Object
+
+```kotlin
+class User private constructor(val name: String, val email: String, val id: String) {
+    companion object {
+        private var nextId = 1
+        
+        fun create(name: String, email: String): User {
+            val id = "USER${nextId++}"
+            return User(name, email, id)
+        }
+        
+        fun createAdmin(name: String, email: String): User {
+            val id = "ADMIN${nextId++}"
+            return User(name, email, id)
+        }
+        
+        fun validateEmail(email: String): Boolean {
+            return email.contains("@") && email.contains(".")
+        }
+    }
+    
+    override fun toString() = "User(id=$id, name=$name, email=$email)"
+}
+
+fun main() {
+    // Use companion object methods like static methods
+    val user1 = User.create("Alice", "alice@example.com")
+    val user2 = User.create("Bob", "bob@example.com")
+    val admin = User.createAdmin("Admin", "admin@company.com")
+    
+    println(user1)
+    println(user2)
+    println(admin)
+    
+    println("Is valid email: ${User.validateEmail("test@example.com")}")  // true
+    println("Is valid email: ${User.validateEmail("invalid-email")}")     // false
+}
+```
+
+### Named Companion Objects
+
+```kotlin
+class MathUtils {
+    companion object Calculator {
+        const val PI = 3.14159265359
+        
+        fun add(a: Double, b: Double) = a + b
+        fun multiply(a: Double, b: Double) = a * b
+        fun circleArea(radius: Double) = PI * radius * radius
+    }
+}
+
+fun main() {
+    // Can access via class name
+    println(MathUtils.add(5.0, 3.0))
+    
+    // Or via companion object name
+    println(MathUtils.Calculator.multiply(4.0, 2.0))
+    
+    // Calculate circle area
+    println("Circle area: ${MathUtils.circleArea(5.0)}")
+}
+```
+
+### Companion Object Implementing Interfaces
+
+```kotlin
+interface Factory<T> {
+    fun create(config: Map<String, Any>): T
+}
+
+class DatabaseConnection private constructor(
+    val host: String,
+    val port: Int,
+    val database: String
+) {
+    companion object : Factory<DatabaseConnection> {
+        private const val DEFAULT_PORT = 5432
+        
+        override fun create(config: Map<String, Any>): DatabaseConnection {
+            val host = config["host"] as? String ?: "localhost"
+            val port = config["port"] as? Int ?: DEFAULT_PORT
+            val database = config["database"] as? String ?: "defaultdb"
+            
+            return DatabaseConnection(host, port, database)
+        }
+        
+        fun createDefault(): DatabaseConnection {
+            return DatabaseConnection("localhost", DEFAULT_PORT, "app_db")
+        }
+    }
+    
+    fun connect(): String = "Connected to $database at $host:$port"
+    
+    override fun toString() = "DatabaseConnection(host=$host, port=$port, database=$database)"
+}
+
+fun main() {
+    // Using factory method
+    val config = mapOf(
+        "host" to "production.server.com",
+        "port" to 3306,
+        "database" to "prod_db"
+    )
+    
+    val connection1 = DatabaseConnection.create(config)
+    println(connection1)
+    println(connection1.connect())
+    
+    // Using convenience method
+    val connection2 = DatabaseConnection.createDefault()
+    println(connection2)
+}
+```
+
+## Comprehensive Example: Event System
+
+Here's a complete example showing objects in a practical event system:
+
+```kotlin
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+// Event types
+sealed class Event(val timestamp: LocalDateTime = LocalDateTime.now()) {
+    data class UserLogin(val userId: String, val sessionId: String) : Event()
+    data class UserLogout(val userId: String, val sessionId: String) : Event()
+    data class PageView(val userId: String, val page: String, val referrer: String?) : Event()
+    data class Purchase(val userId: String, val productId: String, val amount: Double) : Event()
+    data class Error(val message: String, val stackTrace: String?) : Event()
+}
+
+// Event listener interface
+interface EventListener {
+    fun onEvent(event: Event)
+    val name: String
+}
+
+// Singleton Event Manager
+object EventManager {
+    private val listeners = mutableListOf<EventListener>()
+    private val eventHistory = mutableListOf<Event>()
+    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    
+    fun registerListener(listener: EventListener) {
+        listeners.add(listener)
+        println("Registered listener: ${listener.name}")
+    }
+    
+    fun unregisterListener(listener: EventListener) {
+        listeners.remove(listener)
+        println("Unregistered listener: ${listener.name}")
+    }
+    
+    fun publish(event: Event) {
+        eventHistory.add(event)
+        println("Event published: ${event::class.simpleName} at ${event.timestamp.format(formatter)}")
+        
+        listeners.forEach { listener ->
+            try {
+                listener.onEvent(event)
+            } catch (e: Exception) {
+                println("Error in listener ${listener.name}: ${e.message}")
+            }
+        }
+    }
+    
+    fun getEventCount() = eventHistory.size
+    
+    fun getEventHistory() = eventHistory.toList()
+    
+    fun clearHistory() {
+        eventHistory.clear()
+        println("Event history cleared")
+    }
+}
+
+// Singleton Analytics Service
+object AnalyticsService : EventListener {
+    override val name = "Analytics Service"
+    
+    private val userSessions = mutableMapOf<String, String>()
+    private val pageViews = mutableMapOf<String, Int>()
+    private val totalRevenue = mutableMapOf<String, Double>()
+    
+    override fun onEvent(event: Event) {
+        when (event) {
+            is Event.UserLogin -> {
+                userSessions[event.userId] = event.sessionId
+                println("Analytics: User ${event.userId} logged in")
+            }
+            
+            is Event.UserLogout -> {
+                userSessions.remove(event.userId)
+                println("Analytics: User ${event.userId} logged out")
+            }
+            
+            is Event.PageView -> {
+                pageViews[event.page] = pageViews.getOrDefault(event.page, 0) + 1
+                println("Analytics: Page view recorded for ${event.page}")
+            }
+            
+            is Event.Purchase -> {
+                val currentTotal = totalRevenue.getOrDefault(event.userId, 0.0)
+                totalRevenue[event.userId] = currentTotal + event.amount
+                println("Analytics: Purchase recorded for user ${event.userId}: $${event.amount}")
+            }
+            
+            is Event.Error -> {
+                println("Analytics: Error logged - ${event.message}")
+            }
+        }
+    }
+    
+    fun getActiveUsers() = userSessions.keys.toList()
+    fun getTopPages() = pageViews.toList().sortedByDescending { it.second }
+    fun getTotalRevenue() = totalRevenue.values.sum()
+    fun getUserRevenue(userId: String) = totalRevenue[userId] ?: 0.0
+    
+    fun generateReport(): String {
+        return buildString {
+            appendLine("=== Analytics Report ===")
+            appendLine("Active Users: ${getActiveUsers().size}")
+            appendLine("Total Events: ${EventManager.getEventCount()}")
+            appendLine("Total Revenue: $${String.format("%.2f", getTotalRevenue())}")
+            appendLine()
+            
+            appendLine("Top Pages:")
+            getTopPages().take(5).forEach { (page, views) ->
+                appendLine("  $page: $views views")
+            }
+            
+            if (totalRevenue.isNotEmpty()) {
+                appendLine()
+                appendLine("Revenue by User:")
+                totalRevenue.forEach { (userId, revenue) ->
+                    appendLine("  $userId: $${String.format("%.2f", revenue)}")
+                }
+            }
+            
+            appendLine("========================")
+        }
+    }
+}
+
+// Singleton Logger
+object Logger : EventListener {
+    override val name = "System Logger"
+    
+    private val logEntries = mutableListOf<String>()
+    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    
+    override fun onEvent(event: Event) {
+        val logEntry = when (event) {
+            is Event.UserLogin -> 
+                "[${event.timestamp.format(formatter)}] LOGIN: User ${event.userId} (session: ${event.sessionId})"
+            
+            is Event.UserLogout -> 
+                "[${event.timestamp.format(formatter)}] LOGOUT: User ${event.userId} (session: ${event.sessionId})"
+            
+            is Event.PageView -> 
+                "[${event.timestamp.format(formatter)}] PAGE_VIEW: User ${event.userId} viewed ${event.page}" +
+                    (event.referrer?.let { " (from: $it)" } ?: "")
+            
+            is Event.Purchase -> 
+                "[${event.timestamp.format(formatter)}] PURCHASE: User ${event.userId} bought ${event.productId} for $${event.amount}"
+            
+            is Event.Error -> 
+                "[${event.timestamp.format(formatter)}] ERROR: ${event.message}" +
+                    (event.stackTrace?.let { "\n$it" } ?: "")
+        }
+        
+        logEntries.add(logEntry)
+        println("Logger: $logEntry")
+    }
+    
+    fun getLogs() = logEntries.toList()
+    
+    fun getLogsForUser(userId: String) = logEntries.filter { it.contains("User $userId") }
+    
+    fun clearLogs() {
+        logEntries.clear()
+        println("Logger: All logs cleared")
+    }
+    
+    fun exportLogs(): String {
+        return buildString {
+            appendLine("=== System Log Export ===")
+            appendLine("Generated: ${LocalDateTime.now().format(formatter)}")
+            appendLine("Total entries: ${logEntries.size}")
+            appendLine()
+            logEntries.forEach { appendLine(it) }
+            appendLine("=== End of Log ===")
+        }
+    }
+}
+
+// User class with companion object for user management
+class User private constructor(val id: String, val name: String, val email: String) {
+    companion object UserManager {
+        private val users = mutableMapOf<String, User>()
+        private var nextId = 1
+        
+        fun create(name: String, email: String): User {
+            val id = "USER${String.format("%03d", nextId++)}"
+            val user = User(id, name, email)
+            users[id] = user
+            return user
+        }
+        
+        fun findById(id: String): User? = users[id]
+        
+        fun getAllUsers(): List<User> = users.values.toList()
+        
+        fun getUserCount(): Int = users.size
+    }
+    
+    private var currentSessionId: String? = null
+    
+    fun login(): String {
+        if (currentSessionId != null) {
+            throw IllegalStateException("User $id is already logged in")
+        }
+        
+        currentSessionId = "SESSION_${System.currentTimeMillis()}"
+        EventManager.publish(Event.UserLogin(id, currentSessionId!!))
+        return currentSessionId!!
+    }
+    
+    fun logout() {
+        val sessionId = currentSessionId 
+            ?: throw IllegalStateException("User $id is not logged in")
+        
+        EventManager.publish(Event.UserLogout(id, sessionId))
+        currentSessionId = null
+    }
+    
+    fun viewPage(page: String, referrer: String? = null) {
+        if (currentSessionId == null) {
+            throw IllegalStateException("User $id must be logged in to view pages")
+        }
+        
+        EventManager.publish(Event.PageView(id, page, referrer))
+    }
+    
+    fun makePurchase(productId: String, amount: Double) {
+        if (currentSessionId == null) {
+            throw IllegalStateException("User $id must be logged in to make purchases")
+        }
+        
+        if (amount <= 0) {
+            throw IllegalArgumentException("Purchase amount must be positive")
+        }
+        
+        EventManager.publish(Event.Purchase(id, productId, amount))
+    }
+    
+    fun isLoggedIn(): Boolean = currentSessionId != null
+    
+    override fun toString() = "User(id=$id, name=$name, email=$email, loggedIn=${isLoggedIn()})"
+}
+
+// Custom event listener using object expression
+fun createCustomListener(name: String, action: (Event) -> Unit) = object : EventListener {
+    override val name = name
+    override fun onEvent(event: Event) = action(event)
+}
+
+fun main() {
+    println("=== Event System Demo ===\n")
+    
+    // Register built-in listeners
+    EventManager.registerListener(AnalyticsService)
+    EventManager.registerListener(Logger)
+    
+    // Create a custom listener using object expression
+    val securityListener = createCustomListener("Security Monitor") { event ->
+        when (event) {
+            is Event.UserLogin -> println("Security: Login detected from user ${event.userId}")
+            is Event.Error -> println("Security: ALERT! Error occurred - ${event.message}")
+            is Event.Purchase -> {
+                if (event.amount > 1000) {
+                    println("Security: HIGH VALUE PURCHASE ALERT - User ${event.userId}, Amount: $${event.amount}")
+                }
+            }
+            else -> {} // Ignore other events
+        }
+    }
+    
+    EventManager.registerListener(securityListener)
+    
+    // Create users
+    println("Creating users...")
+    val alice = User.create("Alice Johnson", "alice@example.com")
+    val bob = User.create("Bob Smith", "bob@example.com")
+    val charlie = User.create("Charlie Brown", "charlie@example.com")
+    
+    println("Created ${User.getUserCount()} users\n")
+    
+    // Simulate user activity
+    println("Simulating user activity...\n")
+    
+    try {
+        // Alice's session
+        alice.login()
+        alice.viewPage("/home")
+        alice.viewPage("/products", "/home")
+        alice.makePurchase("LAPTOP001", 1299.99)
+        alice.viewPage("/profile", "/products")
+        alice.logout()
+        
+        // Bob's session
+        bob.login()
+        bob.viewPage("/home")
+        bob.viewPage("/products", "/home")
+        bob.makePurchase("MOUSE001", 49.99)
+        bob.logout()
+        
+        // Charlie's session (with error)
+        charlie.login()
+        charlie.viewPage("/home")
+        
+        // Simulate an error
+        EventManager.publish(Event.Error("Database connection timeout", "java.sql.SQLException: Connection timeout"))
+        
+        charlie.makePurchase("KEYBOARD001", 89.99)
+        charlie.logout()
+        
+    } catch (e: Exception) {
+        EventManager.publish(Event.Error("Application error: ${e.message}", e.stackTraceToString()))
+    }
+    
+    println("\n" + "=".repeat(50))
+    
+    // Generate reports
+    println(AnalyticsService.generateReport())
+    
+    println("\nActive Users: ${AnalyticsService.getActiveUsers()}")
+    println("Alice's total purchases: $${String.format("%.2f", AnalyticsService.getUserRevenue("USER001"))}")
+    
+    // Show some logs
+    println("\nRecent logs for Alice:")
+    Logger.getLogsForUser("USER001").takeLast(3).forEach { println("  $it") }
+    
+    println("\nSystem Summary:")
+    println("- Total events processed: ${EventManager.getEventCount()}")
+    println("- Total users created: ${User.getUserCount()}")
+    println("- Log entries: ${Logger.getLogs().size}")
+    
+    // Cleanup
+    EventManager.clearHistory()
+    Logger.clearLogs()
+}
+```
+
+## Object Initialization and Thread Safety
+
+### Lazy Initialization
+
+Object declarations are initialized lazily and are thread-safe:
+
+```kotlin
+object ExpensiveResource {
+    init {
+        println("Initializing expensive resource...")
+        Thread.sleep(1000) // Simulate expensive initialization
+        println("Expensive resource ready!")
+    }
+    
+    fun doSomething() {
+        println("Using expensive resource")
+    }
+}
+
+fun main() {
+    println("Before accessing object")
+    ExpensiveResource.doSomething()  // Initialization happens here
+    ExpensiveResource.doSomething()  // Already initialized
+}
+```
+
+### Thread Safety
+
+```kotlin
+object Counter {
+    private var count = 0
+    
+    @Synchronized
+    fun increment(): Int {
+        return ++count
+    }
+    
+    fun getCount(): Int = count
+}
+
+fun main() {
+    // Safe to use from multiple threads
+    val threads = (1..5).map { threadId ->
+        Thread {
+            repeat(10) {
+                println("Thread $threadId: ${Counter.increment()}")
+            }
+        }
+    }
+    
+    threads.forEach { it.start() }
+    threads.forEach { it.join() }
+    
+    println("Final count: ${Counter.getCount()}")
+}
+```
+
+## Object vs Class vs Interface
+
+### When to Use Object Declarations
+
+**Use object declarations when:**
+- You need exactly one instance (singleton)
+- The object has no constructor parameters
+- You want to group related functions (utility functions)
+- You need a registry or manager
+
+```kotlin
+// Good use cases for objects
+object StringUtils {
+    fun reverse(str: String) = str.reversed()
+    fun capitalize(str: String) = str.replaceFirstChar { it.uppercaseChar() }
+}
+
+object AppRegistry {
+    private val services = mutableMapOf<String, Any>()
+    
+    fun <T> register(name: String, service: T) {
+        services[name] = service as Any
+    }
+    
+    @Suppress("UNCHECKED_CAST")
+    fun <T> get(name: String): T? = services[name] as? T
+}
+```
+
+### When to Use Object Expressions
+
+**Use object expressions when:**
+- You need a one-off implementation of an interface
+- You want to create anonymous objects with specific behavior
+- You need to implement callbacks or listeners inline
+
+```kotlin
+interface Validator<T> {
+    fun validate(value: T): Boolean
+    fun getErrorMessage(): String
+}
+
+fun validateUser(name: String, age: Int) {
+    val nameValidator = object : Validator<String> {
+        override fun validate(value: String) = value.isNotBlank() && value.length >= 2
+        override fun getErrorMessage() = "Name must be at least 2 characters long"
+    }
+    
+    val ageValidator = object : Validator<Int> {
+        override fun validate(value: Int) = value in 18..120
+        override fun getErrorMessage() = "Age must be between 18 and 120"
+    }
+    
+    if (!nameValidator.validate(name)) {
+        println("Error: ${nameValidator.getErrorMessage()}")
+    }
+    
+    if (!ageValidator.validate(age)) {
+        println("Error: ${ageValidator.getErrorMessage()}")
+    }
+}
+```
+
+## Best Practices
+
+### 1. Use Objects for Stateless Utilities
+
+```kotlin
+object DateUtils {
+    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    
+    fun formatDate(date: LocalDate): String = date.format(formatter)
+    fun parseDate(dateString: String): LocalDate = LocalDate.parse(dateString, formatter)
+    fun isWeekend(date: LocalDate): Boolean = date.dayOfWeek in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+}
+```
+
+### 2. Implement Factory Pattern with Companion Objects
+
+```kotlin
+class User private constructor(val id: String, val name: String, val role: Role) {
+    enum class Role { USER, ADMIN, MODERATOR }
+    
+    companion object {
+        fun createUser(name: String) = User(generateId(), name, Role.USER)
+        fun createAdmin(name: String) = User(generateId(), name, Role.ADMIN)
+        fun createModerator(name: String) = User(generateId(), name, Role.MODERATOR)
+        
+        private fun generateId() = "USER_${System.currentTimeMillis()}"
+    }
+}
+```
+
+### 3. Use Object Expressions for Event Handling
+
+```kotlin
+class Button(private val text: String) {
+    private var clickListener: (() -> Unit)? = null
+    
+    fun setOnClickListener(listener: () -> Unit) {
+        clickListener = listener
+    }
+    
+    fun click() {
+        println("Button '$text' clicked")
+        clickListener?.invoke()
+    }
+}
+
+fun main() {
+    val button = Button("Save")
+    
+    button.setOnClickListener {
+        println("Saving data...")
+        // Save logic here
+    }
+    
+    button.click()
+}
+```
+
+### 4. Prefer Objects Over Classes with Private Constructors
+
+```kotlin
+// Good - using object
+object MathUtils {
+    fun factorial(n: Int): Long {
+        return if (n <= 1) 1 else n * factorial(n - 1)
+    }
+}
+
+// Avoid - class with private constructor
+class MathUtils private constructor() {
+    companion object {
+        fun factorial(n: Int): Long {
+            return if (n <= 1) 1 else n * factorial(n - 1)
+        }
+    }
+}
+```
+
+### 5. Use Sealed Classes Instead of Object Hierarchies
+
+```kotlin
+// Good - using sealed classes
+sealed class Result<T> {
+    data class Success<T>(val data: T) : Result<T>()
+    data class Error<T>(val message: String) : Result<T>()
+    object Loading : Result<Nothing>()
+}
+
+// Instead of multiple objects
+// object Success { ... }
+// object Error { ... }
+// object Loading { ... }
+```
+
+## Key Takeaways
+
+- **Object declarations** create thread-safe singletons that are lazily initialized
+- **Object expressions** create anonymous objects that can implement interfaces or extend classes
+- **Companion objects** provide class-level functions and properties (similar to static members in Java)
+- **Objects are initialized lazily** when first accessed, making them efficient
+- **Thread safety** is guaranteed for object declarations by the JVM
+- **Use objects for utilities, managers, and singletons** where you need exactly one instance
+- **Object expressions are perfect for one-off implementations** and callback handling
+- **Companion objects enable factory patterns** and provide static-like functionality
+- **Objects can implement interfaces** and extend classes just like regular classes
+- **Prefer objects over classes with private constructors** for utility functions
+
+Objects in Kotlin provide a clean, concise way to implement common design patterns without the boilerplate code typically required in other languages. They're particularly useful for singletons, utility functions, and anonymous implementations.
