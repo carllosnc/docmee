@@ -1,0 +1,479 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Higher-Order Functions
+
+## What are Higher-Order Functions?
+
+A higher-order function is a function that either:
+1. Takes one or more functions as parameters
+2. Returns a function as its result
+3. Or both
+
+Higher-order functions are a cornerstone of functional programming and enable powerful abstractions in Kotlin.
+
+## Basic Syntax
+
+### Function Types
+
+In Kotlin, function types are declared using parentheses and an arrow:
+
+```kotlin
+// Function type that takes an Int and returns a String
+val functionType: (Int) -> String
+
+// Function type that takes two Ints and returns an Int
+val binaryOperation: (Int, Int) -> Int
+
+// Function type that takes no parameters and returns Unit
+val action: () -> Unit
+```
+
+### Lambda Expressions
+
+Lambda expressions are anonymous functions that can be passed as arguments:
+
+```kotlin
+// Lambda expression syntax
+val square = { x: Int -> x * x }
+
+// Lambda with multiple parameters
+val add = { x: Int, y: Int -> x + y }
+
+// Lambda with no parameters
+val greeting = { "Hello, World!" }
+```
+
+## Creating Higher-Order Functions
+
+### Functions That Take Function Parameters
+
+```kotlin
+fun calculate(x: Int, y: Int, operation: (Int, Int) -> Int): Int {
+    return operation(x, y)
+}
+
+fun main() {
+    val result1 = calculate(5, 3) { a, b -> a + b }  // 8
+    val result2 = calculate(5, 3) { a, b -> a * b }  // 15
+    val result3 = calculate(5, 3) { a, b -> a - b }  // 2
+    
+    println("Addition: $result1")
+    println("Multiplication: $result2") 
+    println("Subtraction: $result3")
+}
+```
+
+### Functions That Return Functions
+
+```kotlin
+fun createMultiplier(factor: Int): (Int) -> Int {
+    return { number -> number * factor }
+}
+
+fun main() {
+    val doubler = createMultiplier(2)
+    val tripler = createMultiplier(3)
+    
+    println(doubler(5))  // 10
+    println(tripler(4))  // 12
+}
+```
+
+## Built-in Higher-Order Functions
+
+### Collection Operations
+
+Kotlin provides many built-in higher-order functions for collections:
+
+```kotlin
+fun main() {
+    val numbers = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    
+    // map - transforms each element
+    val squares = numbers.map { it * it }
+    println("Squares: $squares")  // [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+    
+    // filter - selects elements based on a condition
+    val evenNumbers = numbers.filter { it % 2 == 0 }
+    println("Even numbers: $evenNumbers")  // [2, 4, 6, 8, 10]
+    
+    // reduce - combines elements into a single result
+    val sum = numbers.reduce { acc, element -> acc + element }
+    println("Sum: $sum")  // 55
+    
+    // fold - like reduce but with an initial value
+    val product = numbers.fold(1) { acc, element -> acc * element }
+    println("Product: $product")  // 3628800
+}
+```
+
+### More Collection Functions
+
+```kotlin
+fun main() {
+    val words = listOf("kotlin", "java", "python", "javascript", "swift")
+    
+    // forEach - performs an action on each element
+    words.forEach { println(it.uppercase()) }
+    
+    // any - checks if any element matches a condition
+    val hasShortWord = words.any { it.length < 5 }
+    println("Has short word: $hasShortWord")  // true
+    
+    // all - checks if all elements match a condition
+    val allLongWords = words.all { it.length > 3 }
+    println("All words longer than 3: $allLongWords")  // true
+    
+    // find - finds the first element matching a condition
+    val firstLongWord = words.find { it.length > 6 }
+    println("First long word: $firstLongWord")  // javascript
+    
+    // groupBy - groups elements by a key
+    val groupedByLength = words.groupBy { it.length }
+    println("Grouped by length: $groupedByLength")
+}
+```
+
+## Scope Functions
+
+Kotlin's scope functions are higher-order functions that execute a block of code within the context of an object:
+
+### let
+
+```kotlin
+fun main() {
+    val name: String? = "Kotlin"
+    
+    name?.let { 
+        println("Name length: ${it.length}")
+        println("Uppercase: ${it.uppercase()}")
+    }
+    
+    // Chaining with let
+    val result = "Hello"
+        .let { it.uppercase() }
+        .let { "$it World!" }
+        .let { it.length }
+    
+    println("Result: $result")  // 12
+}
+```
+
+### run
+
+```kotlin
+fun main() {
+    val person = Person("John", 25)
+    
+    val info = person.run {
+        "Name: $name, Age: $age, Category: ${if (age >= 18) "Adult" else "Minor"}"
+    }
+    
+    println(info)
+}
+
+data class Person(val name: String, val age: Int)
+```
+
+### with
+
+```kotlin
+fun main() {
+    val numbers = mutableListOf<Int>()
+    
+    with(numbers) {
+        add(1)
+        add(2)
+        add(3)
+        println("List: $this")  // [1, 2, 3]
+        println("Size: $size")  // 3
+    }
+}
+```
+
+### apply
+
+```kotlin
+fun main() {
+    val person = Person("", 0).apply {
+        name = "Alice"
+        age = 30
+    }
+    
+    println(person)  // Person(name=Alice, age=30)
+}
+
+data class Person(var name: String, var age: Int)
+```
+
+### also
+
+```kotlin
+fun main() {
+    val numbers = mutableListOf(1, 2, 3)
+        .also { println("Original list: $it") }
+        .also { it.add(4) }
+        .also { println("After adding 4: $it") }
+    
+    println("Final list: $numbers")
+}
+```
+
+## Advanced Higher-Order Function Patterns
+
+### Function Composition
+
+```kotlin
+fun <A, B, C> compose(f: (B) -> C, g: (A) -> B): (A) -> C {
+    return { x -> f(g(x)) }
+}
+
+fun main() {
+    val addOne = { x: Int -> x + 1 }
+    val multiplyByTwo = { x: Int -> x * 2 }
+    
+    val addOneThenMultiply = compose(multiplyByTwo, addOne)
+    
+    println(addOneThenMultiply(5))  // 12 ((5 + 1) * 2)
+}
+```
+
+### Currying
+
+```kotlin
+fun curry(f: (Int, Int) -> Int): (Int) -> (Int) -> Int {
+    return { x -> { y -> f(x, y) } }
+}
+
+fun main() {
+    val add = { x: Int, y: Int -> x + y }
+    val curriedAdd = curry(add)
+    
+    val addFive = curriedAdd(5)
+    println(addFive(3))  // 8
+    
+    // Or use it directly
+    println(curriedAdd(10)(20))  // 30
+}
+```
+
+### Partial Application
+
+```kotlin
+fun <A, B, C> partial(f: (A, B) -> C, a: A): (B) -> C {
+    return { b -> f(a, b) }
+}
+
+fun main() {
+    val multiply = { x: Int, y: Int -> x * y }
+    val double = partial(multiply, 2)
+    val triple = partial(multiply, 3)
+    
+    println(double(5))  // 10
+    println(triple(4))  // 12
+}
+```
+
+## Practical Examples
+
+### Event Handling
+
+```kotlin
+class Button {
+    private var clickListener: (() -> Unit)? = null
+    
+    fun setOnClickListener(listener: () -> Unit) {
+        clickListener = listener
+    }
+    
+    fun click() {
+        clickListener?.invoke()
+    }
+}
+
+fun main() {
+    val button = Button()
+    
+    button.setOnClickListener {
+        println("Button was clicked!")
+    }
+    
+    button.click()  // Button was clicked!
+}
+```
+
+### Validation Pipeline
+
+```kotlin
+typealias Validator<T> = (T) -> Boolean
+
+fun <T> validate(value: T, vararg validators: Validator<T>): Boolean {
+    return validators.all { it(value) }
+}
+
+fun main() {
+    val isNotEmpty: Validator<String> = { it.isNotEmpty() }
+    val isValidEmail: Validator<String> = { it.contains("@") && it.contains(".") }
+    val isLongEnough: Validator<String> = { it.length >= 5 }
+    
+    val email = "user@example.com"
+    val isValid = validate(email, isNotEmpty, isValidEmail, isLongEnough)
+    
+    println("Email is valid: $isValid")  // true
+}
+```
+
+### Retry Mechanism
+
+```kotlin
+fun <T> retry(
+    times: Int,
+    delay: Long = 1000,
+    operation: () -> T
+): T? {
+    repeat(times) { attempt ->
+        try {
+            return operation()
+        } catch (e: Exception) {
+            println("Attempt ${attempt + 1} failed: ${e.message}")
+            if (attempt < times - 1) {
+                Thread.sleep(delay)
+            }
+        }
+    }
+    return null
+}
+
+fun main() {
+    var attempts = 0
+    
+    val result = retry(3) {
+        attempts++
+        if (attempts < 3) {
+            throw RuntimeException("Operation failed")
+        }
+        "Success!"
+    }
+    
+    println("Result: $result")  // Success!
+}
+```
+
+### DSL (Domain Specific Language)
+
+```kotlin
+class HtmlBuilder {
+    private val elements = mutableListOf<String>()
+    
+    fun head(init: HeadBuilder.() -> Unit) {
+        val headBuilder = HeadBuilder()
+        headBuilder.init()
+        elements.add(headBuilder.build())
+    }
+    
+    fun body(init: BodyBuilder.() -> Unit) {
+        val bodyBuilder = BodyBuilder()
+        bodyBuilder.init()
+        elements.add(bodyBuilder.build())
+    }
+    
+    fun build(): String = "<html>${elements.joinToString("")}</html>"
+}
+
+class HeadBuilder {
+    private val elements = mutableListOf<String>()
+    
+    fun title(text: String) {
+        elements.add("<title>$text</title>")
+    }
+    
+    fun build(): String = "<head>${elements.joinToString("")}</head>"
+}
+
+class BodyBuilder {
+    private val elements = mutableListOf<String>()
+    
+    fun h1(text: String) {
+        elements.add("<h1>$text</h1>")
+    }
+    
+    fun p(text: String) {
+        elements.add("<p>$text</p>")
+    }
+    
+    fun build(): String = "<body>${elements.joinToString("")}</body>"
+}
+
+fun html(init: HtmlBuilder.() -> Unit): String {
+    val builder = HtmlBuilder()
+    builder.init()
+    return builder.build()
+}
+
+fun main() {
+    val webpage = html {
+        head {
+            title("My Webpage")
+        }
+        body {
+            h1("Welcome!")
+            p("This is a paragraph.")
+        }
+    }
+    
+    println(webpage)
+}
+```
+
+## Performance Considerations
+
+### Inline Functions
+
+Use the `inline` keyword for higher-order functions to avoid function call overhead:
+
+```kotlin
+inline fun <T> measureTime(block: () -> T): Pair<T, Long> {
+    val startTime = System.currentTimeMillis()
+    val result = block()
+    val endTime = System.currentTimeMillis()
+    return Pair(result, endTime - startTime)
+}
+
+fun main() {
+    val (result, time) = measureTime {
+        (1..1000000).sum()
+    }
+    
+    println("Result: $result, Time: ${time}ms")
+}
+```
+
+### noinline and crossinline
+
+```kotlin
+inline fun processData(
+    data: List<Int>,
+    noinline logger: (String) -> Unit,  // Won't be inlined
+    crossinline processor: (Int) -> Int  // Can't contain non-local returns
+): List<Int> {
+    logger("Processing ${data.size} items")
+    return data.map { processor(it) }
+}
+```
+
+## Best Practices
+
+1. **Use meaningful names** for function parameters and lambda parameters
+2. **Prefer extension functions** when operating on a specific type
+3. **Use inline functions** for performance-critical higher-order functions
+4. **Keep lambdas short** and readable
+5. **Use trailing lambda syntax** when the lambda is the last parameter
+6. **Consider using existing standard library functions** before creating custom ones
+7. **Use type aliases** for complex function types to improve readability
+
+## Conclusion
+
+Higher-order functions are a powerful feature in Kotlin that enable functional programming patterns, create more reusable and flexible code, and allow for elegant solutions to complex problems. They form the foundation of many Kotlin idioms and are essential for writing idiomatic Kotlin code. Mastering higher-order functions will significantly improve your ability to write clean, concise, and expressive Kotlin code.
