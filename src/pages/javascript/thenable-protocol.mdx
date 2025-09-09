@@ -1,0 +1,350 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/javascript">← Javascript</a> <br /> <br />
+
+# Thenable Protocol
+
+## Overview
+
+The **Thenable Protocol** is a JavaScript language protocol that defines how objects should behave to be compatible with Promise-based async operations. Any object that implements a `then()` method according to this protocol is considered "thenable" and can be used with `await`, `Promise.resolve()`, and other Promise-related APIs.
+
+## What Makes an Object Thenable?
+
+An object is thenable if it has a `then` method that accepts two function parameters:
+- `onFulfilled` - Called when the thenable resolves successfully
+- `onRejected` - Called when the thenable rejects with an error
+
+## Basic Thenable Implementation
+
+```javascript
+const myThenable = {
+  then(onFulfilled, onRejected) {
+    // Simulate async operation
+    setTimeout(() => {
+      try {
+        const result = "Hello, World!";
+        onFulfilled(result);
+      } catch (error) {
+        onRejected(error);
+      }
+    }, 1000);
+  }
+};
+
+// Usage
+myThenable.then(
+  value => console.log(value), // "Hello, World!"
+  error => console.error(error)
+);
+```
+
+## Thenable vs Promise
+
+While all Promises are thenable, not all thenables are Promises:
+
+```javascript
+// This is a Promise (and therefore thenable)
+const promise = new Promise(resolve => resolve("I'm a Promise"));
+
+// This is thenable but not a Promise
+const thenable = {
+  then(onFulfilled) {
+    onFulfilled("I'm just thenable");
+  }
+};
+
+// Both work with Promise.resolve()
+Promise.resolve(promise).then(console.log);   // "I'm a Promise"
+Promise.resolve(thenable).then(console.log);  // "I'm just thenable"
+
+// Both work with await
+async function test() {
+  console.log(await promise);   // "I'm a Promise"
+  console.log(await thenable);  // "I'm just thenable"
+}
+```
+
+## Advanced Thenable Examples
+
+### Lazy Evaluation Thenable
+
+```javascript
+function lazyThenable(computation) {
+  return {
+    then(onFulfilled, onRejected) {
+      try {
+        const result = computation();
+        onFulfilled(result);
+      } catch (error) {
+        onRejected(error);
+      }
+    }
+  };
+}
+
+const lazy = lazyThenable(() => {
+  console.log("Computing...");
+  return Math.random();
+});
+
+// Computation only happens when .then() is called
+lazy.then(value => console.log(`Result: ${value}`));
+```
+
+### Conditional Thenable
+
+```javascript
+function conditionalThenable(condition, successValue, errorValue) {
+  return {
+    then(onFulfilled, onRejected) {
+      if (condition) {
+        onFulfilled(successValue);
+      } else {
+        onRejected(new Error(errorValue));
+      }
+    }
+  };
+}
+
+const conditional = conditionalThenable(
+  Math.random() > 0.5,
+  "Success!",
+  "Failed!"
+);
+
+conditional.then(
+  success => console.log(success),
+  error => console.error(error.message)
+);
+```
+
+### Retry Thenable
+
+```javascript
+function retryThenable(asyncFn, maxRetries = 3) {
+  return {
+    then(onFulfilled, onRejected) {
+      let attempts = 0;
+      
+      function attempt() {
+        attempts++;
+        asyncFn()
+          .then(onFulfilled)
+          .catch(error => {
+            if (attempts < maxRetries) {
+              console.log(`Attempt ${attempts} failed, retrying...`);
+              setTimeout(attempt, 1000 * attempts);
+            } else {
+              onRejected(error);
+            }
+          });
+      }
+      
+      attempt();
+    }
+  };
+}
+
+const retryable = retryThenable(() => {
+  return new Promise((resolve, reject) => {
+    if (Math.random() > 0.7) {
+      resolve("Success!");
+    } else {
+      reject(new Error("Random failure"));
+    }
+  });
+});
+
+retryable.then(
+  result => console.log(result),
+  error => console.error("All retries failed:", error.message)
+);
+```
+
+## Integration with Async/Await
+
+Thenables work seamlessly with async/await syntax:
+
+```javascript
+const customThenable = {
+  then(onFulfilled) {
+    setTimeout(() => onFulfilled("Async result"), 1000);
+  }
+};
+
+async function useThenable() {
+  try {
+    const result = await customThenable;
+    console.log(result); // "Async result" after 1 second
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+useThenable();
+```
+
+## Thenable Chaining
+
+Thenables can be chained just like Promises:
+
+```javascript
+const chainableThenable = {
+  then(onFulfilled) {
+    onFulfilled(10);
+  }
+};
+
+chainableThenable
+  .then(value => value * 2)    // 20
+  .then(value => value + 5)    // 25
+  .then(value => console.log(value)); // 25
+```
+
+## Duck Typing Detection
+
+JavaScript uses duck typing to detect thenables:
+
+```javascript
+function isThenable(obj) {
+  return obj != null && typeof obj.then === 'function';
+}
+
+console.log(isThenable(Promise.resolve())); // true
+console.log(isThenable({ then: () => {} })); // true
+console.log(isThenable({})); // false
+console.log(isThenable(null)); // false
+```
+
+## Common Pitfalls
+
+### 1. Synchronous Then Method
+
+```javascript
+// WRONG: This breaks Promise expectations
+const badThenable = {
+  then(onFulfilled) {
+    onFulfilled("immediate result"); // Synchronous call
+  }
+};
+
+// BETTER: Use setTimeout or Promise.resolve
+const goodThenable = {
+  then(onFulfilled) {
+    Promise.resolve().then(() => onFulfilled("deferred result"));
+  }
+};
+```
+
+### 2. Not Handling Rejections
+
+```javascript
+// WRONG: No error handling
+const riskyThenable = {
+  then(onFulfilled) {
+    const result = JSON.parse("invalid json"); // Will throw
+    onFulfilled(result);
+  }
+};
+
+// BETTER: Proper error handling
+const safeThenable = {
+  then(onFulfilled, onRejected) {
+    try {
+      const result = JSON.parse("invalid json");
+      onFulfilled(result);
+    } catch (error) {
+      onRejected(error);
+    }
+  }
+};
+```
+
+### 3. Multiple Then Calls
+
+```javascript
+// Thenables should handle multiple .then() calls correctly
+const properThenable = {
+  then(onFulfilled, onRejected) {
+    // This will be called for each .then()
+    setTimeout(() => onFulfilled("result"), 100);
+  }
+};
+
+// Both will work independently
+properThenable.then(val => console.log("First:", val));
+properThenable.then(val => console.log("Second:", val));
+```
+
+## Real-World Use Cases
+
+### Custom Promise-like Wrapper
+
+```javascript
+class TaskWrapper {
+  constructor(taskFn) {
+    this.taskFn = taskFn;
+  }
+  
+  then(onFulfilled, onRejected) {
+    return new Promise((resolve, reject) => {
+      try {
+        const result = this.taskFn();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    }).then(onFulfilled, onRejected);
+  }
+}
+
+const task = new TaskWrapper(() => "Task completed");
+await task; // Works with await!
+```
+
+### Database Query Thenable
+
+```javascript
+class QueryBuilder {
+  constructor(query) {
+    this.query = query;
+  }
+  
+  where(condition) {
+    this.query += ` WHERE ${condition}`;
+    return this;
+  }
+  
+  then(onFulfilled, onRejected) {
+    // Simulate database execution
+    setTimeout(() => {
+      try {
+        const result = `Executing: ${this.query}`;
+        onFulfilled(result);
+      } catch (error) {
+        onRejected(error);
+      }
+    }, 100);
+  }
+}
+
+const result = await new QueryBuilder("SELECT * FROM users")
+  .where("age > 18");
+console.log(result); // "Executing: SELECT * FROM users WHERE age > 18"
+```
+
+## Best Practices
+
+1. **Always handle both success and error cases** in your `then` method
+2. **Make then method asynchronous** to avoid breaking Promise semantics
+3. **Support multiple calls** to the same thenable
+4. **Don't mix thenable with other protocols** unless necessary
+5. **Use proper error handling** with try-catch blocks
+6. **Consider using Promise.resolve()** to normalize thenables to Promises
+
+## Conclusion
+
+The Thenable Protocol provides a powerful way to create Promise-compatible objects without the full overhead of Promise construction. It's particularly useful for creating custom async abstractions, lazy evaluation systems, and domain-specific async APIs that integrate seamlessly with JavaScript's native async/await syntax.
+
+Understanding thenables helps you build more flexible async code and better understand how JavaScript's Promise system works under the hood.
