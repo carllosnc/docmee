@@ -1,0 +1,54 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/">← Rust </a> <br /> <br />
+
+# Rust Language Roadmap
+
+This roadmap provides a structured path to learning Rust, focusing on its core language features.
+
+## 1. The Foundations
+
+- [**Basic Syntax:** Variables, functions, comments](./rust/basic).
+- [**Data Types:** Scalar (integers, floats, booleans, chars) and compound (tuples, arrays)](./rust/data-types).
+- [**Control Flow:** `if`, `else`, loops (`loop`, `while`, `for`)](./rust/control-flow).
+
+## 2. Ownership & Borrowing
+
+- **Ownership:** The core concept of Rust, ensuring memory safety.
+- **Borrowing:** Referencing and dereferencing.
+- **Slices:** A view into a part of a collection.
+
+## 3. Structs & Enums
+
+- **Structs:** Defining custom data types.
+- **Enums:** Defining a type that can be one of several variants.
+- **Pattern Matching:** Using `match` to destructure and handle different cases.
+
+## 4. Error Handling
+
+- **`Result` Enum:** For recoverable errors.
+- **`panic!` Macro:** For unrecoverable errors.
+
+## 5. Generics & Traits
+
+- **Generics:** Writing code that works with multiple types.
+- **Traits:** Defining shared behavior.
+- **Lifetimes:** Ensuring references are valid.
+
+## 6. Concurrency
+
+- **Threads:** Running code in parallel.
+- **Message Passing:** Using channels to communicate between threads.
+- **Shared State:** Using `Mutex` and `Arc` for safe concurrent access to data.
+- **Async/Await:** For non-blocking I/O.
+
+## 7. Macros
+
+- **Declarative Macros:** Using `macro_rules!` for metaprogramming.
+- **Procedural Macros:** Custom `derive`, attribute-like, and function-like macros.
+
+## 8. Advanced Topics
+
+- **Unsafe Rust:** Opting out of some of Rust's safety guarantees.
+- **Foreign Function Interface (FFI):** Interacting with code written in other languages.

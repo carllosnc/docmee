@@ -1,0 +1,120 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Basic Syntax in Rust
+
+This guide provides multiple code examples to illustrate Rust's basic syntax.
+
+### Variables and Mutability
+
+Variables are immutable by default. Use `let` to declare them and `mut` to make them changeable.
+
+**Example 1: Immutable Variable**
+```rust
+fn main() {
+    // This variable cannot be changed.
+    let x = 5;
+    println!("The value of x is: {}", x);
+}
+```
+
+**Example 2: Mutable Variable**
+```rust
+fn main() {
+    // Use `mut` to allow changes.
+    let mut y = 10;
+    println!("The initial value of y is: {}", y);
+    y = 20; // This is allowed.
+    println!("The new value of y is: {}", y);
+}
+```
+
+**Example 3: Type Annotation**
+```rust
+fn main() {
+    // You can explicitly declare the type.
+    let z: i32 = 30;
+    println!("The value of z is: {}", z);
+}
+```
+
+**Example 4: Shadowing**
+```rust
+fn main() {
+    let a = 5;
+    // Create a new variable `a`, shadowing the old one.
+    let a = a + 1;
+    println!("The value of a is: {}", a);
+}
+```
+
+### Functions
+
+Functions are defined with `fn` and use snake_case for their names.
+
+**Example 1: Simple Function**
+```rust
+fn main() {
+    // Call the function.
+    say_hello();
+}
+
+// A function that takes no arguments and returns nothing.
+fn say_hello() {
+    println!("Hello, world!");
+}
+```
+
+**Example 2: Function with Parameters**
+```rust
+fn main() {
+    // Pass values to the function.
+    print_sum(5, 6);
+}
+
+// Parameters must have their types declared.
+fn print_sum(a: i32, b: i32) {
+    println!("The sum is: {}", a + b);
+}
+```
+
+**Example 3: Function with a Return Value**
+```rust
+fn main() {
+    let result = square(8);
+    println!("The square of 8 is: {}", result);
+}
+
+// The return type is specified after `->`.
+fn square(num: i32) -> i32 {
+    // The last expression is the return value.
+    num * num
+}
+```
+
+### Comments
+
+Comments are used for notes and are ignored by the compiler.
+
+**Example 1: Single-line comments**
+```rust
+fn main() {
+    // Set a value for the variable.
+    let favorite_color = "blue";
+}
+```
+
+**Example 2: Multi-line comments**
+```rust
+fn main() {
+    /*
+      The following code block initializes
+      a user's settings. We might add
+      more settings here later.
+    */
+    let user_id = 101;
+    let is_active = true;
+}
+```

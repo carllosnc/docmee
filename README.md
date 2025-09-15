@@ -4,9 +4,9 @@
 
 # Prompt
 
-**Claude**
+**Gemini CLI**
 
-[subject], give me a complete documentation about: "[topic]", focus on code examples with short description, use the latest version for examples.
+in [file.mdx] explain about: "[subject]". of [lang]. Focus on code with short comments, add multiple examples.
 
 ---
 
