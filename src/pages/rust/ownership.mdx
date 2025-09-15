@@ -1,0 +1,245 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Ownership in Rust
+
+Ownership is Rust's most unique feature, enabling memory safety guarantees without a garbage collector. It's a set of rules that the compiler checks at compile time.
+
+## The Ownership Rules
+
+1.  Each value in Rust has a variable that's called its *owner*.
+2.  There can only be one owner at a time.
+3.  When the owner goes out of scope, the value will be *dropped*.
+
+## 1. Scope
+
+A scope is the range within a program for which an item is valid.
+
+**Example: Variable Scope**
+```rust
+fn main() {
+    {
+        // s is not valid here, it’s not yet declared
+        let s = "hello"; // s is valid from this point forward
+        // do stuff with s
+    } // this scope is now over, and s is no longer valid
+}
+```
+
+## 2. Move Semantics
+
+When a variable holding data on the heap (like `String`) is assigned to another variable, the ownership is *moved*, not copied. The original variable becomes invalid.
+
+**Example: String Move**
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1; // s1's ownership is moved to s2. s1 is no longer valid.
+
+    // println!("{}", s1); // This would cause a compile-time error!
+    println!("{}", s2);
+}
+```
+
+**Example: Function Ownership Transfer**
+```rust
+fn main() {
+    let s = String::from("world"); // s comes into scope
+
+    takes_ownership(s); // s's value moves into the function...
+                        // ... and so is no longer valid here
+
+    // println!("{}", s); // This would cause a compile-time error!
+
+    let x = 5; // x comes into scope
+
+    makes_copy(x); // x would move into the function, but i32 is Copy,
+                   // so it's still valid afterward
+    println!("{}", x); // This is allowed
+}
+
+fn takes_ownership(some_string: String) { // some_string comes into scope
+    println!("{}", some_string);
+} // Here, some_string goes out of scope and `drop` is called.
+  // The backing memory is freed.
+
+fn makes_copy(some_integer: i32) { // some_integer comes into scope
+    println!("{}", some_integer);
+} // Here, some_integer goes out of scope. Nothing special happens.
+```
+
+## 3. Clone
+
+If you *do* want to deeply copy the heap data of a `String`, you can use the `clone` method.
+
+**Example: Cloning a String**
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1.clone(); // s1 is still valid after cloning.
+
+    println!("s1 = {}, s2 = {}", s1, s2);
+}
+```
+
+## 4. Borrowing (References)
+
+To allow functions to use a value without taking ownership, you can pass a *reference* to it. This is called borrowing.
+
+**Example: Immutable Reference**
+```rust
+fn main() {
+    let s1 = String::from("hello");
+
+    let len = calculate_length(&s1); // Pass a reference to s1
+
+    println!("The length of '{}' is {}.", s1, len); // s1 is still valid
+}
+
+fn calculate_length(s: &String) -> usize { // s is a reference to a String
+    s.len()
+} // Here, s goes out of scope. But because it does not have ownership of what
+  // it refers to, it is not dropped.
+```
+
+## 5. Mutable References
+
+You can have a *mutable reference* to change the value it refers to. However, you can only have *one* mutable reference to a particular piece of data in a particular scope.
+
+**Example: Mutable Reference**
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    change(&mut s); // Pass a mutable reference to s
+
+    println!("{}", s);
+}
+
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+```
+
+**Example: One Mutable Reference Rule**
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &mut s; // First mutable reference
+    // let r2 = &mut s; // This would cause a compile-time error!
+
+    // println!("{}, {}", r1, r2); // Error: cannot borrow `s` as mutable more than once at a time
+    println!("{}", r1);
+}
+```
+
+**Example: Multiple Immutable References vs. One Mutable Reference**
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &s; // no problem
+    let r2 = &s; // no problem
+    println!("{} and {}", r1, r2);
+    // r1 and r2 are no longer used after this point
+
+    let r3 = &mut s; // no problem
+    println!("{}", r3);
+}
+```
+
+## 6. Dangling References
+
+In Rust, the compiler guarantees that references will never be *dangling* (referring to data that has been deallocated). This is achieved by checking lifetimes.
+
+**Example: Preventing Dangling References (Compile-time Error)**
+```rust
+// This function would not compile!
+// fn dangle() -> &String { // dangle returns a reference to a String
+//     let s = String::from("hello"); // s is a new String
+//     &s // we return a reference to the String, s
+// } // Here, s goes out of scope, and is dropped. Its memory is deallocated.
+  // The reference we tried to return would be dangling!
+
+fn no_dangle() -> String { // Returns the String directly, transferring ownership
+    let s = String::from("hello");
+    s // Ownership of s is moved out of the function
+}
+
+fn main() {
+    let s = no_dangle();
+    println!("{}", s);
+}
+```
+
+## 7. Ownership with Structs
+
+Ownership rules apply to structs as well. When a struct is dropped, its owned data is also dropped.
+
+**Example: Struct Ownership**
+```rust
+struct User {
+    username: String,
+    email: String,
+    sign_in_count: u64,
+    active: bool,
+}
+
+fn main() {
+    let user1 = User {
+        email: String::from("someone@example.com"),
+        username: String::from("someusername123"),
+        active: true,
+        sign_in_count: 1,
+    };
+
+    // user1 owns its String data. When user1 goes out of scope, email and username are dropped.
+    println!("User email: {}", user1.email);
+}
+```
+
+**Example: Struct with References (Lifetimes)**
+```rust
+// This struct holds references, so it needs lifetime annotations.
+// 'a (read as "tick a") is a lifetime parameter.
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+
+    println!("Important excerpt: {}", i.part);
+}
+```
+
+## 6. Dangling References
+
+In Rust, the compiler guarantees that references will never be *dangling* (referring to data that has been deallocated). This is achieved by checking lifetimes.
+
+**Example: Preventing Dangling References (Compile-time Error)**
+```rust
+// This function would not compile!
+// fn dangle() -> &String { // dangle returns a reference to a String
+//     let s = String::from("hello"); // s is a new String
+//     &s // we return a reference to the String, s
+// } // Here, s goes out of scope, and is dropped. Its memory is deallocated.
+  // The reference we tried to return would be dangling!
+
+fn no_dangle() -> String { // Returns the String directly, transferring ownership
+    let s = String::from("hello");
+    s // Ownership of s is moved out of the function
+}
+
+fn main() {
+    let s = no_dangle();
+    println!("{}", s);
+}
+```
