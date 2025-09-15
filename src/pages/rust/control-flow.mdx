@@ -54,6 +54,25 @@ fn main() {
 }
 ```
 
+**Example 4: `if` with `match` (for more complex branching)**
+```rust
+fn main() {
+    let favorite_color = "blue";
+
+    let is_favorite = match favorite_color {
+        "blue" => true,
+        "red" => true,
+        _ => false,
+    };
+
+    if is_favorite {
+        println!("Your favorite color is blue or red!");
+    } else {
+        println!("Your favorite color is something else.");
+    }
+}
+```
+
 ## Loops
 
 Loops allow you to execute a block of code more than once. Rust has three kinds of loops: `loop`, `while`, and `for`.
@@ -79,7 +98,27 @@ fn main() {
 }
 ```
 
-**Example 2: Returning Values from Loops**
+**Example 2: Nested Loops with Labels**
+```rust
+fn main() {
+    let mut count = 0;
+    'outer: loop {
+        println!("Outer loop");
+        'inner: loop {
+            println!("Inner loop");
+            if count >= 10 {
+                break 'inner;
+            }
+            count += 1;
+        }
+        println!("Exited inner loop");
+        break 'outer;
+    }
+    println!("Exited outer loop. Final count: {}", count);
+}
+```
+
+**Example 3: Returning Values from Loops**
 ```rust
 fn main() {
     let mut counter = 0;
@@ -114,6 +153,23 @@ fn main() {
     }
 
     println!("LIFTOFF!!!");
+}
+```
+
+**Example 2: `while let` (for conditional pattern matching in loops)**
+```rust
+fn main() {
+    let mut optional_number = Some(0);
+
+    while let Some(i) = optional_number {
+        if i > 2 { // Changed from 9 to 2 for a shorter example output
+            println!("Greater than 2, quit!");
+            optional_number = None;
+        } else {
+            println!("i is: {}", i);
+            optional_number = Some(i + 1);
+        }
+    }
 }
 ```
 
