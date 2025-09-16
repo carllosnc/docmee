@@ -1,0 +1,366 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Lambda Functions (Closures)
+
+This document provides a comprehensive reference for **closures** in Rust, which are Rust's equivalent to lambda functions. Closures are anonymous functions that can capture variables from their surrounding environment, making them versatile for functional programming, iterators, threading, and more. This reference covers syntax, capture modes, traits, use cases, and their integration with Rust’s ownership and borrowing system, along with examples and common pitfalls.
+
+## Table of Contents
+1. [Introduction to Closures](#introduction-to-closures)
+2. [Syntax and Basic Usage](#syntax-and-basic-usage)
+3. [Variable Capture Modes](#variable-capture-modes)
+4. [Closure Traits: `Fn`, `FnMut`, `FnOnce`](#closure-traits-fn-fnmust-fnonce)
+5. [Ownership and Borrowing with Closures](#ownership-and-borrowing-with-closures)
+6. [Common Use Cases](#common-use-cases)
+7. [Advanced Topics](#advanced-topics)
+8. [Common Pitfalls and Errors](#common-pitfalls-and-errors)
+9. [Best Practices](#best-practices)
+10. [Further Resources](#further-resources)
+
+---
+
+## Introduction to Closures
+
+In Rust, **closures** are anonymous functions that can be assigned to variables, passed as arguments, or returned from functions. Unlike regular functions (defined with `fn`), closures can capture variables from their enclosing scope, allowing them to "close over" their environment. Closures are a key feature for functional programming patterns and are tightly integrated with Rust’s ownership and borrowing system, ensuring memory safety at compile time.
+
+Key characteristics:
+- **Anonymous**: No need for a named function.
+- **Flexible**: Can capture variables by reference, mutable reference, or ownership.
+- **Type-Safe**: Governed by the borrow checker and specific traits (`Fn`, `FnMut`, `FnOnce`).
+- **Zero-Cost**: Compiled to efficient machine code, with no runtime overhead.
+
+Closures are particularly useful with iterators (e.g., `map`, `filter`), threading, and callbacks, but they require understanding Rust’s ownership rules to use effectively.
+
+---
+
+## Syntax and Basic Usage
+
+### Syntax
+A closure is defined using vertical bars (`| |`) for parameters, followed by an optional return type and body:
+```rust
+let closure_name = |parameters| -> ReturnType { body };
+```
+
+- **Parameters**: Listed between `| |`, with optional type annotations.
+- **Return Type**: Specified with `-> Type`, but often inferred by the compiler.
+- **Body**: Either a single expression (no braces) or a block in `{}`.
+
+### Basic Examples
+1. **Simple Closure** (no parameters):
+```rust
+let greet = || println!("Hello!");
+greet(); // Outputs: Hello!
+```
+
+2. **Closure with Parameters**:
+```rust
+let add = |x: i32, y: i32| -> i32 { x + y };
+println!("{}", add(2, 3)); // Outputs: 5
+```
+
+3. **Single-Expression Closure** (no braces needed):
+```rust
+let double = |x: i32| x * 2;
+println!("{}", double(4)); // Outputs: 8
+```
+
+### Notes
+- Type inference often eliminates the need for explicit parameter or return types.
+- If the closure body uses `return`, it must be in a block `{}` to avoid returning from the enclosing function.
+
+---
+
+## Variable Capture Modes
+
+Closures can capture variables from their surrounding scope in three ways, determined by how they use the variables:
+1. **By Immutable Reference (`&T`)**: Read-only access to the variable. Multiple immutable borrows are allowed.
+2. **By Mutable Reference (`&mut T`)**: Read-write access. Only one mutable borrow is allowed at a time.
+3. **By Value (Move)**: Takes ownership of the variable, moving it into the closure. The variable is no longer accessible in the outer scope.
+
+The compiler infers the capture mode based on usage, but the `move` keyword can force ownership transfer.
+
+### Examples
+1. **Immutable Reference**:
+```rust
+let x = String::from("hello");
+let print_x = || println!("{}", x); // Captures x as &x
+print_x();
+println!("{}", x); // x still accessible
+```
+- `x` is borrowed immutably, so the outer scope retains ownership.
+
+2. **Mutable Reference**:
+```rust
+let mut x = String::from("hello");
+let mut append_x = || x.push_str(", world"); // Captures x as &mut x
+append_x();
+println!("{}", x); // Outputs: hello, world
+```
+- `x` must be `mut` for the closure to modify it. Only one mutable borrow is active.
+
+3. **Move (Ownership Transfer)**:
+```rust
+let x = String::from("hello");
+let consume_x = move || println!("{}", x); // Takes ownership of x
+consume_x();
+// println!("{}", x); // Error: x was moved into the closure
+```
+- The `move` keyword transfers ownership, invalidating `x` in the outer scope.
+
+### Forcing Move
+Use `move` when you need the closure to own the captured variables, such as when passing it to a thread:
+```rust
+use std::thread;
+let x = String::from("hello");
+thread::spawn(move || println!("{}", x)).join().unwrap();
+```
+
+---
+
+## Closure Traits: `Fn`, `FnMut`, `FnOnce`
+
+Closures implement one or more of three traits, which dictate how they can be called and how they interact with captured variables:
+1. **Fn**: For closures that only borrow immutably (`&T`). Can be called multiple times without modifying captured data.
+   - Signature: `fn call(&self, args...)`.
+   - Example: `|| println!("{}", x)` (if `x` is not modified).
+2. **FnMut**: For closures that borrow mutably (`&mut T`). Can modify captured data and be called multiple times.
+   - Signature: `fn call_mut(&mut self, args...)`.
+   - Example: `|| x.push_str("more")`.
+3. **FnOnce**: For closures that take ownership (move). Can only be called once, as they consume captured variables.
+   - Signature: `fn call_once(self, args...)`.
+   - Example: `move || drop(x)`.
+
+### Trait Hierarchy
+- `Fn` implies `FnMut` and `FnOnce`.
+- `FnMut` implies `FnOnce`.
+- `FnOnce` is the most restrictive (one call only).
+
+### Examples with Traits
+1. **Fn Example**:
+```rust
+fn call_twice<F: Fn()>(f: F) {
+    f();
+    f();
+}
+let x = String::from("hello");
+let closure = || println!("{}", x); // Implements Fn
+call_twice(closure);
+```
+
+2. **FnMut Example**:
+```rust
+fn call_twice_mut<F: FnMut()>(mut f: F) {
+    f();
+    f();
+}
+let mut x = String::from("hello");
+let mut closure = || x.push_str("!"); // Implements FnMut
+call_twice_mut(closure);
+println!("{}", x); // Outputs: hello!!
+```
+
+3. **FnOnce Example**:
+```rust
+fn call_once<F: FnOnce()>(f: F) {
+    f();
+}
+let x = String::from("hello");
+let closure = move || drop(x); // Implements FnOnce
+call_once(closure);
+```
+
+### Trait Bounds in Functions
+Functions accepting closures must specify the appropriate trait bound:
+- Use `Fn` for read-only closures.
+- Use `FnMut` for closures that modify captured variables.
+- Use `FnOnce` for closures that consume variables (or if you’re unsure).
+
+---
+
+## Ownership and Borrowing with Closures
+
+Closures adhere to Rust’s ownership and borrowing rules, ensuring memory safety:
+- **Immutable Borrows (`&T`)**: Allow multiple simultaneous borrows, per Rust’s borrowing rules. The closure can read but not modify the variable.
+- **Mutable Borrows (`&mut T`)**: Only one mutable borrow is allowed at a time. The closure can modify the variable, but no other borrows (mutable or immutable) can coexist.
+- **Moves**: Transfer ownership to the closure, invalidating the variable in the outer scope. Useful for scenarios like threading where the closure must outlive the original scope.
+
+### Borrow Checker Interaction
+The borrow checker enforces these rules at compile time, preventing data races or dangling references. Common errors include:
+- Attempting to use a variable after it’s been moved.
+- Borrowing a variable mutably while it’s immutably borrowed.
+
+Example of a borrow conflict:
+```rust
+let mut x = String::from("hello");
+let ref_x = &x; // Immutable borrow
+let mut closure = || x.push_str("!"); // Attempts mutable borrow
+// closure(); // Error: cannot borrow `x` as mutable because it is also borrowed as immutable
+```
+
+### Reborrowing
+Closures can reborrow variables (e.g., `&mut *r` for a mutable reference), but this must still follow borrowing rules.
+
+---
+
+## Common Use Cases
+
+Closures are versatile and commonly used in:
+
+### 1. Iterators
+Closures work seamlessly with iterator methods like `map`, `filter`, `for_each`, etc.
+```rust
+let numbers = vec![1, 2, 3, 4];
+let evens: Vec<i32> = numbers.into_iter().filter(|x| x % 2 == 0).collect();
+println!("{:?}", evens); // Outputs: [2, 4]
+```
+
+### 2. Threading
+`move` closures are often used to transfer ownership to threads.
+```rust
+use std::thread;
+let data = vec![1, 2, 3];
+thread::spawn(move || {
+    println!("Data: {:?}", data);
+}).join().unwrap();
+```
+
+### 3. Callbacks
+Closures are ideal for event handlers or callbacks.
+```rust
+fn on_event<F: Fn()>(callback: F) {
+    callback();
+}
+on_event(|| println!("Event triggered!"));
+```
+
+### 4. Functional Programming
+Closures enable patterns like currying or partial application.
+```rust
+let add = |x: i32| move |y: i32| x + y;
+let add_5 = add(5);
+println!("{}", add_5(3)); // Outputs: 8
+```
+
+---
+
+## Advanced Topics
+
+### Returning Closures
+Closures have unique, anonymous types, so returning them from functions requires trait objects (e.g., `Box<dyn Fn>`):
+```rust
+fn returns_closure() -> Box<dyn Fn(i32) -> i32> {
+    Box::new(|x| x + 1)
+}
+let f = returns_closure();
+println!("{}", f(5)); // Outputs: 6
+```
+
+Alternatively, use `impl Fn` for static dispatch (Rust 1.26+):
+```rust
+fn returns_closure() -> impl Fn(i32) -> i32 {
+    |x| x + 1
+}
+```
+
+### Lifetimes with Closures
+If a closure captures references, its lifetime is tied to those references. Explicit lifetime annotations may be needed:
+```rust
+fn make_printer<'a>(s: &'a str) -> impl Fn() + 'a {
+    move || println!("{}", s)
+}
+```
+
+### Closures in Structs
+Closures can be stored in structs, but you must specify the trait bound:
+```rust
+struct Handler<F: Fn()> {
+    callback: F,
+}
+let handler = Handler { callback: || println!("Handled!") };
+handler.callback();
+```
+
+### Generic Closures
+Closures can be generic over types or lifetimes, but this is rare and complex:
+```rust
+fn generic_closure<T>(t: T) -> impl Fn() where T: std::fmt::Debug {
+    move || println!("{:?}", t)
+}
+```
+
+---
+
+## Common Pitfalls and Errors
+
+1. **Borrow Checker Errors**:
+   - **Error**: `cannot borrow as mutable because it is also borrowed as immutable`.
+     - Cause: Trying to mutably borrow a variable while it’s immutably borrowed.
+     - Fix: Ensure borrows don’t overlap, or use `move` to take ownership.
+   - Example:
+     ```rust
+     let mut x = String::from("hello");
+     let r = &x;
+     let c = || x.push_str("!"); // Error
+     ```
+
+2. **Moved Variable**:
+   - **Error**: `use of moved value`.
+     - Cause: Using a variable after it’s been moved into a `move` closure.
+     - Fix: Clone the variable or avoid `move`.
+   - Example:
+     ```rust
+     let x = String::from("hello");
+     let c = move || println!("{}", x);
+     // println!("{}", x); // Error
+     ```
+
+3. **Incorrect Trait Bound**:
+   - **Error**: `expected Fn, found FnMut`.
+     - Cause: Passing an `FnMut` or `FnOnce` closure to a function expecting `Fn`.
+     - Fix: Adjust the trait bound or rewrite the closure.
+   - Example:
+     ```rust
+     fn needs_fn<F: Fn()>(f: F) {}
+     let mut x = String::from("hello");
+     let c = || x.push_str("!"); // FnMut, not Fn
+     // needs_fn(c); // Error
+     ```
+
+4. **Return in Single-Expression Closures**:
+   - Using `return` in a single-expression closure returns from the enclosing function.
+   - Fix: Use braces for explicit returns.
+   - Example:
+     ```rust
+     let bad = |x| return x + 1; // Returns from main
+     let good = |x| { return x + 1; }; // Returns from closure
+     ```
+
+---
+
+## Best Practices
+
+1. **Minimize `move` Usage**: Only use `move` when necessary (e.g., for threading). Prefer borrowing to maintain access to variables.
+2. **Use Type Inference**: Let Rust infer parameter and return types unless clarity or explicitness is needed.
+3. **Choose the Right Trait**:
+   - Use `Fn` for read-only closures.
+   - Use `FnMut` for closures that modify captured variables.
+   - Use `FnOnce` for consuming closures or when unsure.
+4. **Clone Sparingly**: Cloning (`x.clone()`) in closures avoids moves but can be expensive for large data.
+5. **Test with Rust Playground**: Experiment with closures at [play.rust-lang.org](https://play.rust-lang.org) to understand borrow checker behavior.
+6. **Keep Scopes Tight**: Limit the scope of captured variables to avoid lifetime issues.
+
+---
+
+## Further Resources
+
+- **Official Rust Book**: Chapter on [Closures](https://doc.rust-lang.org/book/ch13-01-closures.html).
+- **Rust Reference**: [Closure Expressions](https://doc.rust-lang.org/reference/expressions/closure-expr.html).
+- **Rust by Example**: [Closures](https://doc.rust-lang.org/rust-by-example/fn/closures.html).
+- **API Documentation**: Traits `Fn`, `FnMut`, `FnOnce` in [std::ops](https://doc.rust-lang.org/std/ops/index.html).
+- **Rust Playground**: Test and debug closure code interactively: [play.rust-lang.org](https://play.rust-lang.org).
+
+---
+
+This reference covers everything you need to know about Rust closures, from basic syntax to advanced usage, with a focus on their integration with ownership and borrowing. If you need specific examples, debugging help, or deeper exploration of a particular aspect, let me know!
