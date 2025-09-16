@@ -1,0 +1,540 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Arrays
+
+Arrays are one of the fundamental data structures in Rust, providing a way to store multiple values of the same type in a contiguous block of memory. Rust's arrays are stack-allocated, have a fixed size known at compile time, and offer memory safety guarantees through the ownership system.
+
+## Table of Contents
+
+- [Basic Array Syntax](#basic-array-syntax)
+- [Array Types and Declaration](#array-types-and-declaration)
+- [Array Initialization](#array-initialization)
+- [Accessing Array Elements](#accessing-array-elements)
+- [Array Methods](#array-methods)
+- [Iterating Over Arrays](#iterating-over-arrays)
+- [Array Slices](#array-slices)
+- [Multidimensional Arrays](#multidimensional-arrays)
+- [Arrays vs Vectors](#arrays-vs-vectors)
+- [Array Patterns and Destructuring](#array-patterns-and-destructuring)
+- [Generic Arrays](#generic-arrays)
+- [Array Safety and Bounds Checking](#array-safety-and-bounds-checking)
+- [Advanced Array Operations](#advanced-array-operations)
+- [Best Practices](#best-practices)
+
+## Basic Array Syntax
+
+Arrays in Rust are defined with square brackets and have a fixed size:
+
+```rust
+let arr: [i32; 5] = [1, 2, 3, 4, 5];
+```
+
+The type annotation `[i32; 5]` indicates:
+- `i32` is the element type
+- `5` is the array length (known at compile time)
+
+## Array Types and Declaration
+
+### Explicit type declaration
+```rust
+let numbers: [i32; 4] = [10, 20, 30, 40];
+let chars: [char; 3] = ['a', 'b', 'c'];
+let booleans: [bool; 2] = [true, false];
+```
+
+### Type inference
+```rust
+let numbers = [1, 2, 3, 4, 5]; // Rust infers [i32; 5]
+let floats = [1.0, 2.0, 3.0];  // Rust infers [f64; 3]
+```
+
+### Zero-sized arrays
+```rust
+let empty: [i32; 0] = [];
+```
+
+## Array Initialization
+
+### Direct initialization
+```rust
+let arr = [1, 2, 3, 4, 5];
+```
+
+### Fill with same value
+```rust
+let arr = [3; 5]; // Creates [3, 3, 3, 3, 3]
+let zeros = [0; 10]; // Creates array of 10 zeros
+```
+
+### Using array literals
+```rust
+let mixed_types = [
+    String::from("hello"),
+    String::from("world"),
+    String::from("rust"),
+];
+```
+
+### Default initialization
+```rust
+let arr: [i32; 5] = Default::default(); // [0, 0, 0, 0, 0]
+```
+
+## Accessing Array Elements
+
+### Index access
+```rust
+let arr = [1, 2, 3, 4, 5];
+let first = arr[0];  // 1
+let third = arr[2];  // 3
+```
+
+### Safe access with get()
+```rust
+let arr = [1, 2, 3, 4, 5];
+let maybe_element = arr.get(2); // Some(3)
+let out_of_bounds = arr.get(10); // None
+```
+
+### Pattern matching for safe access
+```rust
+let arr = [1, 2, 3, 4, 5];
+match arr.get(2) {
+    Some(value) => println!("Found: {}", value),
+    None => println!("Index out of bounds"),
+}
+```
+
+## Array Methods
+
+### Length and size
+```rust
+let arr = [1, 2, 3, 4, 5];
+println!("Length: {}", arr.len()); // 5
+println!("Size in bytes: {}", std::mem::size_of_val(&arr));
+```
+
+### First and last elements
+```rust
+let arr = [1, 2, 3, 4, 5];
+let first = arr.first(); // Some(&1)
+let last = arr.last();   // Some(&5)
+
+let empty: [i32; 0] = [];
+let no_first = empty.first(); // None
+```
+
+### Checking if empty
+```rust
+let arr = [1, 2, 3];
+let empty: [i32; 0] = [];
+
+println!("Array is empty: {}", arr.is_empty());   // false
+println!("Empty is empty: {}", empty.is_empty()); // true
+```
+
+### Contains
+```rust
+let arr = [1, 2, 3, 4, 5];
+println!("Contains 3: {}", arr.contains(&3)); // true
+println!("Contains 10: {}", arr.contains(&10)); // false
+```
+
+## Iterating Over Arrays
+
+### For loop with references
+```rust
+let arr = [1, 2, 3, 4, 5];
+for element in &arr {
+    println!("{}", element);
+}
+```
+
+### For loop with values (consumes array)
+```rust
+let arr = [1, 2, 3, 4, 5];
+for element in arr {
+    println!("{}", element);
+}
+// arr is no longer accessible here
+```
+
+### Iterator methods
+```rust
+let arr = [1, 2, 3, 4, 5];
+
+// Map and collect
+let doubled: Vec<i32> = arr.iter().map(|x| x * 2).collect();
+
+// Filter
+let evens: Vec<&i32> = arr.iter().filter(|&&x| x % 2 == 0).collect();
+
+// Fold/reduce
+let sum = arr.iter().fold(0, |acc, x| acc + x);
+
+// Find
+let found = arr.iter().find(|&&x| x > 3); // Some(&4)
+```
+
+### Enumerate
+```rust
+let arr = ['a', 'b', 'c'];
+for (index, value) in arr.iter().enumerate() {
+    println!("Index {}: {}", index, value);
+}
+```
+
+## Array Slices
+
+Slices provide a view into arrays without owning the data:
+
+### Creating slices
+```rust
+let arr = [1, 2, 3, 4, 5];
+let slice = &arr[1..4]; // &[2, 3, 4]
+let full_slice = &arr[..]; // &[1, 2, 3, 4, 5]
+```
+
+### Mutable slices
+```rust
+let mut arr = [1, 2, 3, 4, 5];
+let slice = &mut arr[1..4];
+slice[0] = 10; // arr is now [1, 10, 3, 4, 5]
+```
+
+### Slice methods
+```rust
+let arr = [1, 2, 3, 4, 5];
+let slice = &arr[1..4];
+
+println!("Slice length: {}", slice.len());
+println!("First element: {:?}", slice.first());
+println!("Last element: {:?}", slice.last());
+```
+
+## Multidimensional Arrays
+
+### 2D arrays
+```rust
+let matrix: [[i32; 3]; 2] = [
+    [1, 2, 3],
+    [4, 5, 6],
+];
+
+// Accessing elements
+let element = matrix[1][2]; // 6
+```
+
+### 3D arrays
+```rust
+let cube: [[[i32; 2]; 2]; 2] = [
+    [[1, 2], [3, 4]],
+    [[5, 6], [7, 8]],
+];
+```
+
+### Iterating over 2D arrays
+```rust
+let matrix = [[1, 2, 3], [4, 5, 6]];
+
+for row in &matrix {
+    for element in row {
+        print!("{} ", element);
+    }
+    println!();
+}
+```
+
+## Arrays vs Vectors
+
+| Feature | Arrays | Vectors |
+|---------|--------|---------|
+| Size | Fixed at compile time | Dynamic |
+| Memory | Stack allocated | Heap allocated |
+| Performance | Faster access | Slight overhead |
+| Flexibility | Limited | High |
+| Use case | Known size | Unknown/changing size |
+
+### When to use arrays
+```rust
+// Fixed-size data
+let rgb: [u8; 3] = [255, 128, 64];
+let weekdays: [&str; 7] = [
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday"
+];
+
+// Performance-critical code with known size
+let buffer: [u8; 1024] = [0; 1024];
+```
+
+### When to use vectors
+```rust
+// Dynamic size needed
+let mut dynamic_list = Vec::new();
+dynamic_list.push(1);
+dynamic_list.push(2);
+
+// Size determined at runtime
+let size = get_size_from_user();
+let dynamic_array = vec![0; size];
+```
+
+## Array Patterns and Destructuring
+
+### Basic destructuring
+```rust
+let arr = [1, 2, 3];
+let [a, b, c] = arr;
+println!("a: {}, b: {}, c: {}", a, b, c);
+```
+
+### Partial destructuring
+```rust
+let arr = [1, 2, 3, 4, 5];
+let [first, second, ..] = arr;
+let [.., last] = arr;
+let [first, .., last] = arr;
+```
+
+### Pattern matching
+```rust
+fn process_array(arr: [i32; 3]) {
+    match arr {
+        [0, 0, 0] => println!("All zeros"),
+        [1, 1, 1] => println!("All ones"),
+        [x, 0, z] => println!("Middle is zero: {} and {}", x, z),
+        [first, .., last] => println!("First: {}, Last: {}", first, last),
+    }
+}
+```
+
+## Generic Arrays
+
+### Generic functions with arrays
+```rust
+fn print_array<T: std::fmt::Display, const N: usize>(arr: [T; N]) {
+    for element in arr {
+        println!("{}", element);
+    }
+}
+
+// Usage
+print_array([1, 2, 3, 4, 5]);
+print_array(['a', 'b', 'c']);
+```
+
+### Const generics in structs
+```rust
+struct Matrix<T, const ROWS: usize, const COLS: usize> {
+    data: [[T; COLS]; ROWS],
+}
+
+impl<T, const ROWS: usize, const COLS: usize> Matrix<T, ROWS, COLS> {
+    fn new(data: [[T; COLS]; ROWS]) -> Self {
+        Matrix { data }
+    }
+    
+    fn get(&self, row: usize, col: usize) -> Option<&T> {
+        self.data.get(row)?.get(col)
+    }
+}
+
+// Usage
+let matrix = Matrix::new([[1, 2, 3], [4, 5, 6]]);
+```
+
+## Array Safety and Bounds Checking
+
+### Compile-time bounds checking
+```rust
+let arr = [1, 2, 3, 4, 5];
+// This would cause a compile error:
+// let element = arr[10]; // index out of bounds
+```
+
+### Runtime bounds checking
+```rust
+let arr = [1, 2, 3, 4, 5];
+let index = get_index_from_user(); // Could be anything
+
+// This panics if index is out of bounds
+// let element = arr[index];
+
+// Safe alternative
+match arr.get(index) {
+    Some(element) => println!("Element: {}", element),
+    None => println!("Index {} is out of bounds", index),
+}
+```
+
+### Custom bounds checking
+```rust
+fn safe_get<T>(arr: &[T], index: usize) -> Result<&T, String> {
+    if index < arr.len() {
+        Ok(&arr[index])
+    } else {
+        Err(format!("Index {} is out of bounds for array of length {}", 
+                   index, arr.len()))
+    }
+}
+```
+
+## Advanced Array Operations
+
+### Array transformations
+```rust
+let arr = [1, 2, 3, 4, 5];
+
+// Map array to new array (requires additional allocation)
+let doubled: Vec<i32> = arr.iter().map(|x| x * 2).collect();
+
+// Using array_map (nightly feature)
+// let doubled = arr.map(|x| x * 2);
+```
+
+### Sorting arrays
+```rust
+let mut arr = [3, 1, 4, 1, 5, 9, 2, 6];
+arr.sort();
+println!("{:?}", arr); // [1, 1, 2, 3, 4, 5, 6, 9]
+
+arr.sort_by(|a, b| b.cmp(a)); // Descending
+println!("{:?}", arr); // [9, 6, 5, 4, 3, 2, 1, 1]
+```
+
+### Reversing arrays
+```rust
+let mut arr = [1, 2, 3, 4, 5];
+arr.reverse();
+println!("{:?}", arr); // [5, 4, 3, 2, 1]
+```
+
+### Array splitting
+```rust
+let arr = [1, 2, 3, 4, 5, 6];
+let (left, right) = arr.split_at(3);
+// left: [1, 2, 3], right: [4, 5, 6]
+```
+
+### Binary search (sorted arrays)
+```rust
+let arr = [1, 2, 3, 4, 5];
+match arr.binary_search(&3) {
+    Ok(index) => println!("Found at index {}", index),
+    Err(index) => println!("Would be inserted at index {}", index),
+}
+```
+
+## Memory Layout and Performance
+
+### Memory representation
+```rust
+let arr: [i32; 4] = [1, 2, 3, 4];
+// Memory layout: [1][2][3][4] - contiguous
+// Total size: 4 * 4 = 16 bytes
+
+let arr_of_arrays: [[i32; 2]; 3] = [[1, 2], [3, 4], [5, 6]];
+// Memory layout: [1][2][3][4][5][6] - still contiguous
+```
+
+### Stack vs heap
+```rust
+fn stack_array() {
+    let arr = [1; 1000]; // 4KB on stack - usually fine
+    // arr is automatically dropped when function ends
+}
+
+fn large_array() {
+    // For very large arrays, consider using Box or Vec
+    let large: Box<[i32; 1000000]> = Box::new([0; 1000000]); // Heap allocated
+}
+```
+
+## Best Practices
+
+1. **Use arrays for fixed-size data** where the size is known at compile time
+2. **Prefer slices in function parameters** for flexibility:
+   ```rust
+   fn process_data(data: &[i32]) { /* works with arrays and vectors */ }
+   ```
+
+3. **Use `get()` for safe indexing** when the index might be out of bounds
+4. **Consider const generics** for generic array handling
+5. **Use appropriate initialization patterns**:
+   ```rust
+   let zeros = [0; 100];           // Same value
+   let range: Vec<_> = (0..100).collect(); // Range (needs Vec)
+   ```
+
+6. **Be mindful of stack usage** with large arrays
+7. **Use iterators** for efficient processing without bounds checking overhead
+8. **Leverage pattern matching** for elegant array handling
+9. **Use type annotations** when array type isn't clear from context
+10. **Consider `ArrayVec`** from external crates for stack-allocated vectors
+
+## Common Patterns
+
+### Array-based lookup tables
+```rust
+const FIBONACCI: [u64; 20] = [
+    1, 1, 2, 3, 5, 8, 13, 21, 34, 55,
+    89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765
+];
+
+fn fibonacci(n: usize) -> Option<u64> {
+    FIBONACCI.get(n).copied()
+}
+```
+
+### Ring buffer using arrays
+```rust
+struct RingBuffer<T, const N: usize> {
+    data: [Option<T>; N],
+    head: usize,
+    tail: usize,
+    count: usize,
+}
+
+impl<T, const N: usize> RingBuffer<T, N> {
+    fn new() -> Self {
+        RingBuffer {
+            data: std::array::from_fn(|_| None),
+            head: 0,
+            tail: 0,
+            count: 0,
+        }
+    }
+    
+    fn push(&mut self, item: T) -> Result<(), T> {
+        if self.count == N {
+            return Err(item);
+        }
+        
+        self.data[self.tail] = Some(item);
+        self.tail = (self.tail + 1) % N;
+        self.count += 1;
+        Ok(())
+    }
+    
+    fn pop(&mut self) -> Option<T> {
+        if self.count == 0 {
+            return None;
+        }
+        
+        let item = self.data[self.head].take();
+        self.head = (self.head + 1) % N;
+        self.count -= 1;
+        item
+    }
+}
+```
+
+## Conclusion
+
+Arrays in Rust provide a powerful, memory-safe way to work with fixed-size collections. They offer excellent performance due to stack allocation and compile-time size checking, while Rust's ownership system prevents common array-related bugs like buffer overflows and use-after-free errors.
+
+Understanding when to use arrays versus vectors, how to work with slices, and leveraging const generics for flexible array handling are key skills for effective Rust programming. The combination of safety, performance, and expressiveness makes Rust arrays an excellent choice for systems programming and performance-critical applications.

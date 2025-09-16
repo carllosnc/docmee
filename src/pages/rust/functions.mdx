@@ -1,0 +1,359 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Functions
+
+Functions are fundamental building blocks in Rust that allow you to organize code into reusable, modular pieces. Rust's function system is both powerful and safety-focused, with several unique features that distinguish it from other languages.
+
+## Table of Contents
+
+- [Basic Function Syntax](#basic-function-syntax)
+- [Function Parameters](#function-parameters)
+- [Return Values](#return-values)
+- [Ownership and Borrowing](#ownership-and-borrowing-in-functions)
+- [Pattern Matching in Parameters](#pattern-matching-in-parameters)
+- [Generic Functions](#generic-functions)
+- [Function Pointers and Higher-Order Functions](#function-pointers-and-higher-order-functions)
+- [Closures vs Functions](#closures-vs-functions)
+- [Associated Functions](#associated-functions-static-methods)
+- [Diverging Functions](#diverging-functions)
+- [Advanced Features](#advanced-features)
+- [Best Practices](#best-practices)
+
+## Basic Function Syntax
+
+The most basic function in Rust uses the `fn` keyword:
+
+```rust
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+Functions follow this general pattern:
+```rust
+fn function_name(parameter: Type) -> ReturnType {
+    // function body
+    return_value
+}
+```
+
+## Function Parameters
+
+Functions can accept parameters with explicitly declared types:
+
+```rust
+fn greet(name: &str) {
+    println!("Hello, {}!", name);
+}
+
+fn add(x: i32, y: i32) -> i32 {
+    x + y  // No semicolon - this is an expression that returns a value
+}
+```
+
+Multiple parameters are separated by commas, and each must have its type specified (Rust doesn't infer parameter types).
+
+## Return Values
+
+Rust functions can return values in two ways:
+
+### Implicit return (expression)
+```rust
+fn multiply(x: i32, y: i32) -> i32 {
+    x * y  // No semicolon - this expression is returned
+}
+```
+
+### Explicit return
+```rust
+fn divide(x: f64, y: f64) -> Option<f64> {
+    if y == 0.0 {
+        return None;  // Early return
+    }
+    Some(x / y)
+}
+```
+
+Functions that don't return a value have an implicit return type of `()` (unit type).
+
+## Ownership and Borrowing in Functions
+
+Rust's ownership system significantly impacts how functions work with data:
+
+### Taking ownership
+```rust
+fn take_ownership(s: String) {
+    println!("{}", s);
+} // s goes out of scope and is dropped
+```
+
+### Borrowing (references)
+```rust
+fn borrow_string(s: &String) {
+    println!("{}", s);
+} // s goes out of scope, but nothing is dropped
+
+fn borrow_mutable(s: &mut String) {
+    s.push_str(" world");
+}
+```
+
+### Returning ownership
+```rust
+fn give_ownership() -> String {
+    String::from("hello")
+}
+
+fn take_and_give_back(s: String) -> String {
+    s  // Return ownership to caller
+}
+```
+
+## Pattern Matching in Parameters
+
+Rust allows destructuring directly in function parameters:
+
+```rust
+fn print_coordinates(&(x, y): &(i32, i32)) {
+    println!("Current location: ({}, {})", x, y);
+}
+
+struct Point { x: i32, y: i32 }
+
+fn print_point(Point { x, y }: Point) {
+    println!("Point at ({}, {})", x, y);
+}
+```
+
+## Generic Functions
+
+Functions can be generic over types:
+
+```rust
+fn largest<T: PartialOrd>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+    largest
+}
+
+// Multiple type parameters
+fn compare<T, U>(x: T, y: U) -> bool 
+where 
+    T: PartialEq<U>,
+{
+    x == y
+}
+```
+
+## Function Pointers and Higher-Order Functions
+
+Rust supports function pointers and functions that take other functions as parameters:
+
+```rust
+fn add_one(x: i32) -> i32 {
+    x + 1
+}
+
+fn apply_function(f: fn(i32) -> i32, value: i32) -> i32 {
+    f(value)
+}
+
+fn main() {
+    let result = apply_function(add_one, 5);
+    println!("{}", result); // 6
+}
+```
+
+## Closures vs Functions
+
+While similar, closures and functions are different types in Rust:
+
+```rust
+// Function
+fn add_ten(x: i32) -> i32 { x + 10 }
+
+// Closure
+let add_twenty = |x: i32| x + 20;
+
+// Functions that accept either need trait bounds
+fn apply_to_five<F>(f: F) -> i32 
+where 
+    F: Fn(i32) -> i32,
+{
+    f(5)
+}
+```
+
+## Associated Functions (Static Methods)
+
+Rust supports associated functions that don't take `self`:
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    // Associated function (called with ::)
+    fn new(width: u32, height: u32) -> Rectangle {
+        Rectangle { width, height }
+    }
+    
+    // Method (called with .)
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+let rect = Rectangle::new(10, 20);
+let area = rect.area();
+```
+
+## Diverging Functions
+
+Functions that never return use the `!` (never) type:
+
+```rust
+fn forever() -> ! {
+    loop {
+        println!("This runs forever");
+    }
+}
+
+fn panic_function() -> ! {
+    panic!("This function never returns normally");
+}
+```
+
+## Advanced Features
+
+### Const functions
+Can be evaluated at compile time:
+```rust
+const fn square(x: i32) -> i32 {
+    x * x
+}
+
+const FOUR: i32 = square(2); // Computed at compile time
+```
+
+### Unsafe functions
+Allow unsafe operations:
+```rust
+unsafe fn dangerous() {
+    // Unsafe operations here
+}
+
+fn main() {
+    unsafe {
+        dangerous(); // Must be called in unsafe block
+    }
+}
+```
+
+### External functions
+For FFI (Foreign Function Interface):
+```rust
+extern "C" {
+    fn abs(input: i32) -> i32;
+}
+```
+
+### Function attributes
+```rust
+#[inline]
+fn fast_function() {
+    // Hint to inline this function
+}
+
+#[deprecated]
+fn old_function() {
+    // Mark function as deprecated
+}
+
+#[must_use]
+fn important_function() -> i32 {
+    // Warn if return value is not used
+    42
+}
+```
+
+## Best Practices
+
+1. **Use descriptive names** that clearly indicate the function's purpose
+2. **Keep functions focused** on a single responsibility
+3. **Prefer borrowing over taking ownership** when you don't need to own the data
+4. **Use `&str` instead of `&String`** for string parameters when possible
+5. **Return `Result<T, E>` or `Option<T>`** for operations that might fail
+6. **Use generics** to make functions more flexible while maintaining type safety
+7. **Document public functions** with `///` comments
+8. **Keep functions small** and focused on a single task
+9. **Use meaningful parameter names** that describe what the parameter represents
+10. **Consider using `impl Trait`** for cleaner function signatures with complex return types
+
+## Common Patterns
+
+### Error handling
+```rust
+fn divide_safe(x: f64, y: f64) -> Result<f64, String> {
+    if y == 0.0 {
+        Err("Division by zero".to_string())
+    } else {
+        Ok(x / y)
+    }
+}
+```
+
+### Builder pattern with associated functions
+```rust
+struct Config {
+    host: String,
+    port: u16,
+    ssl: bool,
+}
+
+impl Config {
+    fn new() -> Self {
+        Config {
+            host: "localhost".to_string(),
+            port: 8080,
+            ssl: false,
+        }
+    }
+    
+    fn host(mut self, host: &str) -> Self {
+        self.host = host.to_string();
+        self
+    }
+    
+    fn port(mut self, port: u16) -> Self {
+        self.port = port;
+        self
+    }
+    
+    fn ssl(mut self, ssl: bool) -> Self {
+        self.ssl = ssl;
+        self
+    }
+}
+
+// Usage
+let config = Config::new()
+    .host("example.com")
+    .port(443)
+    .ssl(true);
+```
+
+## Conclusion
+
+Functions in Rust provide a robust foundation for building safe, efficient programs while leveraging the language's ownership system to prevent common programming errors at compile time. The combination of explicit types, ownership rules, and powerful abstractions makes Rust functions both safe and expressive.
+
+Understanding these concepts is crucial for writing idiomatic Rust code that is both performant and memory-safe. The ownership system, while initially challenging, becomes a powerful tool for preventing bugs and ensuring thread safety once mastered.
