@@ -1,0 +1,764 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Primitive Data Types
+
+Primitive data types are the building blocks of Rust programs. They are built into the language, stored directly on the stack, and have a known size at compile time. Rust provides a rich set of primitive types with explicit sizes and well-defined behavior, ensuring memory safety and predictable performance.
+
+## Table of Contents
+
+- [Integer Types](#integer-types)
+- [Floating-Point Types](#floating-point-types)
+- [Boolean Type](#boolean-type)
+- [Character Type](#character-type)
+- [Unit Type](#unit-type)
+- [Never Type](#never-type)
+- [Numeric Literals](#numeric-literals)
+- [Type Inference and Annotations](#type-inference-and-annotations)
+- [Type Conversions](#type-conversions)
+- [Arithmetic Operations](#arithmetic-operations)
+- [Comparison Operations](#comparison-operations)
+- [Bitwise Operations](#bitwise-operations)
+- [Constants and Static Variables](#constants-and-static-variables)
+- [Memory Layout and Size](#memory-layout-and-size)
+- [Platform-Dependent Types](#platform-dependent-types)
+- [Advanced Numeric Operations](#advanced-numeric-operations)
+- [Best Practices](#best-practices)
+
+## Integer Types
+
+Rust provides both signed and unsigned integers with explicit bit sizes:
+
+### Signed Integers
+| Type | Size | Range |
+|------|------|-------|
+| `i8` | 8 bits | -128 to 127 |
+| `i16` | 16 bits | -32,768 to 32,767 |
+| `i32` | 32 bits | -2,147,483,648 to 2,147,483,647 |
+| `i64` | 64 bits | -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807 |
+| `i128` | 128 bits | -(2^127) to 2^127 - 1 |
+| `isize` | pointer size | Depends on architecture (32 or 64 bits) |
+
+### Unsigned Integers
+| Type | Size | Range |
+|------|------|-------|
+| `u8` | 8 bits | 0 to 255 |
+| `u16` | 16 bits | 0 to 65,535 |
+| `u32` | 32 bits | 0 to 4,294,967,295 |
+| `u64` | 64 bits | 0 to 18,446,744,073,709,551,615 |
+| `u128` | 128 bits | 0 to 2^128 - 1 |
+| `usize` | pointer size | Depends on architecture |
+
+### Examples
+```rust
+let small_number: i8 = 42;
+let big_number: i64 = 1_000_000_000;
+let byte: u8 = 255;
+let array_index: usize = 10;
+
+// Type annotation is often optional due to inference
+let x = 42; // Defaults to i32
+let y: u64 = 42; // Explicit type
+```
+
+### Integer Methods
+```rust
+let x: i32 = -10;
+let y: u32 = 42;
+
+// Absolute value (signed integers only)
+println!("Absolute: {}", x.abs()); // 10
+
+// Power operations
+println!("Power: {}", y.pow(2)); // 1764
+
+// Checked arithmetic (returns Option)
+let result = x.checked_add(5); // Some(-5)
+let overflow = u8::MAX.checked_add(1); // None
+
+// Saturating arithmetic
+let saturated = u8::MAX.saturating_add(10); // 255 (doesn't overflow)
+
+// Wrapping arithmetic
+let wrapped = u8::MAX.wrapping_add(1); // 0 (wraps around)
+```
+
+## Floating-Point Types
+
+Rust has two floating-point types following IEEE 754 standard:
+
+| Type | Size | Precision |
+|------|------|-----------|
+| `f32` | 32 bits | Single precision |
+| `f64` | 64 bits | Double precision (default) |
+
+### Examples
+```rust
+let pi: f32 = 3.14159;
+let e: f64 = 2.718281828459045;
+let default_float = 2.0; // Defaults to f64
+
+// Scientific notation
+let large_number = 1.23e10; // 12,300,000,000
+let small_number = 1.23e-10; // 0.000000000123
+```
+
+### Floating-Point Methods
+```rust
+let x: f64 = 3.14159;
+
+// Basic operations
+println!("Floor: {}", x.floor()); // 3.0
+println!("Ceil: {}", x.ceil()); // 4.0
+println!("Round: {}", x.round()); // 3.0
+println!("Truncate: {}", x.trunc()); // 3.0
+
+// Mathematical functions
+println!("Square root: {}", x.sqrt()); // 1.772...
+println!("Power: {}", x.powf(2.0)); // 9.869...
+println!("Sine: {}", x.sin()); // 0.000...
+
+// Special values
+let infinity = f64::INFINITY;
+let neg_infinity = f64::NEG_INFINITY;
+let not_a_number = f64::NAN;
+
+// Checking special values
+println!("Is finite: {}", x.is_finite()); // true
+println!("Is infinite: {}", infinity.is_infinite()); // true
+println!("Is NaN: {}", not_a_number.is_nan()); // true
+```
+
+### Floating-Point Precision
+```rust
+let x: f32 = 0.1 + 0.2;
+let y: f64 = 0.1 + 0.2;
+
+println!("f32 precision: {}", x); // 0.30000001
+println!("f64 precision: {}", y); // 0.30000000000000004
+
+// Comparing floats
+let epsilon = f64::EPSILON;
+let a = 0.1 + 0.2;
+let b = 0.3;
+
+if (a - b).abs() < epsilon {
+    println!("Numbers are approximately equal");
+}
+```
+
+## Boolean Type
+
+The boolean type `bool` has two values: `true` and `false`.
+
+```rust
+let is_rust_awesome: bool = true;
+let is_debugging_fun = false; // Type inferred
+
+// Boolean operations
+let and_result = true && false; // false
+let or_result = true || false; // true
+let not_result = !true; // false
+
+// Short-circuit evaluation
+let result = false && expensive_computation(); // expensive_computation() not called
+
+// Using in conditions
+if is_rust_awesome {
+    println!("Rust is awesome!");
+}
+
+// Conversion from other types
+let number = 42;
+let is_positive = number > 0; // true
+
+// Size
+println!("Size of bool: {} bytes", std::mem::size_of::<bool>()); // 1 byte
+```
+
+## Character Type
+
+The `char` type represents a Unicode scalar value (4 bytes):
+
+```rust
+let letter: char = 'A';
+let emoji: char = '😀';
+let chinese: char = '中';
+let escape: char = '\n'; // Newline character
+
+// Unicode escape sequences
+let unicode_char: char = '\u{1F60A}'; // 😊 emoji
+
+// Character methods
+let c = 'A';
+println!("Is alphabetic: {}", c.is_alphabetic()); // true
+println!("Is numeric: {}", c.is_numeric()); // false
+println!("Is uppercase: {}", c.is_uppercase()); // true
+println!("To lowercase: {}", c.to_lowercase().collect::<String>()); // "a"
+
+// Size
+println!("Size of char: {} bytes", std::mem::size_of::<char>()); // 4 bytes
+
+// Iteration over chars in a string
+let text = "Hello 世界";
+for c in text.chars() {
+    println!("Character: {}", c);
+}
+```
+
+## Unit Type
+
+The unit type `()` represents an empty tuple and is used for functions that don't return a value:
+
+```rust
+let unit: () = ();
+
+fn print_message() -> () { // or just fn print_message()
+    println!("Hello!");
+    // Implicitly returns ()
+}
+
+// Functions without explicit return type return ()
+fn do_something() {
+    println!("Doing something...");
+}
+
+// Size
+println!("Size of unit: {} bytes", std::mem::size_of::<()>()); // 0 bytes
+```
+
+## Never Type
+
+The never type `!` represents computations that never complete:
+
+```rust
+fn panic_function() -> ! {
+    panic!("This function never returns");
+}
+
+fn infinite_loop() -> ! {
+    loop {
+        println!("This runs forever");
+    }
+}
+
+// Used in match expressions
+fn process_result(result: Result<i32, String>) -> i32 {
+    match result {
+        Ok(value) => value,
+        Err(_) => panic!("Error occurred"), // ! coerces to i32
+    }
+}
+```
+
+## Numeric Literals
+
+Rust provides various ways to write numeric literals:
+
+### Integer Literals
+```rust
+// Decimal
+let decimal = 42;
+
+// Binary
+let binary = 0b1010_1111; // 175
+
+// Octal
+let octal = 0o77; // 63
+
+// Hexadecimal
+let hex = 0xff; // 255
+
+// With type suffix
+let typed_number = 42u64; // u64 type
+let another = 3.14f32; // f32 type
+
+// With underscores for readability
+let large_number = 1_000_000;
+let binary_with_separators = 0b1010_0001_1000_0101;
+```
+
+### Floating-Point Literals
+```rust
+let float1 = 3.14;
+let float2 = 3.14f32; // f32 type
+let scientific = 1.23e4; // 12300.0
+let scientific2 = 1.23e-4; // 0.000123
+```
+
+### Character and Byte Literals
+```rust
+let char_literal = 'a';
+let emoji_literal = '🦀';
+let newline = '\n';
+let unicode = '\u{1F980}'; // 🦀 crab
+
+// Byte literals (u8 only)
+let byte_literal = b'A'; // 65u8
+let byte_string = b"Hello"; // &[u8; 5]
+```
+
+## Type Inference and Annotations
+
+Rust has powerful type inference but sometimes requires annotations:
+
+```rust
+// Type inference
+let x = 42; // i32 (default integer type)
+let y = 3.14; // f64 (default float type)
+
+// Explicit type annotations
+let x: i64 = 42;
+let y: f32 = 3.14;
+
+// When inference isn't enough
+let parsed: i32 = "42".parse().unwrap(); // Need to specify return type
+let numbers: Vec<i32> = vec![]; // Need to specify element type for empty vec
+
+// Turbofish syntax
+let parsed = "42".parse::<i32>().unwrap();
+let numbers = Vec::<i32>::new();
+
+// Multiple possible types
+let x = if condition { 42i32 } else { 0i32 };
+```
+
+## Type Conversions
+
+Rust requires explicit type conversions (no implicit coercion):
+
+### Safe Conversions with `as`
+```rust
+let x: i32 = 42;
+let y: i64 = x as i64; // Safe: widening conversion
+let z: f64 = x as f64; // Safe: integer to float
+
+let a: u8 = 255;
+let b: i16 = a as i16; // Safe: smaller unsigned to larger signed
+```
+
+### Potentially Unsafe Conversions
+```rust
+let x: i64 = 1000;
+let y: i32 = x as i32; // May truncate on some values
+
+let negative: i32 = -1;
+let unsigned: u32 = negative as u32; // Bit reinterpretation
+```
+
+### Checked Conversions with TryFrom
+```rust
+use std::convert::TryFrom;
+
+let x: i64 = 1000;
+match i32::try_from(x) {
+    Ok(value) => println!("Converted: {}", value),
+    Err(_) => println!("Conversion failed"),
+}
+
+// Or with unwrap for panicking on failure
+let y: i32 = i32::try_from(x).unwrap();
+```
+
+### From/Into Trait Conversions
+```rust
+let x: i32 = 42;
+let y: i64 = x.into(); // Using Into trait
+let z: i64 = i64::from(x); // Using From trait
+
+// String conversions
+let number = 42;
+let string: String = number.to_string();
+```
+
+## Arithmetic Operations
+
+### Basic Arithmetic
+```rust
+let x = 10;
+let y = 3;
+
+println!("Addition: {}", x + y); // 13
+println!("Subtraction: {}", x - y); // 7
+println!("Multiplication: {}", x * y); // 30
+println!("Division: {}", x / y); // 3 (integer division)
+println!("Remainder: {}", x % y); // 1
+
+// Floating-point division
+let a = 10.0;
+let b = 3.0;
+println!("Float division: {}", a / b); // 3.3333...
+```
+
+### Compound Assignment
+```rust
+let mut x = 10;
+x += 5; // x = 15
+x -= 3; // x = 12
+x *= 2; // x = 24
+x /= 4; // x = 6
+x %= 4; // x = 2
+```
+
+### Overflow Behavior
+```rust
+// In debug mode: panic on overflow
+// In release mode: wrapping behavior
+
+let mut x: u8 = 255;
+// x += 1; // Would panic in debug, wrap to 0 in release
+
+// Explicit overflow handling
+x = x.wrapping_add(1); // Always wraps: 0
+x = x.saturating_add(10); // Saturates at max: 255
+x = x.checked_add(1).unwrap_or(0); // Returns None on overflow
+```
+
+## Comparison Operations
+
+```rust
+let x = 10;
+let y = 20;
+
+println!("Equal: {}", x == y); // false
+println!("Not equal: {}", x != y); // true
+println!("Less than: {}", x < y); // true
+println!("Less or equal: {}", x <= y); // true
+println!("Greater than: {}", x > y); // false
+println!("Greater or equal: {}", x >= y); // false
+
+// Chained comparisons
+let a = 5;
+let b = 10;
+let c = 15;
+let in_range = a < b && b < c; // true
+
+// Floating-point comparisons (be careful!)
+let f1 = 0.1 + 0.2;
+let f2 = 0.3;
+println!("Direct comparison: {}", f1 == f2); // false!
+
+// Use epsilon for float comparison
+let epsilon = f64::EPSILON;
+println!("Epsilon comparison: {}", (f1 - f2).abs() < epsilon); // true
+```
+
+## Bitwise Operations
+
+```rust
+let a = 0b1010_1100; // 172
+let b = 0b1001_0110; // 150
+
+println!("AND: {:08b}", a & b); // 10000100 (132)
+println!("OR: {:08b}", a | b); // 11111110 (254)
+println!("XOR: {:08b}", a ^ b); // 01111010 (122)
+println!("NOT: {:08b}", !a); // (depends on type size)
+
+// Bit shifts
+let x = 0b0000_1111; // 15
+println!("Left shift: {:08b}", x << 2); // 00111100 (60)
+println!("Right shift: {:08b}", x >> 2); // 00000011 (3)
+
+// Compound bitwise assignment
+let mut value = 0b1010;
+value &= 0b1100; // value = 0b1000
+value |= 0b0010; // value = 0b1010
+value ^= 0b1111; // value = 0b0101
+value <<= 1; // value = 0b1010
+value >>= 2; // value = 0b0010
+```
+
+## Constants and Static Variables
+
+### Constants
+```rust
+const MAX_SCORE: u32 = 100_000;
+const PI: f64 = 3.141592653589793;
+const GREETING: &str = "Hello, World!";
+
+// Constants can use expressions
+const SECONDS_IN_HOUR: u32 = 60 * 60;
+const BUFFER_SIZE: usize = 1024 * 4;
+
+// Using constants
+let score = MAX_SCORE / 2;
+```
+
+### Static Variables
+```rust
+static GLOBAL_COUNTER: std::sync::atomic::AtomicUsize = 
+    std::sync::atomic::AtomicUsize::new(0);
+
+static mut GLOBAL_STATE: i32 = 0; // Mutable static (unsafe to access)
+
+// Accessing mutable static requires unsafe
+unsafe {
+    GLOBAL_STATE += 1;
+    println!("Global state: {}", GLOBAL_STATE);
+}
+```
+
+## Memory Layout and Size
+
+Understanding the memory footprint of primitive types:
+
+```rust
+use std::mem;
+
+println!("i8: {} bytes", mem::size_of::<i8>()); // 1
+println!("i16: {} bytes", mem::size_of::<i16>()); // 2
+println!("i32: {} bytes", mem::size_of::<i32>()); // 4
+println!("i64: {} bytes", mem::size_of::<i64>()); // 8
+println!("i128: {} bytes", mem::size_of::<i128>()); // 16
+println!("isize: {} bytes", mem::size_of::<isize>()); // 4 or 8
+
+println!("f32: {} bytes", mem::size_of::<f32>()); // 4
+println!("f64: {} bytes", mem::size_of::<f64>()); // 8
+
+println!("bool: {} bytes", mem::size_of::<bool>()); // 1
+println!("char: {} bytes", mem::size_of::<char>()); // 4
+println!("(): {} bytes", mem::size_of::<()>()); // 0
+
+// Alignment
+println!("i64 alignment: {} bytes", mem::align_of::<i64>()); // 8
+println!("f64 alignment: {} bytes", mem::align_of::<f64>()); // 8
+```
+
+## Platform-Dependent Types
+
+### Pointer-Sized Integers
+```rust
+// isize and usize are pointer-sized
+let array_index: usize = 42; // For array/vector indexing
+let memory_offset: isize = -100; // For pointer arithmetic
+
+// Platform detection
+#[cfg(target_pointer_width = "32")]
+const POINTER_SIZE: usize = 4;
+
+#[cfg(target_pointer_width = "64")]
+const POINTER_SIZE: usize = 8;
+
+println!("Pointer size: {} bytes", POINTER_SIZE);
+```
+
+### Raw Pointers
+```rust
+let x = 42i32;
+let raw_ptr: *const i32 = &x as *const i32;
+let mut y = 42i32;
+let raw_mut_ptr: *mut i32 = &mut y as *mut i32;
+
+// Raw pointers are just addresses
+println!("Pointer size: {} bytes", mem::size_of::<*const i32>()); // 8 on 64-bit
+```
+
+## Advanced Numeric Operations
+
+### Mathematical Functions
+```rust
+let x = 16.0_f64;
+
+println!("Square root: {}", x.sqrt()); // 4.0
+println!("Cube root: {}", x.cbrt()); // 2.519...
+println!("Logarithm (base e): {}", x.ln()); // 2.772...
+println!("Logarithm (base 10): {}", x.log10()); // 1.204...
+println!("Power of 2: {}", x.powf(0.5)); // 4.0
+
+// Trigonometric functions
+let angle = std::f64::consts::PI / 4.0; // 45 degrees in radians
+println!("Sin: {}", angle.sin()); // 0.707...
+println!("Cos: {}", angle.cos()); // 0.707...
+println!("Tan: {}", angle.tan()); // 1.0
+```
+
+### Number Theory Operations
+```rust
+// Greatest Common Divisor (requires external crate or custom implementation)
+fn gcd(a: u64, b: u64) -> u64 {
+    if b == 0 { a } else { gcd(b, a % b) }
+}
+
+// Least Common Multiple
+fn lcm(a: u64, b: u64) -> u64 {
+    a / gcd(a, b) * b
+}
+
+// Checking if number is power of 2
+fn is_power_of_two(n: u32) -> bool {
+    n != 0 && (n & (n - 1)) == 0
+}
+
+// Count set bits
+fn count_ones(n: u32) -> u32 {
+    n.count_ones()
+}
+
+println!("GCD of 12 and 8: {}", gcd(12, 8)); // 4
+println!("Is 16 power of 2: {}", is_power_of_two(16)); // true
+println!("Set bits in 15: {}", count_ones(15)); // 4
+```
+
+### Numeric Constants
+```rust
+use std::f64::consts;
+
+println!("Pi: {}", consts::PI);
+println!("E: {}", consts::E);
+println!("Square root of 2: {}", consts::SQRT_2);
+println!("Natural log of 2: {}", consts::LN_2);
+println!("Log base 10 of E: {}", consts::LOG10_E);
+
+// Integer constants
+println!("Max i32: {}", i32::MAX);
+println!("Min i32: {}", i32::MIN);
+println!("Max u64: {}", u64::MAX);
+
+// Float constants
+println!("Infinity: {}", f64::INFINITY);
+println!("NaN: {}", f64::NAN);
+println!("Epsilon: {}", f64::EPSILON);
+```
+
+## Best Practices
+
+### 1. Choose Appropriate Types
+```rust
+// Use the smallest type that fits your needs
+let byte_value: u8 = 255; // For 0-255 range
+let small_count: u16 = 1000; // For small counters
+let large_number: u64 = 1_000_000_000; // For large values
+
+// Use usize for array indices and sizes
+let array = [1, 2, 3, 4, 5];
+for i in 0..array.len() {
+    println!("Index {}: {}", i, array[i]);
+}
+```
+
+### 2. Be Explicit About Conversions
+```rust
+// Good: explicit conversion
+let x: i32 = 42;
+let y: f64 = x as f64;
+
+// Better: checked conversion when possible
+use std::convert::TryFrom;
+let safe_conversion = u32::try_from(x)?;
+```
+
+### 3. Handle Overflow Properly
+```rust
+// Use checked arithmetic for safety-critical code
+fn safe_add(a: u32, b: u32) -> Option<u32> {
+    a.checked_add(b)
+}
+
+// Use saturating arithmetic when you want to cap at limits
+fn capped_add(a: u8, b: u8) -> u8 {
+    a.saturating_add(b)
+}
+```
+
+### 4. Use Constants for Magic Numbers
+```rust
+const BUFFER_SIZE: usize = 1024;
+const MAX_RETRIES: u32 = 3;
+const TIMEOUT_SECONDS: u64 = 30;
+
+// Instead of magic numbers in code
+let buffer = vec![0u8; BUFFER_SIZE];
+```
+
+### 5. Be Careful with Floating-Point Comparisons
+```rust
+fn float_equal(a: f64, b: f64) -> bool {
+    (a - b).abs() < f64::EPSILON
+}
+
+// Or use a larger epsilon for practical comparisons
+fn approximately_equal(a: f64, b: f64, epsilon: f64) -> bool {
+    (a - b).abs() < epsilon
+}
+```
+
+### 6. Use Type Aliases for Clarity
+```rust
+type UserId = u64;
+type Temperature = f64;
+type Percentage = f32;
+
+fn process_user(id: UserId) { /* ... */ }
+fn set_temperature(temp: Temperature) { /* ... */ }
+```
+
+### 7. Prefer Unsigned Types When Appropriate
+```rust
+// Use unsigned for counts, indices, sizes
+let count: usize = items.len();
+let capacity: u32 = 1000;
+
+// Use signed for values that can be negative
+let temperature: i32 = -10;
+let balance: i64 = -1000;
+```
+
+## Common Patterns
+
+### Numeric Parsing
+```rust
+let input = "42";
+let number: Result<i32, _> = input.parse();
+match number {
+    Ok(n) => println!("Parsed: {}", n),
+    Err(_) => println!("Failed to parse"),
+}
+
+// Or with unwrap_or for default values
+let number = input.parse().unwrap_or(0);
+```
+
+### Range Checking
+```rust
+fn is_valid_percentage(value: f64) -> bool {
+    (0.0..=100.0).contains(&value)
+}
+
+fn clamp_to_byte(value: i32) -> u8 {
+    value.max(0).min(255) as u8
+}
+```
+
+### Bit Manipulation Utilities
+```rust
+struct Flags(u32);
+
+impl Flags {
+    const FLAG_A: u32 = 1 << 0; // 0b00000001
+    const FLAG_B: u32 = 1 << 1; // 0b00000010
+    const FLAG_C: u32 = 1 << 2; // 0b00000100
+    
+    fn new() -> Self { Flags(0) }
+    
+    fn set(&mut self, flag: u32) { self.0 |= flag; }
+    fn clear(&mut self, flag: u32) { self.0 &= !flag; }
+    fn toggle(&mut self, flag: u32) { self.0 ^= flag; }
+    fn is_set(&self, flag: u32) -> bool { (self.0 & flag) != 0 }
+}
+```
+
+## Conclusion
+
+Rust's primitive data types provide a solid foundation for building safe, efficient programs. The explicit sizing, overflow protection, and strong type system help prevent common programming errors while maintaining excellent performance.
+
+Key takeaways:
+- Choose the right size for your use case
+- Be explicit about type conversions
+- Handle overflow conditions appropriately
+- Use constants for readability and maintainability
+- Be careful with floating-point comparisons
+- Leverage Rust's type system for correctness
+
+Understanding these primitive types and their behavior is essential for writing idiomatic Rust code that is both safe and performant.

@@ -1,0 +1,1071 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Control Flow
+
+Control flow determines the order in which code executes. Rust provides several control flow constructs that are both powerful and safe, designed to prevent common programming errors while maintaining expressiveness. Rust's control flow is expression-based, meaning most constructs return values.
+
+## Table of Contents
+
+- [If Expressions](#if-expressions)
+- [Match Expressions](#match-expressions)
+- [Loops](#loops)
+- [For Loops](#for-loops)
+- [While Loops](#while-loops)
+- [Loop Control](#loop-control)
+- [If Let and While Let](#if-let-and-while-let)
+- [Pattern Matching](#pattern-matching)
+- [Guards in Patterns](#guards-in-patterns)
+- [Ranges in Control Flow](#ranges-in-control-flow)
+- [Labels and Nested Loops](#labels-and-nested-loops)
+- [Error Handling Control Flow](#error-handling-control-flow)
+- [Conditional Compilation](#conditional-compilation)
+- [Early Returns](#early-returns)
+- [Advanced Control Flow Patterns](#advanced-control-flow-patterns)
+- [Best Practices](#best-practices)
+
+## If Expressions
+
+In Rust, `if` is an expression that returns a value, not just a statement:
+
+### Basic If Expressions
+```rust
+let number = 6;
+
+if number % 4 == 0 {
+    println!("number is divisible by 4");
+} else if number % 3 == 0 {
+    println!("number is divisible by 3");
+} else if number % 2 == 0 {
+    println!("number is divisible by 2");
+} else {
+    println!("number is not divisible by 4, 3, or 2");
+}
+```
+
+### If as Expression
+```rust
+let condition = true;
+let number = if condition { 5 } else { 6 };
+println!("The value of number is: {}", number);
+
+// All branches must return the same type
+let result = if number > 0 {
+    "positive"
+} else {
+    "zero or negative"
+};
+
+// Using in function returns
+fn classify_number(n: i32) -> &'static str {
+    if n > 0 {
+        "positive"
+    } else if n < 0 {
+        "negative"
+    } else {
+        "zero"
+    }
+}
+```
+
+### Complex Conditions
+```rust
+let x = 5;
+let y = 10;
+
+// Logical operators
+if x > 0 && y > 0 {
+    println!("Both numbers are positive");
+}
+
+if x > 10 || y > 10 {
+    println!("At least one number is greater than 10");
+}
+
+if !(x == y) {
+    println!("Numbers are not equal");
+}
+
+// Parentheses for clarity
+if (x > 0 && y > 0) || (x < 0 && y < 0) {
+    println!("Numbers have the same sign");
+}
+```
+
+## Match Expressions
+
+Match is Rust's most powerful control flow construct, similar to switch statements but much more capable:
+
+### Basic Match
+```rust
+let number = 3;
+
+match number {
+    1 => println!("One"),
+    2 => println!("Two"),
+    3 => println!("Three"),
+    _ => println!("Something else"),
+}
+
+// Match as expression
+let description = match number {
+    1 => "one",
+    2 => "two",
+    3 => "three",
+    4 | 5 | 6 => "four to six", // Multiple patterns
+    _ => "something else",
+};
+```
+
+### Match with Ranges
+```rust
+let number = 13;
+
+match number {
+    1..=5 => println!("One through five"),
+    6..=10 => println!("Six through ten"),
+    11..=20 => println!("Eleven through twenty"),
+    _ => println!("Something else"),
+}
+
+// Character ranges
+let letter = 'c';
+match letter {
+    'a'..='j' => println!("Early ASCII letter"),
+    'k'..='z' => println!("Late ASCII letter"),
+    _ => println!("Something else"),
+}
+```
+
+### Match with Destructuring
+```rust
+// Tuples
+let point = (3, 5);
+match point {
+    (0, 0) => println!("Origin"),
+    (0, y) => println!("On the y-axis at {}", y),
+    (x, 0) => println!("On the x-axis at {}", x),
+    (x, y) => println!("Point at ({}, {})", x, y),
+}
+
+// Arrays
+let array = [1, 2, 3];
+match array {
+    [1, 2, 3] => println!("Exact match"),
+    [1, _, 3] => println!("First and last are 1 and 3"),
+    [first, .., last] => println!("First: {}, Last: {}", first, last),
+}
+```
+
+### Match with Enums
+```rust
+#[derive(Debug)]
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+let msg = Message::Move { x: 10, y: 20 };
+
+match msg {
+    Message::Quit => println!("Quit message"),
+    Message::Move { x, y } => println!("Move to ({}, {})", x, y),
+    Message::Write(text) => println!("Text message: {}", text),
+    Message::ChangeColor(r, g, b) => println!("Change color to ({}, {}, {})", r, g, b),
+}
+```
+
+### Match with Option and Result
+```rust
+let some_number = Some(5);
+let some_string = Some("hello");
+let absent_number: Option<i32> = None;
+
+// Matching Option
+match some_number {
+    Some(n) if n < 5 => println!("Less than five: {}", n),
+    Some(n) => println!("Got a number: {}", n),
+    None => println!("No number"),
+}
+
+// Matching Result
+fn divide(a: f64, b: f64) -> Result<f64, String> {
+    if b == 0.0 {
+        Err("Division by zero".to_string())
+    } else {
+        Ok(a / b)
+    }
+}
+
+let result = divide(10.0, 2.0);
+match result {
+    Ok(value) => println!("Result: {}", value),
+    Err(error) => println!("Error: {}", error),
+}
+```
+
+## Loops
+
+Rust has three kinds of loops: `loop`, `while`, and `for`.
+
+### Infinite Loop
+```rust
+// Basic infinite loop
+loop {
+    println!("This runs forever!");
+    // Usually has a break condition
+    break;
+}
+
+// Loop as expression
+let mut counter = 0;
+let result = loop {
+    counter += 1;
+    if counter == 10 {
+        break counter * 2; // Return value from loop
+    }
+};
+println!("Result: {}", result); // 20
+
+// Loop with multiple exit points
+let mut x = 0;
+loop {
+    x += 1;
+    if x == 5 {
+        continue; // Skip rest of iteration
+    }
+    if x > 10 {
+        break;
+    }
+    println!("x: {}", x);
+}
+```
+
+## For Loops
+
+For loops are used to iterate over collections:
+
+### Iterating Over Collections
+```rust
+let arr = [1, 2, 3, 4, 5];
+
+// Iterate over references (borrowing)
+for element in &arr {
+    println!("Element: {}", element);
+}
+
+// Iterate over values (consuming)
+let vec = vec![1, 2, 3, 4, 5];
+for element in vec {
+    println!("Element: {}", element);
+}
+// vec is no longer accessible here
+
+// Iterate with indices
+let arr = [10, 20, 30];
+for (index, value) in arr.iter().enumerate() {
+    println!("Index {}: {}", index, value);
+}
+```
+
+### Range-Based For Loops
+```rust
+// Exclusive range
+for i in 0..5 {
+    println!("Number: {}", i); // 0, 1, 2, 3, 4
+}
+
+// Inclusive range
+for i in 0..=5 {
+    println!("Number: {}", i); // 0, 1, 2, 3, 4, 5
+}
+
+// Reverse iteration
+for i in (0..5).rev() {
+    println!("Countdown: {}", i); // 4, 3, 2, 1, 0
+}
+
+// Step by
+for i in (0..10).step_by(2) {
+    println!("Even: {}", i); // 0, 2, 4, 6, 8
+}
+```
+
+### String Iteration
+```rust
+let text = "Hello";
+
+// Iterate over characters
+for c in text.chars() {
+    println!("Char: {}", c);
+}
+
+// Iterate over bytes
+for b in text.bytes() {
+    println!("Byte: {}", b);
+}
+
+// Iterate over char indices
+for (i, c) in text.char_indices() {
+    println!("Index {}: {}", i, c);
+}
+```
+
+## While Loops
+
+While loops run as long as a condition is true:
+
+### Basic While Loop
+```rust
+let mut number = 3;
+
+while number != 0 {
+    println!("{}!", number);
+    number -= 1;
+}
+println!("LIFTOFF!!!");
+
+// While with complex conditions
+let mut x = 0;
+let mut y = 0;
+
+while x < 10 && y < 5 {
+    x += 1;
+    if x % 2 == 0 {
+        y += 1;
+    }
+    println!("x: {}, y: {}", x, y);
+}
+```
+
+### While with Collections
+```rust
+let mut stack = vec![1, 2, 3, 4, 5];
+
+while let Some(top) = stack.pop() {
+    println!("Popped: {}", top);
+}
+```
+
+## Loop Control
+
+### Break and Continue
+```rust
+// Break out of loop
+let mut count = 0;
+loop {
+    count += 1;
+    if count == 5 {
+        break;
+    }
+    println!("Count: {}", count);
+}
+
+// Continue to next iteration
+for i in 1..=10 {
+    if i % 2 == 0 {
+        continue; // Skip even numbers
+    }
+    println!("Odd number: {}", i);
+}
+
+// Break with value
+let mut counter = 0;
+let result = loop {
+    counter += 1;
+    if counter == 10 {
+        break counter * 2;
+    }
+};
+```
+
+### Loop Labels
+```rust
+'outer: loop {
+    println!("Entered the outer loop");
+    
+    'inner: loop {
+        println!("Entered the inner loop");
+        
+        // Break out of outer loop
+        break 'outer;
+    }
+    
+    println!("This point will never be reached");
+}
+
+// Complex nested loop example
+let mut count = 0;
+'counting_up: loop {
+    println!("count = {}", count);
+    let mut remaining = 10;
+
+    loop {
+        println!("remaining = {}", remaining);
+        if remaining == 9 {
+            break; // Break inner loop
+        }
+        if count == 2 {
+            break 'counting_up; // Break outer loop
+        }
+        remaining -= 1;
+    }
+    
+    count += 1;
+}
+```
+
+## If Let and While Let
+
+Convenient syntax for pattern matching in specific scenarios:
+
+### If Let
+```rust
+let some_value = Some(3);
+
+// Instead of match with only one pattern
+if let Some(x) = some_value {
+    println!("Got a value: {}", x);
+}
+
+// With else
+if let Some(x) = some_value {
+    println!("Got a value: {}", x);
+} else {
+    println!("No value");
+}
+
+// Multiple patterns
+enum Color {
+    Red,
+    Blue,
+    Green,
+}
+
+let color = Color::Red;
+if let Color::Red | Color::Blue = color {
+    println!("It's red or blue");
+}
+```
+
+### While Let
+```rust
+let mut stack = Vec::new();
+stack.push(1);
+stack.push(2);
+stack.push(3);
+
+// Continue while pattern matches
+while let Some(top) = stack.pop() {
+    println!("Popped: {}", top);
+}
+
+// With iterators
+let mut iter = vec![1, 2, 3].into_iter();
+while let Some(value) = iter.next() {
+    println!("Value: {}", value);
+}
+```
+
+## Pattern Matching
+
+Advanced pattern matching techniques:
+
+### Destructuring Patterns
+```rust
+// Struct destructuring
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+let p = Point { x: 0, y: 7 };
+match p {
+    Point { x, y: 0 } => println!("On the x axis at {}", x),
+    Point { x: 0, y } => println!("On the y axis at {}", y),
+    Point { x, y } => println!("On neither axis: ({}, {})", x, y),
+}
+
+// Enum destructuring with data
+enum Message {
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+let msg = Message::ChangeColor(0, 160, 255);
+match msg {
+    Message::Move { x, y } => {
+        println!("Move to x: {}, y: {}", x, y);
+    }
+    Message::Write(text) => println!("Text message: {}", text),
+    Message::ChangeColor(r, g, b) => {
+        println!("Change the color to red {}, green {}, and blue {}", r, g, b);
+    }
+}
+```
+
+### Variable Binding with @
+```rust
+enum Message {
+    Hello { id: i32 },
+}
+
+let msg = Message::Hello { id: 5 };
+
+match msg {
+    Message::Hello { id: id_variable @ 3..=7 } => {
+        println!("Found an id in range: {}", id_variable);
+    }
+    Message::Hello { id: 10..=12 } => {
+        println!("Found an id in another range");
+    }
+    Message::Hello { id } => {
+        println!("Found some other id: {}", id);
+    }
+}
+```
+
+## Guards in Patterns
+
+Pattern guards add additional conditions to match arms:
+
+```rust
+let num = Some(4);
+
+match num {
+    Some(x) if x < 5 => println!("less than five: {}", x),
+    Some(x) => println!("{}", x),
+    None => (),
+}
+
+// Multiple conditions
+let x = 4;
+let y = false;
+
+match x {
+    4 | 5 | 6 if y => println!("yes"),
+    _ => println!("no"),
+}
+
+// With destructuring
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+let point = Point { x: 1, y: 0 };
+match point {
+    Point { x, y } if x == y => println!("Equal coordinates"),
+    Point { x, y } if x > y => println!("x is greater"),
+    Point { x, y } if x < y => println!("y is greater"),
+    Point { x, y } => println!("Coordinates: ({}, {})", x, y),
+}
+```
+
+## Ranges in Control Flow
+
+Using ranges effectively in control flow:
+
+```rust
+// Range patterns in match
+let x = 5;
+match x {
+    1..=5 => println!("one through five"),
+    6..=10 => println!("six through ten"),
+    _ => println!("something else"),
+}
+
+// Character ranges
+let c = 'c';
+match c {
+    'a'..='j' => println!("early ASCII letter"),
+    'k'..='z' => println!("late ASCII letter"),
+    _ => println!("something else"),
+}
+
+// In for loops with conditions
+for i in 1..=100 {
+    match i {
+        n if n % 15 == 0 => println!("FizzBuzz"),
+        n if n % 3 == 0 => println!("Fizz"),
+        n if n % 5 == 0 => println!("Buzz"),
+        n => println!("{}", n),
+    }
+}
+```
+
+## Labels and Nested Loops
+
+Managing complex nested loop structures:
+
+```rust
+// Breaking from nested loops
+fn find_in_matrix(matrix: &[[i32; 3]; 3], target: i32) -> Option<(usize, usize)> {
+    'rows: for (row_idx, row) in matrix.iter().enumerate() {
+        'cols: for (col_idx, &value) in row.iter().enumerate() {
+            if value == target {
+                return Some((row_idx, col_idx));
+            }
+            
+            // Could break to different levels
+            if value < 0 {
+                continue 'rows; // Skip rest of this row
+            }
+        }
+    }
+    None
+}
+
+// Returning values from labeled loops
+fn complex_search() -> i32 {
+    let mut result = 0;
+    
+    'outer: for i in 1..=10 {
+        'inner: for j in 1..=10 {
+            if i * j == 20 {
+                result = i + j;
+                break 'outer;
+            }
+        }
+    }
+    
+    result
+}
+```
+
+## Error Handling Control Flow
+
+Using control flow for error handling:
+
+### Early Returns with ?
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut file = File::open("username.txt")?;
+    let mut username = String::new();
+    file.read_to_string(&mut username)?;
+    Ok(username)
+}
+
+// Equivalent without ? operator
+fn read_username_verbose() -> Result<String, io::Error> {
+    let file = File::open("username.txt");
+    let mut file = match file {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+    
+    let mut username = String::new();
+    match file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e) => Err(e),
+    }
+}
+```
+
+### Match for Error Handling
+```rust
+fn divide_numbers(a: f64, b: f64) -> Result<f64, String> {
+    if b == 0.0 {
+        Err("Cannot divide by zero".to_string())
+    } else {
+        Ok(a / b)
+    }
+}
+
+fn process_division() {
+    match divide_numbers(10.0, 2.0) {
+        Ok(result) => println!("Result: {}", result),
+        Err(error) => {
+            eprintln!("Error: {}", error);
+            // Could return early, continue, or handle differently
+            return;
+        }
+    }
+    
+    println!("Division successful");
+}
+```
+
+## Conditional Compilation
+
+Control flow that happens at compile time:
+
+```rust
+// Platform-specific code
+#[cfg(target_os = "windows")]
+fn platform_specific() {
+    println!("Running on Windows");
+}
+
+#[cfg(target_os = "linux")]
+fn platform_specific() {
+    println!("Running on Linux");
+}
+
+// Debug vs release builds
+fn debug_info() {
+    #[cfg(debug_assertions)]
+    println!("Debug mode enabled");
+    
+    #[cfg(not(debug_assertions))]
+    println!("Release mode");
+}
+
+// Feature flags
+#[cfg(feature = "advanced")]
+fn advanced_feature() {
+    println!("Advanced feature enabled");
+}
+
+// Conditional compilation with attributes
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+struct MyStruct {
+    data: i32,
+}
+```
+
+## Early Returns
+
+Strategies for early returns and guard clauses:
+
+```rust
+// Guard clauses
+fn process_data(data: Option<Vec<i32>>) -> Result<i32, String> {
+    let data = match data {
+        Some(d) => d,
+        None => return Err("No data provided".to_string()),
+    };
+    
+    if data.is_empty() {
+        return Err("Empty data".to_string());
+    }
+    
+    if data.len() > 1000 {
+        return Err("Too much data".to_string());
+    }
+    
+    // Main logic here
+    Ok(data.iter().sum())
+}
+
+// Multiple validation steps
+fn validate_and_process(input: &str) -> Result<String, &'static str> {
+    if input.is_empty() {
+        return Err("Input is empty");
+    }
+    
+    if input.len() < 3 {
+        return Err("Input too short");
+    }
+    
+    if !input.chars().all(|c| c.is_alphanumeric()) {
+        return Err("Input contains invalid characters");
+    }
+    
+    Ok(input.to_uppercase())
+}
+```
+
+## Advanced Control Flow Patterns
+
+### State Machines
+```rust
+#[derive(Debug)]
+enum State {
+    Idle,
+    Processing,
+    Complete,
+    Error(String),
+}
+
+struct StateMachine {
+    state: State,
+}
+
+impl StateMachine {
+    fn new() -> Self {
+        StateMachine { state: State::Idle }
+    }
+    
+    fn process_event(&mut self, event: &str) {
+        self.state = match (&self.state, event) {
+            (State::Idle, "start") => State::Processing,
+            (State::Processing, "finish") => State::Complete,
+            (State::Processing, "error") => State::Error("Processing failed".to_string()),
+            (State::Complete, "reset") => State::Idle,
+            (State::Error(_), "reset") => State::Idle,
+            (current_state, _) => {
+                println!("Invalid event '{}' for state {:?}", event, current_state);
+                return; // Don't change state
+            }
+        };
+        
+        println!("New state: {:?}", self.state);
+    }
+}
+```
+
+### Iterator Control Flow
+```rust
+let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// Using iterator methods for control flow
+let result: Vec<i32> = numbers
+    .iter()
+    .filter(|&&x| x % 2 == 0) // Only even numbers
+    .map(|&x| x * x) // Square them
+    .take_while(|&&x| x < 50) // Take while less than 50
+    .collect();
+
+// Short-circuiting operations
+let has_large_number = numbers.iter().any(|&x| x > 8);
+let all_positive = numbers.iter().all(|&x| x > 0);
+
+// Find and control flow
+if let Some(first_even) = numbers.iter().find(|&&x| x % 2 == 0) {
+    println!("First even number: {}", first_even);
+}
+
+// Fold with early termination using Result
+let sum_until_large: Result<i32, i32> = numbers.iter().try_fold(0, |acc, &x| {
+    if x > 7 {
+        Err(acc) // Stop here and return accumulated value
+    } else {
+        Ok(acc + x)
+    }
+});
+```
+
+### Control Flow with Closures
+```rust
+// Higher-order functions with control flow
+fn retry_operation<T, E, F>(mut operation: F, max_attempts: usize) -> Result<T, E>
+where
+    F: FnMut() -> Result<T, E>,
+{
+    for attempt in 1..=max_attempts {
+        match operation() {
+            Ok(result) => return Ok(result),
+            Err(e) if attempt == max_attempts => return Err(e),
+            Err(_) => continue, // Try again
+        }
+    }
+    unreachable!()
+}
+
+// Usage
+let result = retry_operation(|| {
+    // Simulated operation that might fail
+    if rand::random::<bool>() {
+        Ok("Success!")
+    } else {
+        Err("Failed")
+    }
+}, 3);
+```
+
+## Best Practices
+
+### 1. Prefer Match Over If-Else Chains
+```rust
+// Good: Using match for multiple discrete values
+let status_code = 404;
+let message = match status_code {
+    200 => "OK",
+    404 => "Not Found",
+    500 => "Internal Server Error",
+    _ => "Unknown Status",
+};
+
+// Avoid: Long if-else chains for discrete values
+// if status_code == 200 {
+//     "OK"
+// } else if status_code == 404 {
+//     "Not Found"
+// } else if status_code == 500 {
+//     "Internal Server Error"
+// } else {
+//     "Unknown Status"
+// }
+```
+
+### 2. Use If Let for Simple Pattern Matching
+```rust
+// Good: Simple pattern matching
+if let Some(value) = optional_value {
+    println!("Got: {}", value);
+}
+
+// Avoid: Match with only one meaningful pattern
+// match optional_value {
+//     Some(value) => println!("Got: {}", value),
+//     None => {}
+// }
+```
+
+### 3. Leverage Iterator Methods
+```rust
+let numbers = vec![1, 2, 3, 4, 5];
+
+// Good: Using iterator methods
+let sum: i32 = numbers
+    .iter()
+    .filter(|&&x| x % 2 == 0)
+    .sum();
+
+// Less idiomatic: Manual loop
+// let mut sum = 0;
+// for number in &numbers {
+//     if number % 2 == 0 {
+//         sum += number;
+//     }
+// }
+```
+
+### 4. Use Early Returns for Error Conditions
+```rust
+fn validate_input(input: &str) -> Result<String, &'static str> {
+    if input.is_empty() {
+        return Err("Input cannot be empty");
+    }
+    
+    if input.len() > 100 {
+        return Err("Input too long");
+    }
+    
+    // Main logic
+    Ok(input.trim().to_string())
+}
+```
+
+### 5. Prefer Exhaustive Pattern Matching
+```rust
+enum Status {
+    Active,
+    Inactive,
+    Pending,
+}
+
+// Good: Handle all cases explicitly
+fn process_status(status: Status) {
+    match status {
+        Status::Active => println!("Processing active status"),
+        Status::Inactive => println!("Handling inactive status"),
+        Status::Pending => println!("Waiting for pending status"),
+        // No wildcard needed - all cases covered
+    }
+}
+```
+
+### 6. Use Loop Labels for Complex Nested Loops
+```rust
+'outer: for i in 0..10 {
+    for j in 0..10 {
+        if i * j == 42 {
+            println!("Found it at ({}, {})", i, j);
+            break 'outer; // Clear intent
+        }
+    }
+}
+```
+
+### 7. Avoid Deep Nesting
+```rust
+// Good: Early returns reduce nesting
+fn process_data(data: Option<Vec<i32>>) -> Result<i32, String> {
+    let data = data.ok_or("No data")?;
+    
+    if data.is_empty() {
+        return Err("Empty data".to_string());
+    }
+    
+    let sum = data.iter().sum();
+    Ok(sum)
+}
+
+// Avoid: Deep nesting
+// fn process_data(data: Option<Vec<i32>>) -> Result<i32, String> {
+//     if let Some(data) = data {
+//         if !data.is_empty() {
+//             let sum = data.iter().sum();
+//             Ok(sum)
+//         } else {
+//             Err("Empty data".to_string())
+//         }
+//     } else {
+//         Err("No data".to_string())
+//     }
+// }
+```
+
+## Common Patterns
+
+### Option Chain Pattern
+```rust
+fn get_user_preference(user_id: u32) -> Option<String> {
+    get_user(user_id)
+        .and_then(|user| user.preferences)
+        .and_then(|prefs| prefs.theme)
+        .map(|theme| theme.to_string())
+}
+```
+
+### Result Chain Pattern
+```rust
+fn process_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    std::fs::read_to_string(path)?
+        .lines()
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+        .parse()
+        .map_err(|e| e.into())
+}
+```
+
+### State Transition Pattern
+```rust
+enum ConnectionState {
+    Disconnected,
+    Connecting,
+    Connected,
+    Error(String),
+}
+
+impl ConnectionState {
+    fn transition(&mut self, event: ConnectionEvent) {
+        *self = match (std::mem::take(self), event) {
+            (ConnectionState::Disconnected, ConnectionEvent::Connect) => 
+                ConnectionState::Connecting,
+            (ConnectionState::Connecting, ConnectionEvent::Success) => 
+                ConnectionState::Connected,
+            (ConnectionState::Connecting, ConnectionEvent::Failure(err)) => 
+                ConnectionState::Error(err),
+            (current, _) => current, // No transition
+        };
+    }
+}
+```
+
+## Conclusion
+
+Rust's control flow constructs provide powerful tools for writing clear, safe, and efficient code. The expression-based nature of most constructs, combined with pattern matching and the ownership system, enables writing code that is both readable and performant.
+
+Key takeaways:
+- Use `match` for complex pattern matching and `if let` for simple cases
+- Leverage the expression nature of control flow constructs
+- Use early returns and guard clauses to reduce nesting
+- Take advantage of iterator methods for collection processing
+- Use loop labels for complex nested loop control
+- Pattern matching is exhaustive and helps catch errors at compile time
+- Control flow works seamlessly with Rust's error handling mechanisms
+
+Mastering these control flow patterns is essential for writing idiomatic Rust code that is both safe and expressive.
