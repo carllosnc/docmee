@@ -1,0 +1,996 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Ownership and Borrowing
+
+Ownership is Rust's most unique and powerful feature, enabling memory safety without garbage collection. It's a set of rules that govern how memory is managed, preventing common programming errors like use-after-free, double-free, and memory leaks at compile time.
+
+## Table of Contents
+
+- [Ownership Fundamentals](#ownership-fundamentals)
+- [The Stack and the Heap](#the-stack-and-the-heap)
+- [Ownership Rules](#ownership-rules)
+- [Move Semantics](#move-semantics)
+- [Clone and Copy](#clone-and-copy)
+- [References and Borrowing](#references-and-borrowing)
+- [Mutable References](#mutable-references)
+- [Borrowing Rules](#borrowing-rules)
+- [Lifetimes](#lifetimes)
+- [Lifetime Annotations](#lifetime-annotations)
+- [Lifetime Elision](#lifetime-elision)
+- [Static Lifetimes](#static-lifetimes)
+- [String Types and Ownership](#string-types-and-ownership)
+- [Collections and Ownership](#collections-and-ownership)
+- [Functions and Ownership](#functions-and-ownership)
+- [Structs and Ownership](#structs-and-ownership)
+- [Ownership Patterns](#ownership-patterns)
+
+## Ownership Fundamentals
+
+Ownership is a system that manages memory automatically by tracking which parts of code are responsible for allocating and deallocating memory.
+
+### Why Ownership Matters
+```rust
+// Without ownership (C-style), this could cause problems:
+// char* ptr = malloc(100);
+// free(ptr);
+// free(ptr); // Double free! Undefined behavior
+
+// With ownership, Rust prevents these errors at compile time
+let s = String::from("hello"); // s owns the string data
+// When s goes out of scope, memory is automatically freed
+// No double-free possible - ownership is tracked
+```
+
+### Memory Safety Guarantees
+- **No use-after-free**: Can't use memory after it's been freed
+- **No double-free**: Can't free the same memory twice
+- **No memory leaks**: Memory is automatically freed when owner goes out of scope
+- **No dangling pointers**: References always point to valid memory
+- **No data races**: Multiple threads can't mutate shared data simultaneously
+
+## The Stack and the Heap
+
+Understanding memory layout is crucial for ownership:
+
+### Stack Memory
+```rust
+fn stack_example() {
+    let x = 5;        // Stored on stack
+    let y = 10;       // Stored on stack
+    let z = x + y;    // Stored on stack
+    
+    // All values automatically cleaned up when function ends
+}
+
+// Size known at compile time, fast allocation/deallocation
+let array: [i32; 1000] = [0; 1000]; // Stack allocated
+```
+
+### Heap Memory
+```rust
+fn heap_example() {
+    let s = String::from("hello"); // String data stored on heap
+    let v = vec![1, 2, 3, 4, 5];   // Vector data stored on heap
+    
+    // Heap memory managed through ownership
+    // Automatically freed when s and v go out of scope
+}
+
+// Dynamic size, slower allocation/deallocation but more flexible
+let mut dynamic_vec = Vec::new(); // Starts empty, can grow
+dynamic_vec.push(1);
+dynamic_vec.push(2);
+```
+
+## Ownership Rules
+
+Rust's ownership system follows three fundamental rules:
+
+### Rule 1: Each value has exactly one owner
+```rust
+let s1 = String::from("hello");
+// s1 is the owner of the string "hello"
+
+// This would create a new string, not share ownership
+let s2 = String::from("hello"); // s2 owns a different string
+
+// Values can have only one owner at a time
+let s3 = s1; // s1's ownership moves to s3
+// println!("{}", s1); // Error! s1 no longer owns the value
+println!("{}", s3); // OK - s3 now owns the value
+```
+
+### Rule 2: When the owner goes out of scope, the value is dropped
+```rust
+{
+    let s = String::from("hello"); // s comes into scope
+    // do stuff with s
+} // s goes out of scope and is automatically dropped
+
+fn demonstrate_scope() {
+    let s = String::from("hello");
+    
+    if true {
+        let s2 = String::from("world");
+        println!("{} {}", s, s2);
+    } // s2 is dropped here
+    
+    println!("{}", s); // s still valid
+} // s is dropped here
+```
+
+### Rule 3: There can be either one mutable reference OR multiple immutable references
+```rust
+let mut s = String::from("hello");
+
+// Either this:
+let r1 = &s; // immutable reference
+let r2 = &s; // multiple immutable references OK
+println!("{} {}", r1, r2);
+
+// Or this (but not both):
+let r3 = &mut s; // mutable reference
+println!("{}", r3);
+// Can't use r1, r2 here if r3 is still in scope
+```
+
+## Move Semantics
+
+When ownership transfers from one variable to another:
+
+### Basic Moves
+```rust
+let s1 = String::from("hello");
+let s2 = s1; // Ownership moves from s1 to s2
+
+// s1 is no longer valid
+// println!("{}", s1); // Compile error!
+println!("{}", s2); // OK
+
+// Function calls also move ownership
+fn takes_ownership(some_string: String) {
+    println!("{}", some_string);
+} // some_string goes out of scope and is dropped
+
+let s = String::from("hello");
+takes_ownership(s); // s's value moves into the function
+// println!("{}", s); // Error! s no longer valid
+```
+
+### Moves with Collections
+```rust
+let v1 = vec![1, 2, 3, 4, 5];
+let v2 = v1; // v1 moves to v2
+
+// println!("{:?}", v1); // Error! v1 no longer owns the vector
+
+// Moving elements out of collections
+let mut v = vec![String::from("hello"), String::from("world")];
+let first = v.remove(0); // Moves first element out of vector
+println!("{}", first); // OK
+// v now only contains "world"
+```
+
+### Partial Moves
+```rust
+struct Person {
+    name: String,
+    age: u32,
+}
+
+let person = Person {
+    name: String::from("Alice"),
+    age: 30,
+};
+
+let name = person.name; // Move name out of person
+// let age = person.age; // Error! Can't use person after partial move
+// println!("{}", person.age); // Error! person partially moved
+
+// But we can still use the age field directly if we don't move it first
+let person2 = Person {
+    name: String::from("Bob"),
+    age: 25,
+};
+
+println!("{}", person2.age); // OK
+let name2 = person2.name; // Now person2 is partially moved
+// println!("{}", person2.age); // Error! Can't use after partial move
+```
+
+## Clone and Copy
+
+### Clone Trait
+```rust
+// Clone creates a deep copy
+let s1 = String::from("hello");
+let s2 = s1.clone(); // Explicit deep copy
+
+println!("{}", s1); // OK - s1 still owns its data
+println!("{}", s2); // OK - s2 owns a separate copy
+
+// Clone can be expensive for large data structures
+let large_vec: Vec<i32> = (0..1_000_000).collect();
+let cloned_vec = large_vec.clone(); // Copies all million integers
+```
+
+### Copy Trait
+```rust
+// Types that implement Copy are copied instead of moved
+let x = 5; // i32 implements Copy
+let y = x; // x is copied to y, both remain valid
+
+println!("{}", x); // OK - x is still valid
+println!("{}", y); // OK - y has its own copy
+
+// Copy types include:
+// - All integers: i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize
+// - Floating point: f32, f64
+// - Boolean: bool
+// - Character: char
+// - Tuples containing only Copy types: (i32, i32), (bool, char)
+// - Arrays of Copy types: [i32; 5]
+
+let tuple = (1, 2);
+let copied_tuple = tuple; // Copied, not moved
+println!("{:?}", tuple); // Still valid
+
+// Reference types don't implement Copy
+// let s1 = String::from("hello");
+// let s2 = s1; // This is a move, not a copy
+```
+
+### Implementing Copy and Clone
+```rust
+// Copy requires Clone, and both must be derived together for most types
+#[derive(Copy, Clone, Debug)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+let p1 = Point { x: 1, y: 2 };
+let p2 = p1; // Copied because Point implements Copy
+println!("{:?}", p1); // Still valid
+println!("{:?}", p2); // Also valid
+
+// Can't derive Copy if the struct contains non-Copy types
+struct Person {
+    name: String, // String doesn't implement Copy
+    age: u32,
+}
+// #[derive(Copy)] // This would be an error!
+```
+
+## References and Borrowing
+
+References allow you to use a value without taking ownership:
+
+### Immutable References
+```rust
+let s1 = String::from("hello");
+let len = calculate_length(&s1); // Borrow s1
+
+println!("The length of '{}' is {}.", s1, len); // s1 still valid
+
+fn calculate_length(s: &String) -> usize {
+    s.len()
+} // s goes out of scope, but nothing is dropped because we don't own it
+
+// Multiple immutable references are allowed
+let s = String::from("hello");
+let r1 = &s;
+let r2 = &s;
+let r3 = &s;
+
+println!("{}, {}, and {}", r1, r2, r3); // All valid simultaneously
+```
+
+### Reference Syntax
+```rust
+let s = String::from("hello");
+
+// Creating references
+let r1 = &s;           // Immutable reference
+let r2: &String = &s;  // With explicit type annotation
+
+// Dereferencing (usually automatic)
+let len1 = s.len();    // Direct method call
+let len2 = r1.len();   // Automatic dereferencing
+let len3 = (*r1).len(); // Explicit dereferencing
+
+println!("All lengths equal: {}", len1 == len2 && len2 == len3);
+```
+
+## Mutable References
+
+Mutable references allow modification of borrowed data:
+
+### Basic Mutable References
+```rust
+let mut s = String::from("hello");
+
+change(&mut s);
+println!("{}", s); // Prints "hello, world"
+
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+
+// Original value must be mutable to create mutable references
+// let s2 = String::from("hello");
+// change(&mut s2); // Error! s2 is not mutable
+```
+
+### Mutable Reference Restrictions
+```rust
+let mut s = String::from("hello");
+
+// Only one mutable reference allowed at a time
+let r1 = &mut s;
+// let r2 = &mut s; // Error! Cannot borrow `s` as mutable more than once
+
+r1.push_str(" world");
+println!("{}", r1);
+
+// After r1 goes out of scope, we can create a new mutable reference
+let r2 = &mut s;
+r2.push_str("!");
+println!("{}", r2);
+```
+
+### Mixing Mutable and Immutable References
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s; // OK - immutable reference
+let r2 = &s; // OK - another immutable reference
+// let r3 = &mut s; // Error! Cannot mix mutable with immutable
+
+println!("{} and {}", r1, r2);
+// r1 and r2 are no longer used after this point
+
+let r3 = &mut s; // OK now - no immutable references active
+r3.push_str(" world");
+println!("{}", r3);
+```
+
+## Borrowing Rules
+
+The borrowing checker enforces these rules at compile time:
+
+### Rule Summary
+1. **At any given time, you can have either one mutable reference OR any number of immutable references**
+2. **References must always be valid (no dangling references)**
+
+### Non-Lexical Lifetimes (NLL)
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s; // immutable reference
+let r2 = &s; // another immutable reference
+
+println!("{} and {}", r1, r2);
+// r1 and r2 are no longer used after this point
+
+let r3 = &mut s; // OK! Immutable references are done being used
+println!("{}", r3);
+
+// This is allowed due to Non-Lexical Lifetimes
+// The borrow checker can see that r1 and r2 aren't used after the println!
+```
+
+### Borrowing in Different Scopes
+```rust
+let mut s = String::from("hello");
+
+{
+    let r1 = &s; // immutable reference in inner scope
+    println!("{}", r1);
+} // r1 goes out of scope here
+
+let r2 = &mut s; // OK now - r1 is no longer in scope
+r2.push_str(" world");
+println!("{}", r2);
+```
+
+### Dangling References Prevention
+```rust
+// This won't compile - prevents dangling references
+// fn dangle() -> &String {
+//     let s = String::from("hello");
+//     &s // Error! s will be dropped, reference would be invalid
+// }
+
+// Correct way - return owned value
+fn no_dangle() -> String {
+    let s = String::from("hello");
+    s // Move ownership to caller
+}
+
+// Or use static strings
+fn static_string() -> &'static str {
+    "hello" // String literal lives for entire program
+}
+```
+
+## Lifetimes
+
+Lifetimes ensure that references remain valid for as long as needed:
+
+### What Are Lifetimes?
+```rust
+// Every reference has a lifetime - how long it's valid
+let r;                // ---------+-- 'a
+                      //          |
+{                     //          |
+    let x = 5;        // -+-- 'b  |
+    r = &x;           //  |       |
+}                     // -+       |
+                      //          |
+// println!("{}", r); // Error! 'b is shorter than 'a
+```
+
+### Lifetime Annotations in Functions
+```rust
+// When return type depends on input parameters, need lifetime annotations
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+// Usage
+let string1 = String::from("long string is long");
+let result;
+{
+    let string2 = String::from("xyz");
+    result = longest(string1.as_str(), string2.as_str());
+    println!("The longest string is {}", result);
+} // result must be used before string2 goes out of scope
+```
+
+### Lifetime Annotations in Structs
+```rust
+// Struct holds a reference - need lifetime parameter
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+    
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+
+// Usage
+let novel = String::from("Call me Ishmael. Some years ago...");
+let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+let i = ImportantExcerpt {
+    part: first_sentence,
+};
+// i cannot outlive novel because it holds a reference to it
+```
+
+## Lifetime Annotations
+
+### Basic Syntax
+```rust
+// Lifetime parameters start with apostrophe and are usually short
+fn function<'a>(x: &'a str) -> &'a str {
+    x
+}
+
+// Multiple lifetime parameters
+fn multiple_lifetimes<'a, 'b>(x: &'a str, y: &'b str) -> &'a str {
+    x
+}
+
+// Different lifetimes for different parameters
+fn different_lifetimes<'a, 'b>(x: &'a str, y: &'b str) -> String {
+    format!("{}{}", x, y) // Returns owned String, no lifetime needed
+}
+```
+
+### Lifetime Relationships
+```rust
+// Lifetime 'a must live at least as long as lifetime 'b
+fn sublifetime<'a: 'b, 'b>(x: &'a str, y: &'b str) -> &'b str {
+    y // Can return y because 'a: 'b (a outlives b)
+}
+
+// Multiple constraints
+fn complex_lifetimes<'a, 'b, 'c>(x: &'a str, y: &'b str, z: &'c str) -> &'a str
+where
+    'a: 'b,  // 'a outlives 'b
+    'b: 'c,  // 'b outlives 'c
+{
+    x
+}
+```
+
+### Lifetimes in Method Definitions
+```rust
+struct StrWrapper<'a> {
+    s: &'a str,
+}
+
+impl<'a> StrWrapper<'a> {
+    // Method that returns a reference with the same lifetime
+    fn get_string(&self) -> &'a str {
+        self.s
+    }
+    
+    // Method that takes another reference with a different lifetime
+    fn compare<'b>(&self, other: &'b str) -> bool {
+        self.s == other
+    }
+}
+```
+
+## Lifetime Elision
+
+Rust can infer lifetimes in many cases:
+
+### Elision Rules
+```rust
+// Rule 1: Each parameter gets its own lifetime
+fn first_word(s: &str) -> &str {  // Inferred: fn first_word<'a>(s: &'a str) -> &'a str
+    let bytes = s.as_bytes();
+    
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+    
+    &s[..]
+}
+
+// Rule 2: If there's exactly one input lifetime, it's assigned to all outputs
+fn get_prefix(s: &str) -> &str {  // Inferred lifetimes
+    &s[..1]
+}
+
+// Rule 3: If one parameter is &self or &mut self, its lifetime is assigned to all outputs
+struct Text {
+    content: String,
+}
+
+impl Text {
+    fn get_content(&self) -> &str {  // Inferred: fn get_content<'a>(&'a self) -> &'a str
+        &self.content
+    }
+}
+```
+
+### When Elision Doesn't Work
+```rust
+// Need explicit lifetimes when relationship isn't clear
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+// Can't elide because compiler doesn't know which input the output relates to
+// fn longest(x: &str, y: &str) -> &str { // Error!
+```
+
+## Static Lifetimes
+
+The 'static lifetime lasts for the entire program duration:
+
+### String Literals
+```rust
+// All string literals have 'static lifetime
+let s: &'static str = "I have a static lifetime.";
+
+// This is why you can return string literals from functions
+fn get_static_str() -> &'static str {
+    "This string lives forever"
+}
+```
+
+### Static Variables
+```rust
+static HELLO_WORLD: &str = "Hello, world!";
+
+fn get_hello_world() -> &'static str {
+    HELLO_WORLD
+}
+
+// Mutable static variables require unsafe access
+static mut COUNTER: usize = 0;
+
+unsafe fn increment_counter() {
+    COUNTER += 1;
+}
+```
+
+### Careful with 'static
+```rust
+// Don't overuse 'static - often indicates a design issue
+// This function doesn't need 'static
+fn bad_example() -> &'static str {
+    // let s = String::from("hello"); // Can't return reference to local data
+    // &s // Error!
+    
+    // Instead, return owned data
+    // String::from("hello") // But this changes the return type
+    "hello" // Only works with string literals
+}
+
+// Better approach - return owned data
+fn better_example() -> String {
+    String::from("hello")
+}
+```
+
+## String Types and Ownership
+
+Understanding ownership with Rust's string types:
+
+### String vs &str
+```rust
+// String: owned, heap-allocated, growable
+let mut owned_string = String::from("hello");
+owned_string.push_str(" world"); // Can modify because it's owned
+
+// &str: borrowed, points to string data somewhere else
+let string_slice: &str = &owned_string; // Borrows from owned_string
+let literal: &str = "hello"; // Points to program binary
+
+// Converting between types
+let s1: String = "hello".to_string();   // &str to String
+let s2: String = "hello".to_owned();    // &str to String
+let s3: &str = &s1;                     // String to &str (borrow)
+let s4: &str = s1.as_str();            // String to &str (method)
+```
+
+### String Ownership Patterns
+```rust
+// Taking ownership of strings
+fn process_string(s: String) {
+    println!("Processing: {}", s);
+    // s is dropped here
+}
+
+// Borrowing strings
+fn process_str(s: &str) {
+    println!("Processing: {}", s);
+    // s is just a reference, nothing is dropped
+}
+
+// Returning owned strings
+fn create_greeting(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
+// Usage
+let name = String::from("Alice");
+let greeting = create_greeting(&name); // Borrow name
+println!("{}", name); // name still valid
+println!("{}", greeting); // greeting owns its data
+```
+
+## Collections and Ownership
+
+How ownership works with collections:
+
+### `Vec<T>` Ownership
+```rust
+// Vector owns its elements
+let mut v = vec![
+    String::from("hello"),
+    String::from("world"),
+];
+
+// Moving elements out
+let first = v.remove(0); // Moves "hello" out of vector
+// println!("{}", v[0]); // Error! Element was moved
+
+// Borrowing elements
+let v2 = vec![1, 2, 3, 4, 5];
+let third = &v2[2]; // Borrow, don't move
+println!("{}", v2[2]); // Still accessible
+
+// Iterating with different ownership semantics
+let v3 = vec![String::from("a"), String::from("b")];
+
+// Borrow each element
+for item in &v3 {
+    println!("{}", item);
+}
+// v3 still accessible
+
+// Take ownership of each element
+for item in v3 {
+    println!("{}", item);
+}
+// v3 no longer accessible
+```
+
+### HashMap and Ownership
+```rust
+use std::collections::HashMap;
+
+let mut map = HashMap::new();
+
+// Keys and values are moved into the map
+let key = String::from("color");
+let value = String::from("blue");
+
+map.insert(key, value);
+// key and value are no longer valid - moved into map
+
+// For Copy types, values are copied
+let mut scores = HashMap::new();
+let team = String::from("Blue");
+let score = 50;
+
+scores.insert(team, score); // team is moved, score is copied
+// println!("{}", team); // Error! team was moved
+println!("{}", score); // OK - score was copied
+```
+
+## Functions and Ownership
+
+How ownership interacts with function parameters and return values:
+
+### Parameter Ownership Patterns
+```rust
+// Taking ownership
+fn take_ownership(s: String) {
+    println!("{}", s);
+} // s goes out of scope and is dropped
+
+// Borrowing immutably
+fn borrow_string(s: &String) {
+    println!("{}", s);
+} // nothing is dropped
+
+// Borrowing mutably
+fn borrow_mut_string(s: &mut String) {
+    s.push_str(" world");
+} // nothing is dropped, but s was modified
+
+// Usage
+let s1 = String::from("hello");
+take_ownership(s1); // s1 moved into function
+// println!("{}", s1); // Error! s1 no longer valid
+
+let s2 = String::from("hello");
+borrow_string(&s2); // s2 is borrowed
+println!("{}", s2); // OK - s2 still valid
+
+let mut s3 = String::from("hello");
+borrow_mut_string(&mut s3); // s3 is mutably borrowed
+println!("{}", s3); // OK - s3 still valid and modified
+```
+
+### Return Value Ownership
+```rust
+// Giving ownership
+fn give_ownership() -> String {
+    let some_string = String::from("hello");
+    some_string // Moved out of function to caller
+}
+
+// Taking and giving back ownership
+fn takes_and_gives_back(a_string: String) -> String {
+    a_string // a_string is returned and moves out to the calling function
+}
+
+// Multiple return values
+fn calculate_length_and_take(s: String) -> (String, usize) {
+    let length = s.len();
+    (s, length) // Return ownership along with the length
+}
+
+// Usage
+let s1 = give_ownership(); // s1 owns the returned value
+
+let s2 = String::from("hello");
+let s3 = takes_and_gives_back(s2); // s2 moves in, return value moves to s3
+
+let s4 = String::from("hello");
+let (s5, len) = calculate_length_and_take(s4); // s4 moves in, s5 gets ownership back
+```
+
+## Structs and Ownership
+
+How ownership works within and with structs:
+
+### Struct Field Ownership
+```rust
+struct User {
+    username: String, // Struct owns this string
+    email: String,    // Struct owns this string  
+    sign_in_count: u64,
+    active: bool,
+}
+
+// Creating instances
+let user1 = User {
+    email: String::from("someone@example.com"),
+    username: String::from("someusername123"),
+    active: true,
+    sign_in_count: 1,
+};
+
+// Moving fields out of struct
+let username = user1.username; // Move username out
+// println!("{}", user1.username); // Error! Partial move occurred
+// println!("{}", user1.email); // Error! Can't use user1 after partial move
+
+// But we can access Copy fields before the move
+let user2 = User {
+    email: String::from("another@example.com"),
+    username: String::from("anotherusername567"),
+    active: true,
+    sign_in_count: 1,
+};
+
+let count = user2.sign_in_count; // Copy the u64
+let username = user2.username; // Now user2 is partially moved
+// println!("{}", user2.email); // Error! Can't use after partial move
+```
+
+### Borrowing Struct Fields
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    // Methods borrow self
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+    
+    // Mutable methods
+    fn double_size(&mut self) {
+        self.width *= 2;
+        self.height *= 2;
+    }
+    
+    // Methods that take ownership
+    fn into_square(self) -> Rectangle {
+        let size = std::cmp::min(self.width, self.height);
+        Rectangle {
+            width: size,
+            height: size,
+        }
+    }
+}
+
+let rect = Rectangle { width: 30, height: 50 };
+let area = rect.area(); // Borrow rect
+println!("Area: {}", area);
+
+let mut rect2 = Rectangle { width: 10, height: 20 };
+rect2.double_size(); // Mutably borrow rect2
+println!("New size: {}x{}", rect2.width, rect2.height);
+
+let square = rect.into_square(); // Take ownership of rect
+// println!("{}", rect.width); // Error! rect was moved
+```
+
+## Ownership Patterns
+
+Common patterns for working with ownership:
+
+### The Builder Pattern
+```rust
+struct Config {
+    host: String,
+    port: u16,
+    ssl: bool,
+}
+
+impl Config {
+    fn new() -> Self {
+        Config {
+            host: String::from("localhost"),
+            port: 8080,
+            ssl: false,
+        }
+    }
+    
+    fn host(mut self, host: String) -> Self {
+        self.host = host;
+        self
+    }
+    
+    fn port(mut self, port: u16) -> Self {
+        self.port = port;
+        self
+    }
+    
+    fn ssl(mut self, ssl: bool) -> Self {
+        self.ssl = ssl;
+        self
+    }
+}
+
+// Usage - each method takes ownership and returns it
+let config = Config::new()
+    .host(String::from("example.com"))
+    .port(443)
+    .ssl(true);
+```
+
+### Splitting Borrows
+```rust
+// Borrowing different parts of a struct simultaneously
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+fn split_borrow_example() {
+    let mut point = Point { x: 1.0, y: 2.0 };
+    
+    // Can borrow different fields mutably at the same time
+    let x_ref = &mut point.x;
+    let y_ref = &mut point.y;
+    
+    *x_ref += 1.0;
+    *y_ref += 1.0;
+    
+    println!("Point: ({}, {})", point.x, point.y);
+}
+```
+
+### Option and Ownership
+```rust
+// Using Option to handle optional ownership
+struct Container {
+    value: Option<String>,
+}
+
+impl Container {
+    fn new() -> Self {
+        Container { value: None }
+    }
+    
+    fn set_value(&mut self, val: String) {
+        self.value = Some(val);
+    }
+    
+    fn take_value(&mut self) -> Option<String> {
+        self.value.take() // Moves value out, leaves None
+    }
+    
+    fn get_value(&self) -> Option<&String> {
+        self.value.as_ref() // Borrow the inner value
+    }
+}
+
+let mut container = Container::new();
+container.set_value(String::from("hello"));
+
+if let Some(borrowed) = container.get_value() {
+    println!("Value: {}", borrowed);
+}
+
+if let Some(owned) = container.take_value() {
+    println!("Took: {}", owned);
+}
+
+// container.value is now None
+```
