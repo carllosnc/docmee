@@ -1,0 +1,201 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Borrowing
+
+In Rust, **borrowing** is a mechanism that allows you to access data without taking ownership of it. When you borrow a value, you create a *reference* to it. This is a powerful feature that lets you use data in multiple parts of your program efficiently and safely, enforced by the Rust compiler.
+
+Borrowing is Rust's way of ensuring memory safety without needing a garbage collector. It prevents common bugs like data races and dangling pointers at compile time.
+
+There are two types of borrows in Rust:
+1.  **Immutable Borrows (`&T`)**: Also known as shared references.
+2.  **Mutable Borrows (`&mut T`)**: Also known as exclusive references.
+
+---
+
+## The Rules of Borrowing
+
+The Rust compiler enforces a strict set of rules for borrowing to guarantee memory safety:
+
+1.  **One or the Other**: At any given time, you can have *either* one mutable reference *or* any number of immutable references to a particular piece of data in a particular scope. You cannot have both at the same time.
+2.  **References Must Be Valid**: All references must point to a valid value. Rust's lifetime system prevents dangling references, where a reference might outlive the data it points to.
+
+Let's explore these rules with examples.
+
+---
+
+## Immutable Borrows (`&`)
+
+An immutable borrow allows you to read data but not modify it. You can have multiple immutable references to the same data simultaneously. This is safe because no part of the code is changing the data, so there's no risk of data races.
+
+### Example: Creating and Using Immutable Borrows
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+
+    // We create an immutable reference to s1.
+    // We are borrowing s1, not taking ownership.
+    let len = calculate_length(&s1);
+
+    println!("The length of '{}' is {}.", s1, len);
+}
+
+// This function takes a reference to a String.
+// It does not take ownership.
+fn calculate_length(s: &String) -> usize {
+    s.len()
+} // s goes out of scope here, but because it does not have ownership
+  // of what it refers to, the value is not dropped.
+```
+
+In this example:
+- `s1` is the owner of the `String`.
+- We pass `&s1` to `calculate_length`. This creates a reference that "borrows" the value of `s1`.
+- The `calculate_length` function can read the `String`'s data to calculate its length.
+- After the function call, `s1` is still valid and can be used in `main`, because ownership was never moved.
+
+### Example: Multiple Immutable Borrows
+
+You can have as many immutable borrows as you want in the same scope.
+
+```rust
+fn main() {
+    let s = String::from("Rust");
+
+    let r1 = &s;
+    let r2 = &s;
+
+    println!("r1 = {}, r2 = {}", r1, r2);
+    // This is perfectly fine because neither reference is modifying the data.
+}
+```
+
+---
+
+## Mutable Borrows (`&mut`)
+
+A mutable borrow allows you to read and modify data. To ensure safety, Rust enforces a strict rule: **you can only have one mutable reference to a particular piece of data in a particular scope.**
+
+This rule prevents data races at compile time. A data race can occur when:
+- Two or more pointers access the same data at the same time.
+- At least one of the pointers is being used to write to the data.
+- There’s no mechanism being used to synchronize access to the data.
+
+### Example: Creating and Using a Mutable Borrow
+
+To create a mutable borrow, you use the `&mut` syntax. The original variable must also be declared as mutable with `mut`.
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    // Create a mutable reference to s
+    let r = &mut s;
+
+    // Use the mutable reference to change the string
+    change(r);
+
+    println!("{}", s);
+}
+
+// This function takes a mutable reference to a String
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+```
+
+In this example:
+- `s` is declared as `mut` so its value can be changed.
+- `change(&mut s)` passes a mutable reference of `s` to the `change` function.
+- The `change` function can then modify the borrowed `String`.
+- The change is reflected in the `s` variable in `main`.
+
+### The "One Mutable Borrow" Rule
+
+If you try to create a second mutable borrow before the first one goes out of scope, the compiler will throw an error.
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &mut s;
+    let r2 = &mut s; // ERROR! Cannot borrow `s` as mutable more than once at a time.
+
+    println!("{}, {}", r1, r2);
+}
+```
+
+This is a powerful safety guarantee. It means that if you have a mutable reference to a value, you can be sure that no other part of your code can change that value from under you.
+
+---
+
+## Mixing Immutable and Mutable Borrows
+
+You cannot have a mutable reference while immutable references exist. The readers (immutable borrows) don't expect the data to suddenly change.
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &s; // immutable borrow
+    let r2 = &s; // another immutable borrow
+    let r3 = &mut s; // BIG ERROR! Cannot borrow `s` as mutable because it is also borrowed as immutable.
+
+    println!("{}, {}, and {}", r1, r2, r3);
+}
+```
+
+However, the scope of a reference ends after the last time it is used. This is due to **Non-Lexical Lifetimes (NLL)**. This makes the borrow checker more flexible.
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &s;
+    let r2 = &s;
+    println!("{} and {}", r1, r2);
+    // r1 and r2 are no longer used after this point, so their borrows end here.
+
+    // Now, we can create a mutable borrow. This is valid.
+    let r3 = &mut s;
+    r3.push_str(" world!");
+    println!("{}", r3);
+}
+```
+
+---
+
+## Dangling References
+
+A dangling reference is a pointer that references a location in memory that may have been given to someone else. In Rust, the compiler guarantees that references will never be dangling.
+
+If you try to create a reference to data that goes out of scope, the compiler will stop you.
+
+```rust
+fn main() {
+    let reference_to_nothing = dangle();
+}
+
+fn dangle() -> &String { // dangle returns a reference to a String
+    let s = String::from("hello"); // s is a new String
+
+    &s // we return a reference to the String, s
+} // Here, s goes out of scope, and is dropped. Its memory is deallocated.
+  // Danger! The reference would be pointing to invalid memory.
+```
+
+The compiler will produce an error: `missing lifetime specifier`. This error means the compiler needs more information to know if the returned reference will be valid. In this case, it can't be valid, and the code is correctly rejected.
+
+The fix is to return the `String` directly, transferring ownership:
+
+```rust
+fn no_dangle() -> String {
+    let s = String::from("hello");
+    s // ownership is moved out
+}
+```
+
+By understanding and applying the rules of borrowing, you can write fast, safe, and concurrent code in Rust.

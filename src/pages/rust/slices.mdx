@@ -1,0 +1,166 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Slices
+
+A **slice** is a type in Rust that lets you reference a contiguous sequence of elements in a collection rather than the whole collection. A slice is a kind of "view" into the data. It does not have ownership of the data it refers to.
+
+Slices are useful for allowing safe and efficient access to a portion of a collection without copying. They are a key part of what makes Rust's memory management safe and efficient.
+
+The two most common types of slices are:
+1.  **String Slices (`&str`)**
+2.  **Array/Vector Slices (`&[T]`)**
+
+---
+
+## String Slices (`&str`)
+
+A string slice is a reference to part of a `String`. It's a fat pointer, containing both a pointer to the starting position of the slice and its length.
+
+### Creating a String Slice
+
+You can create a slice from a `String` using a range in brackets `[start..end]`. The range is half-open, meaning it includes the starting index but excludes the ending index.
+
+```rust
+fn main() {
+    let s = String::from("hello world");
+
+    let hello = &s[0..5]; // slice containing "hello"
+    let world = &s[6..11]; // slice containing "world"
+
+    println!("'{}' + '{}'", hello, world);
+
+    // You can also use shorthand range syntax
+    let whole_string = &s[..]; // slice of the entire string
+    let first_part = &s[..5];   // slice from the beginning
+    let second_part = &s[6..];  // slice to the end
+
+    println!("First part: {}", first_part);
+    println!("Second part: {}", second_part);
+}
+```
+
+<Warning>
+Attempting to create a string slice on a non-UTF-8 character boundary will cause your program to panic. Slices must be valid UTF-8.
+</Warning>
+
+### String Literals are Slices
+
+A string literal (e.g., `"Hello, world!"`) is stored in the program's binary. Its type is `&'static str`. It's a slice that points to that specific point in the binary, and `'static` means it is valid for the entire duration of the program.
+
+```rust
+fn main() {
+    let s: &'static str = "I am a string literal.";
+    println!("{}", s);
+}
+```
+
+This is why we can pass string literals to functions that expect a `&str`.
+
+### Slices as Function Parameters
+
+Writing a function that takes a `&str` instead of a `&String` is more general and flexible. It allows the function to accept both `String` values and `&str` values.
+
+```rust
+fn main() {
+    let my_string = String::from("hello world");
+
+    // `first_word` works on slices of `String`s, whether partial or whole
+    let word = first_word(&my_string[0..6]);
+    println!("First word is: {}", word);
+    let word = first_word(&my_string[..]);
+    println!("First word is: {}", word);
+
+    // `first_word` also works on references to `String`s, which can be coerced into `&str`
+    let word = first_word(&my_string);
+    println!("First word is: {}", word);
+
+    let my_string_literal = "hello world";
+
+    // `first_word` works on string literals
+    let word = first_word(my_string_literal);
+    println!("First word is: {}", word);
+}
+
+// A function to find the first word in a string slice
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+This `first_word` function is robust because it can be used with any string data, owned or borrowed.
+
+---
+
+## Array and Vector Slices (`&[T]`)
+
+Just like with strings, you can create slices of other collections like arrays and vectors. The type `&[T]` represents a slice of elements of type `T`.
+
+### Example: Slicing an Array
+
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+
+    // Create a slice of the entire array
+    let whole_slice = &a[..];
+    println!("Whole slice: {:?}", whole_slice);
+
+    // Create a slice of part of the array
+    let partial_slice = &a[1..4]; // Contains [2, 3, 4]
+    println!("Partial slice: {:?}", partial_slice);
+}
+```
+
+This works the same way for `Vec<T>`.
+
+### Slices and Borrowing Rules
+
+Slices are borrows, so they follow the same borrowing rules. If you have an immutable slice of a collection, you cannot also have a mutable reference to that collection.
+
+```rust
+fn main() {
+    let mut numbers = vec![1, 2, 3, 4];
+    let first_two = &numbers[..2]; // immutable borrow
+
+    println!("First two elements: {:?}", first_two);
+
+    // This would cause a compile error because `first_two` is still in scope:
+    // numbers.push(5); // ERROR: cannot borrow `numbers` as mutable
+
+    // But it's fine after the slice is no longer used.
+}
+```
+
+### Mutable Slices (`&mut [T]`)
+
+You can also create mutable slices to modify the elements of the underlying collection.
+
+```rust
+fn main() {
+    let mut arr = [10, 20, 30, 40, 50];
+
+    // Create a mutable slice of the middle three elements
+    let slice = &mut arr[1..4]; // [20, 30, 40]
+
+    // Modify the elements of the slice
+    slice[0] = 25;
+    slice[1] = 35;
+    slice[2] = 45;
+
+    // The changes are reflected in the original array
+    println!("Modified array: {:?}", arr); // prints [10, 25, 35, 45, 50]
+}
+```
+Remember, you can only have one mutable borrow (`&mut arr` or a mutable slice from it) in a given scope.
+
+Slices are a fundamental concept in Rust, providing a safe and efficient way to work with parts of collections without taking ownership or making expensive copies.
