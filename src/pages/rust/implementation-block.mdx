@@ -1,0 +1,182 @@
+# Implementation Blocks
+
+## Summary
+
+Implementation blocks (`impl` blocks) in Rust are a core language feature that allows you to define methods and associated functions for types like structs, enums, or traits. They enable object-oriented-like behavior in Rust's ownership model. Key concepts include:
+
+- **Basic `impl` for Types**: Add methods to structs (e.g., instance methods with `&self` or associated functions like constructors).
+- **Trait Implementations**: Use `impl Trait for Type` to provide type-specific behavior for traits, enabling polymorphism.
+- **Multiple `impl` Blocks**: You can split implementations across multiple blocks for the same type or trait.
+- **Generics and Associated Types**: Support for parameterized types and trait-associated types for flexible, reusable code.
+- **Default Implementations**: Traits can provide default method bodies, which types can override.
+
+These blocks promote modular, safe, and expressive code. The examples below demonstrate common patterns.
+
+## 1. Basic Struct Implementation
+Defining methods for a custom struct.
+
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    // Associated function (not tied to an instance)
+    fn new(width: u32, height: u32) -> Rectangle {
+        Rectangle { width, height }
+    }
+
+    // Method (takes &self)
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+fn main() {
+    let rect = Rectangle::new(10, 20);
+    println!("Area: {}", rect.area()); // Output: Area: 200
+}
+```
+
+## 2. Implementing a Trait
+Using `impl` to implement a trait for a struct.
+
+```rust
+trait Printable {
+    fn print(&self);
+}
+
+struct Person {
+    name: String,
+    age: u32,
+}
+
+impl Printable for Person {
+    fn print(&self) {
+        println!("Name: {}, Age: {}", self.name, self.age);
+    }
+}
+
+fn main() {
+    let person = Person {
+        name: String::from("Alice"),
+        age: 30,
+    };
+    person.print(); // Output: Name: Alice, Age: 30
+}
+```
+
+## 3. Implementing Multiple Traits
+A struct can implement multiple traits.
+
+```rust
+trait Describable {
+    fn describe(&self) -> String;
+}
+
+trait Updatable {
+    fn update(&mut self);
+}
+
+struct Counter {
+    count: i32,
+}
+
+impl Describable for Counter {
+    fn describe(&self) -> String {
+        format!("Current count: {}", self.count)
+    }
+}
+
+impl Updatable for Counter {
+    fn update(&mut self) {
+        self.count += 1;
+    }
+}
+
+fn main() {
+    let mut counter = Counter { count: 0 };
+    println!("{}", counter.describe()); // Output: Current count: 0
+    counter.update();
+    println!("{}", counter.describe()); // Output: Current count: 1
+}
+```
+
+## 4. Generic Struct with Implementation
+Using generics in an `impl` block.
+
+```rust
+struct Pair<T> {
+    first: T,
+    second: T,
+}
+
+impl<T: PartialOrd> Pair<T> {
+    fn max(&self) -> &T {
+        if self.first >= self.second {
+            &self.first
+        } else {
+            &self.second
+        }
+    }
+}
+
+fn main() {
+    let pair = Pair { first: 5, second: 10 };
+    println!("Max: {}", pair.max()); // Output: Max: 10
+}
+```
+
+## 5. Default Trait Implementation
+Providing a default implementation in a trait.
+
+```rust
+trait Greet {
+    fn greet(&self) -> String {
+        String::from("Hello!")
+    }
+}
+
+struct Robot;
+
+impl Greet for Robot {
+    // Override default implementation
+    fn greet(&self) -> String {
+        String::from("Beep boop!")
+    }
+}
+
+fn main() {
+    let robot = Robot;
+    println!("{}", robot.greet()); // Output: Beep boop!
+}
+```
+
+## 6. Associated Types in Traits
+Using associated types in an `impl` block.
+
+```rust
+trait Container {
+    type Item;
+    fn add(&mut self, item: Self::Item);
+}
+
+struct Stack {
+    items: Vec<i32>,
+}
+
+impl Container for Stack {
+    type Item = i32;
+
+    fn add(&mut self, item: Self::Item) {
+        self.items.push(item);
+    }
+}
+
+fn main() {
+    let mut stack = Stack { items: Vec::new() };
+    stack.add(42);
+    println!("Stack: {:?}", stack.items); // Output: Stack: [42]
+}
+```
