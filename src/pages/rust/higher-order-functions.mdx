@@ -1,0 +1,788 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Rust</a> <br /> <br />
+
+# Higher-Order Functions
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Basic Concepts](#basic-concepts)
+3. [Function Pointers](#function-pointers)
+4. [Closures](#closures)
+5. [Function Traits](#function-traits)
+6. [Iterator Methods (Higher-Order Functions)](#iterator-methods-higher-order-functions)
+7. [Creating Custom Higher-Order Functions](#creating-custom-higher-order-functions)
+8. [Advanced Patterns](#advanced-patterns)
+9. [Performance Considerations](#performance-considerations)
+10. [Common Use Cases](#common-use-cases)
+11. [Best Practices](#best-practices)
+
+## Introduction
+
+Higher-order functions are functions that either:
+- Take one or more functions as arguments
+- Return a function as their result
+- Or both
+
+In Rust, higher-order functions are a powerful feature that enables functional programming patterns, code reuse, and elegant abstractions. They're extensively used in iterator processing, event handling, and creating flexible APIs.
+
+## Basic Concepts
+
+### Definition
+A higher-order function operates on other functions by taking them as parameters or returning them as results.
+
+```rust
+// Example: A function that takes another function as parameter
+fn apply_operation<F>(x: i32, y: i32, op: F) -> i32
+where
+    F: Fn(i32, i32) -> i32,
+{
+    op(x, y)
+}
+
+// Example: A function that returns a function
+fn make_adder(n: i32) -> impl Fn(i32) -> i32 {
+    move |x| x + n
+}
+```
+
+## Function Pointers
+
+Function pointers (`fn`) are the simplest way to pass functions around in Rust.
+
+### Basic Function Pointers
+
+```rust
+// Function pointer type: fn(i32, i32) -> i32
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+fn multiply(a: i32, b: i32) -> i32 {
+    a * b
+}
+
+fn calculate(x: i32, y: i32, operation: fn(i32, i32) -> i32) -> i32 {
+    operation(x, y)
+}
+
+fn main() {
+    let result1 = calculate(5, 3, add);      // 8
+    let result2 = calculate(5, 3, multiply); // 15
+}
+```
+
+### Function Pointer Arrays
+
+```rust
+fn main() {
+    let operations: [fn(i32, i32) -> i32; 4] = [
+        |a, b| a + b,    // addition
+        |a, b| a - b,    // subtraction
+        |a, b| a * b,    // multiplication
+        |a, b| a / b,    // division
+    ];
+    
+    for op in operations {
+        println!("Result: {}", op(10, 2));
+    }
+}
+```
+
+## Closures
+
+Closures are anonymous functions that can capture variables from their environment.
+
+### Basic Closure Syntax
+
+```rust
+fn main() {
+    // Basic closure
+    let add = |x, y| x + y;
+    println!("{}", add(5, 3)); // 8
+    
+    // Closure with type annotations
+    let multiply = |x: i32, y: i32| -> i32 { x * y };
+    
+    // Closure capturing environment
+    let factor = 10;
+    let scale = |x| x * factor;
+    println!("{}", scale(5)); // 50
+}
+```
+
+### Closure Capture Modes
+
+```rust
+fn main() {
+    let mut count = 0;
+    
+    // Capturing by reference
+    let increment = || {
+        count += 1;
+        count
+    };
+    
+    // Capturing by value (move)
+    let value = String::from("hello");
+    let take_ownership = move || {
+        println!("{}", value);
+        value.len()
+    };
+}
+```
+
+## Function Traits
+
+Rust has three function traits that represent different types of callable objects:
+
+### Fn, FnMut, and FnOnce
+
+```rust
+use std::collections::HashMap;
+
+// Fn: Can be called multiple times, captures by reference
+fn apply_readonly<F>(f: F) -> i32
+where
+    F: Fn() -> i32,
+{
+    f() + f() // Can call multiple times
+}
+
+// FnMut: Can be called multiple times, captures by mutable reference
+fn apply_mutating<F>(mut f: F) -> i32
+where
+    F: FnMut() -> i32,
+{
+    f() + f() // Can call multiple times, but f might mutate
+}
+
+// FnOnce: Can only be called once, takes ownership
+fn apply_once<F>(f: F) -> i32
+where
+    F: FnOnce() -> i32,
+{
+    f() // Can only call once
+}
+
+fn main() {
+    let x = 5;
+    
+    // Fn example
+    let readonly = || x * 2;
+    println!("{}", apply_readonly(readonly));
+    
+    // FnMut example
+    let mut counter = 0;
+    let mut mutating = || {
+        counter += 1;
+        counter
+    };
+    println!("{}", apply_mutating(&mut mutating));
+    
+    // FnOnce example
+    let owned = String::from("hello");
+    let take_once = move || {
+        owned.len() // Takes ownership
+    };
+    println!("{}", apply_once(take_once));
+}
+```
+
+## Iterator Methods (Higher-Order Functions)
+
+Rust's iterator trait provides many higher-order functions for data processing.
+
+### Map, Filter, and Reduce Operations
+
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    
+    // Map: Transform each element
+    let squared: Vec<i32> = numbers
+        .iter()
+        .map(|x| x * x)
+        .collect();
+    
+    // Filter: Select elements based on condition
+    let evens: Vec<i32> = numbers
+        .iter()
+        .filter(|&x| x % 2 == 0)
+        .cloned()
+        .collect();
+    
+    // Reduce (fold): Combine elements
+    let sum = numbers
+        .iter()
+        .fold(0, |acc, x| acc + x);
+    
+    // Chain operations
+    let processed: Vec<i32> = numbers
+        .iter()
+        .filter(|&x| x % 2 == 0)    // Keep even numbers
+        .map(|x| x * x)             // Square them
+        .filter(|&x| x > 10)        // Keep those > 10
+        .collect();
+    
+    println!("Squared: {:?}", squared);
+    println!("Evens: {:?}", evens);
+    println!("Sum: {}", sum);
+    println!("Processed: {:?}", processed);
+}
+```
+
+### Advanced Iterator Methods
+
+```rust
+fn main() {
+    let words = vec!["hello", "world", "rust", "programming"];
+    
+    // find: Find first matching element
+    let long_word = words
+        .iter()
+        .find(|&word| word.len() > 5);
+    
+    // any/all: Boolean operations
+    let has_long_word = words
+        .iter()
+        .any(|word| word.len() > 8);
+    
+    let all_lowercase = words
+        .iter()
+        .all(|word| word.chars().all(|c| c.is_lowercase()));
+    
+    // partition: Split based on condition
+    let (short, long): (Vec<_>, Vec<_>) = words
+        .iter()
+        .partition(|word| word.len() <= 5);
+    
+    // group_by (using itertools crate)
+    use std::collections::HashMap;
+    let mut groups = HashMap::new();
+    for word in words {
+        groups.entry(word.len()).or_insert(Vec::new()).push(word);
+    }
+    
+    println!("Long word: {:?}", long_word);
+    println!("Has long word: {}", has_long_word);
+    println!("All lowercase: {}", all_lowercase);
+    println!("Short: {:?}, Long: {:?}", short, long);
+    println!("Groups: {:?}", groups);
+}
+```
+
+## Creating Custom Higher-Order Functions
+
+### Functions Taking Function Parameters
+
+```rust
+// Generic higher-order function
+fn transform_vec<T, U, F>(vec: Vec<T>, f: F) -> Vec<U>
+where
+    F: Fn(T) -> U,
+{
+    vec.into_iter().map(f).collect()
+}
+
+// Function with multiple function parameters
+fn combine_operations<T, F, G>(
+    value: T,
+    first_op: F,
+    second_op: G,
+) -> T
+where
+    F: Fn(T) -> T,
+    G: Fn(T) -> T,
+{
+    second_op(first_op(value))
+}
+
+// Conditional execution
+fn maybe_apply<T, F>(value: T, condition: bool, f: F) -> T
+where
+    F: Fn(T) -> T,
+{
+    if condition {
+        f(value)
+    } else {
+        value
+    }
+}
+
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    let doubled = transform_vec(numbers, |x| x * 2);
+    
+    let result = combine_operations(
+        10,
+        |x| x + 5,    // First: add 5
+        |x| x * 2,    // Then: multiply by 2
+    ); // Result: 30
+    
+    let conditional_result = maybe_apply(
+        100,
+        true,
+        |x| x / 10,
+    ); // Result: 10
+    
+    println!("Doubled: {:?}", doubled);
+    println!("Combined: {}", result);
+    println!("Conditional: {}", conditional_result);
+}
+```
+
+### Functions Returning Functions
+
+```rust
+// Function factory
+fn make_multiplier(factor: i32) -> impl Fn(i32) -> i32 {
+    move |x| x * factor
+}
+
+// Currying
+fn curry_add(x: i32) -> impl Fn(i32) -> i32 {
+    move |y| x + y
+}
+
+// Function composition
+fn compose<A, B, C, F, G>(f: F, g: G) -> impl Fn(A) -> C
+where
+    F: Fn(A) -> B,
+    G: Fn(B) -> C,
+{
+    move |x| g(f(x))
+}
+
+fn main() {
+    // Using function factory
+    let double = make_multiplier(2);
+    let triple = make_multiplier(3);
+    
+    println!("Double 5: {}", double(5)); // 10
+    println!("Triple 5: {}", triple(5)); // 15
+    
+    // Using currying
+    let add_10 = curry_add(10);
+    println!("Add 10 to 5: {}", add_10(5)); // 15
+    
+    // Using composition
+    let add_one = |x| x + 1;
+    let multiply_two = |x| x * 2;
+    let add_then_multiply = compose(add_one, multiply_two);
+    
+    println!("Compose (5+1)*2: {}", add_then_multiply(5)); // 12
+}
+```
+
+## Advanced Patterns
+
+### Memoization
+
+```rust
+use std::collections::HashMap;
+use std::hash::Hash;
+
+struct Memoize<F, Args, Return>
+where
+    Args: Eq + Hash + Clone,
+    F: Fn(&Args) -> Return,
+{
+    func: F,
+    cache: std::cell::RefCell<HashMap<Args, Return>>,
+}
+
+impl<F, Args, Return> Memoize<F, Args, Return>
+where
+    Args: Eq + Hash + Clone,
+    Return: Clone,
+    F: Fn(&Args) -> Return,
+{
+    fn new(func: F) -> Self {
+        Memoize {
+            func,
+            cache: std::cell::RefCell::new(HashMap::new()),
+        }
+    }
+    
+    fn call(&self, args: Args) -> Return {
+        let mut cache = self.cache.borrow_mut();
+        if let Some(result) = cache.get(&args) {
+            result.clone()
+        } else {
+            let result = (self.func)(&args);
+            cache.insert(args, result.clone());
+            result
+        }
+    }
+}
+
+// Example usage
+fn fibonacci(n: &u64) -> u64 {
+    match *n {
+        0 => 0,
+        1 => 1,
+        n => fibonacci(&(n - 1)) + fibonacci(&(n - 2)),
+    }
+}
+
+fn main() {
+    let memoized_fib = Memoize::new(|&n: &u64| -> u64 {
+        if n <= 1 {
+            n
+        } else {
+            // This would need the memoized version to be truly efficient
+            n // Simplified for example
+        }
+    });
+    
+    println!("Fibonacci: {}", memoized_fib.call(10));
+}
+```
+
+### Strategy Pattern with Higher-Order Functions
+
+```rust
+#[derive(Debug)]
+struct SortContext<T> {
+    data: Vec<T>,
+}
+
+impl<T: Clone + PartialOrd> SortContext<T> {
+    fn new(data: Vec<T>) -> Self {
+        SortContext { data }
+    }
+    
+    fn sort_with<F>(&mut self, strategy: F)
+    where
+        F: Fn(&mut Vec<T>),
+    {
+        strategy(&mut self.data);
+    }
+    
+    fn get_data(&self) -> &Vec<T> {
+        &self.data
+    }
+}
+
+// Sorting strategies
+fn bubble_sort<T: PartialOrd>(vec: &mut Vec<T>) {
+    let len = vec.len();
+    for i in 0..len {
+        for j in 0..len - 1 - i {
+            if vec[j] > vec[j + 1] {
+                vec.swap(j, j + 1);
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut context = SortContext::new(vec![64, 34, 25, 12, 22, 11, 90]);
+    
+    println!("Before sorting: {:?}", context.get_data());
+    
+    // Use bubble sort strategy
+    context.sort_with(bubble_sort);
+    println!("After bubble sort: {:?}", context.get_data());
+    
+    // Use built-in sort strategy
+    let mut context2 = SortContext::new(vec![64, 34, 25, 12, 22, 11, 90]);
+    context2.sort_with(|vec| vec.sort());
+    println!("After built-in sort: {:?}", context2.get_data());
+}
+```
+
+### Pipeline Pattern
+
+```rust
+struct Pipeline<T> {
+    value: T,
+}
+
+impl<T> Pipeline<T> {
+    fn new(value: T) -> Self {
+        Pipeline { value }
+    }
+    
+    fn pipe<U, F>(self, f: F) -> Pipeline<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        Pipeline::new(f(self.value))
+    }
+    
+    fn unwrap(self) -> T {
+        self.value
+    }
+}
+
+fn main() {
+    let result = Pipeline::new("  hello world  ")
+        .pipe(|s| s.trim())
+        .pipe(|s| s.to_uppercase())
+        .pipe(|s| s.replace(" ", "_"))
+        .pipe(|s| format!("{}!", s))
+        .unwrap();
+    
+    println!("{}", result); // "HELLO_WORLD!"
+    
+    // Numeric pipeline
+    let number_result = Pipeline::new(vec![1, 2, 3, 4, 5])
+        .pipe(|v| v.into_iter().map(|x| x * x).collect::<Vec<_>>())
+        .pipe(|v| v.into_iter().filter(|&x| x > 5).collect::<Vec<_>>())
+        .pipe(|v| v.into_iter().sum::<i32>())
+        .unwrap();
+    
+    println!("Pipeline result: {}", number_result); // 41 (9 + 16 + 25)
+}
+```
+
+## Performance Considerations
+
+### Zero-Cost Abstractions
+
+```rust
+// This higher-order function call...
+fn main() {
+    let numbers = vec![1, 2, 3, 4, 5];
+    let sum: i32 = numbers
+        .iter()
+        .map(|x| x * x)
+        .filter(|&x| x > 5)
+        .sum();
+    
+    // ...often compiles to the same optimized code as:
+    let mut sum_manual = 0;
+    for &num in &numbers {
+        let squared = num * num;
+        if squared > 5 {
+            sum_manual += squared;
+        }
+    }
+    
+    println!("Functional: {}, Manual: {}", sum, sum_manual);
+}
+```
+
+### Avoiding Heap Allocations
+
+```rust
+// Good: Iterator chains don't allocate
+fn process_efficiently(numbers: &[i32]) -> i32 {
+    numbers
+        .iter()
+        .filter(|&&x| x > 0)
+        .map(|x| x * x)
+        .sum()
+}
+
+// Less efficient: Intermediate collections
+fn process_with_allocations(numbers: &[i32]) -> i32 {
+    let filtered: Vec<_> = numbers.iter().filter(|&&x| x > 0).collect();
+    let mapped: Vec<_> = filtered.iter().map(|&x| x * x).collect();
+    mapped.iter().sum()
+}
+```
+
+## Common Use Cases
+
+### Event Handling
+
+```rust
+type EventHandler<T> = Box<dyn Fn(T)>;
+
+struct EventEmitter<T> {
+    handlers: Vec<EventHandler<T>>,
+}
+
+impl<T: Clone> EventEmitter<T> {
+    fn new() -> Self {
+        EventEmitter {
+            handlers: Vec::new(),
+        }
+    }
+    
+    fn on<F>(&mut self, handler: F)
+    where
+        F: Fn(T) + 'static,
+    {
+        self.handlers.push(Box::new(handler));
+    }
+    
+    fn emit(&self, event: T) {
+        for handler in &self.handlers {
+            handler(event.clone());
+        }
+    }
+}
+
+fn main() {
+    let mut emitter = EventEmitter::new();
+    
+    emitter.on(|msg: String| {
+        println!("Handler 1: {}", msg);
+    });
+    
+    emitter.on(|msg: String| {
+        println!("Handler 2: {}", msg.to_uppercase());
+    });
+    
+    emitter.emit("Hello, World!".to_string());
+}
+```
+
+### Configuration and Builders
+
+```rust
+struct HttpClient {
+    timeout: u64,
+    retries: u32,
+    headers: Vec<String>,
+}
+
+impl HttpClient {
+    fn new() -> Self {
+        HttpClient {
+            timeout: 30,
+            retries: 3,
+            headers: Vec::new(),
+        }
+    }
+    
+    fn configure<F>(mut self, config: F) -> Self
+    where
+        F: FnOnce(&mut Self),
+    {
+        config(&mut self);
+        self
+    }
+    
+    fn with_timeout(mut self, timeout: u64) -> Self {
+        self.timeout = timeout;
+        self
+    }
+}
+
+fn main() {
+    let client = HttpClient::new()
+        .with_timeout(60)
+        .configure(|client| {
+            client.retries = 5;
+            client.headers.push("User-Agent: MyApp".to_string());
+        });
+    
+    println!("Timeout: {}, Retries: {}", client.timeout, client.retries);
+}
+```
+
+### Validation Chains
+
+```rust
+type ValidationResult<T> = Result<T, String>;
+type Validator<T> = Box<dyn Fn(&T) -> ValidationResult<()>>;
+
+struct ValidationChain<T> {
+    validators: Vec<Validator<T>>,
+}
+
+impl<T> ValidationChain<T> {
+    fn new() -> Self {
+        ValidationChain {
+            validators: Vec::new(),
+        }
+    }
+    
+    fn add<F>(mut self, validator: F) -> Self
+    where
+        F: Fn(&T) -> ValidationResult<()> + 'static,
+    {
+        self.validators.push(Box::new(validator));
+        self
+    }
+    
+    fn validate(&self, value: &T) -> ValidationResult<()> {
+        for validator in &self.validators {
+            validator(value)?;
+        }
+        Ok(())
+    }
+}
+
+fn main() {
+    let validator = ValidationChain::new()
+        .add(|s: &String| {
+            if s.len() < 5 {
+                Err("Too short".to_string())
+            } else {
+                Ok(())
+            }
+        })
+        .add(|s: &String| {
+            if s.chars().any(|c| c.is_uppercase()) {
+                Ok(())
+            } else {
+                Err("Must contain uppercase".to_string())
+            }
+        });
+    
+    match validator.validate(&"Hello".to_string()) {
+        Ok(()) => println!("Valid!"),
+        Err(e) => println!("Invalid: {}", e),
+    }
+}
+```
+
+## Best Practices
+
+### 1. Prefer Iterator Methods Over Manual Loops
+
+```rust
+// Good
+let sum: i32 = numbers.iter().sum();
+let evens: Vec<_> = numbers.iter().filter(|&x| x % 2 == 0).collect();
+
+// Less idiomatic
+let mut sum = 0;
+for num in &numbers {
+    sum += num;
+}
+```
+
+### 2. Use Appropriate Function Traits
+
+```rust
+// Use the most restrictive trait possible
+fn apply_fn<F>(f: F) -> i32 where F: Fn() -> i32 { f() }  // Can call multiple times
+fn apply_fn_mut<F>(mut f: F) -> i32 where F: FnMut() -> i32 { f() }  // Might mutate
+fn apply_fn_once<F>(f: F) -> i32 where F: FnOnce() -> i32 { f() }  // Takes ownership
+```
+
+### 3. Consider Performance Implications
+
+```rust
+// Lazy evaluation - only processes what's needed
+let result = large_dataset
+    .iter()
+    .filter(|item| expensive_check(item))
+    .take(10)  // Only process first 10 matches
+    .collect::<Vec<_>>();
+```
+
+### 4. Use `move` When Necessary
+
+```rust
+fn create_closure(value: String) -> impl Fn() -> usize {
+    move || value.len()  // Takes ownership of `value`
+}
+```
+
+### 5. Leverage Type Inference
+
+```rust
+// Rust can often infer types in closures
+let doubled: Vec<i32> = numbers.iter().map(|x| x * 2).collect();
+```
+
+This completes the comprehensive reference for higher-order functions in Rust. The concepts covered here form the foundation for functional programming patterns and advanced abstractions in Rust applications.
