@@ -1,0 +1,591 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Open Classes and Inheritance
+
+## Table of Contents
+1. [Basic Concepts](#basic-concepts)
+2. [Open Classes](#open-classes)
+3. [Class Inheritance](#class-inheritance)
+4. [Overriding Members](#overriding-members)
+5. [Abstract Classes](#abstract-classes)
+6. [Sealed Classes](#sealed-classes)
+7. [Interface Inheritance](#interface-inheritance)
+8. [Visibility Modifiers in Inheritance](#visibility-modifiers)
+9. [Constructor Inheritance](#constructor-inheritance)
+10. [Super Keyword](#super-keyword)
+11. [Type Checking and Casting](#type-checking-and-casting)
+12. [Best Practices](#best-practices)
+
+## Basic Concepts
+
+In Kotlin, classes are **final by default**, meaning they cannot be inherited unless explicitly marked as `open`. This is opposite to Java where classes are open by default.
+
+```kotlin
+// Final class (default) - cannot be inherited
+class FinalClass {
+    fun doSomething() = println("Final class method")
+}
+
+// Open class - can be inherited
+open class OpenClass {
+    open fun doSomething() = println("Open class method")
+}
+```
+
+## Open Classes
+
+### Declaring Open Classes
+
+```kotlin
+open class Animal {
+    open val species: String = "Unknown"
+    open fun makeSound() {
+        println("Some generic animal sound")
+    }
+    
+    fun eat() {  // Final method - cannot be overridden
+        println("Eating...")
+    }
+}
+```
+
+### Key Points About Open Classes
+- Use `open` keyword to make a class inheritable
+- Methods and properties are final by default within open classes
+- Use `open` on individual members to make them overridable
+- Final methods cannot be overridden in subclasses
+
+## Class Inheritance
+
+### Basic Inheritance Syntax
+
+```kotlin
+// Parent class
+open class Vehicle(val brand: String, val year: Int) {
+    open val maxSpeed: Int = 100
+    
+    open fun start() {
+        println("$brand vehicle starting...")
+    }
+    
+    open fun stop() {
+        println("Vehicle stopping...")
+    }
+}
+
+// Child class inheriting from Vehicle
+class Car(brand: String, year: Int, val doors: Int) : Vehicle(brand, year) {
+    override val maxSpeed: Int = 200
+    
+    override fun start() {
+        println("Car engine starting with key...")
+    }
+    
+    fun openDoors() {
+        println("Opening $doors doors")
+    }
+}
+```
+
+### Multiple Level Inheritance
+
+```kotlin
+open class Animal {
+    open fun breathe() = println("Breathing...")
+}
+
+open class Mammal : Animal() {
+    open fun produceMilk() = println("Producing milk...")
+}
+
+class Dog : Mammal() {
+    fun bark() = println("Woof!")
+    
+    override fun breathe() {
+        super.breathe()  // Call parent implementation
+        println("Breathing through lungs...")
+    }
+}
+```
+
+## Overriding Members
+
+### Overriding Methods
+
+```kotlin
+open class Shape {
+    open fun draw() = println("Drawing a shape")
+    open fun area(): Double = 0.0
+}
+
+class Circle(private val radius: Double) : Shape() {
+    override fun draw() = println("Drawing a circle")
+    override fun area(): Double = Math.PI * radius * radius
+}
+
+class Rectangle(private val width: Double, private val height: Double) : Shape() {
+    override fun draw() = println("Drawing a rectangle")
+    override fun area(): Double = width * height
+}
+```
+
+### Overriding Properties
+
+```kotlin
+open class Person {
+    open val name: String = ""
+    open var age: Int = 0
+}
+
+class Student(override val name: String) : Person() {
+    override var age: Int = 18
+    val studentId: String = generateStudentId()
+    
+    private fun generateStudentId() = "STU${(1000..9999).random()}"
+}
+```
+
+### Property Overriding Rules
+
+```kotlin
+open class Base {
+    open val property: String = "base"
+}
+
+class Derived : Base() {
+    // Can override val with val
+    override val property: String = "derived"
+    
+    // Can override val with var (adds setter)
+    // override var property: String = "derived"
+}
+
+open class BaseWithVar {
+    open var property: String = "base"
+}
+
+class DerivedFromVar : BaseWithVar() {
+    // Can override var with var
+    override var property: String = "derived"
+    
+    // Cannot override var with val - compilation error
+    // override val property: String = "derived"  // Error!
+}
+```
+
+## Abstract Classes
+
+Abstract classes cannot be instantiated and may contain abstract members that must be implemented by subclasses.
+
+```kotlin
+abstract class Animal {
+    // Abstract property - must be overridden
+    abstract val species: String
+    
+    // Abstract method - must be implemented
+    abstract fun makeSound()
+    
+    // Concrete method - can be overridden (if open) or used as-is
+    open fun sleep() = println("Sleeping...")
+    
+    // Final concrete method - cannot be overridden
+    fun breathe() = println("Breathing...")
+}
+
+class Dog : Animal() {
+    override val species: String = "Canis lupus"
+    
+    override fun makeSound() = println("Woof!")
+    
+    override fun sleep() {
+        println("Dog sleeping in a cozy spot...")
+    }
+}
+
+class Cat : Animal() {
+    override val species: String = "Felis catus"
+    override fun makeSound() = println("Meow!")
+}
+```
+
+### Abstract Class with Constructor
+
+```kotlin
+abstract class Vehicle(val brand: String) {
+    abstract val type: String
+    abstract fun start()
+    
+    fun displayInfo() {
+        println("$brand $type")
+    }
+}
+
+class Motorcycle(brand: String) : Vehicle(brand) {
+    override val type: String = "Motorcycle"
+    override fun start() = println("Kick starting motorcycle")
+}
+```
+
+## Sealed Classes
+
+Sealed classes represent restricted class hierarchies where all subclasses are known at compile time.
+
+```kotlin
+sealed class Result<out T> {
+    data class Success<T>(val data: T) : Result<T>()
+    data class Error(val exception: Throwable) : Result<Nothing>()
+    object Loading : Result<Nothing>()
+}
+
+// Usage with when expressions
+fun handleResult(result: Result<String>) {
+    when (result) {
+        is Result.Success -> println("Data: ${result.data}")
+        is Result.Error -> println("Error: ${result.exception.message}")
+        Result.Loading -> println("Loading...")
+        // No else branch needed - compiler knows all cases
+    }
+}
+```
+
+### Sealed Class with Abstract Members
+
+```kotlin
+sealed class Expression {
+    abstract fun eval(): Int
+    
+    data class Num(val number: Int) : Expression() {
+        override fun eval(): Int = number
+    }
+    
+    data class Sum(val left: Expression, val right: Expression) : Expression() {
+        override fun eval(): Int = left.eval() + right.eval()
+    }
+}
+```
+
+## Interface Inheritance
+
+```kotlin
+interface Drawable {
+    fun draw()
+    fun calculateArea(): Double {  // Default implementation
+        return 0.0
+    }
+}
+
+interface Colorable {
+    val color: String
+    fun changeColor(newColor: String)
+}
+
+// Implementing multiple interfaces
+class ColoredCircle(private val radius: Double, override val color: String) : Drawable, Colorable {
+    override fun draw() = println("Drawing a $color circle")
+    
+    override fun calculateArea(): Double = Math.PI * radius * radius
+    
+    override fun changeColor(newColor: String) {
+        println("Changing color from $color to $newColor")
+    }
+}
+```
+
+### Diamond Problem Resolution
+
+```kotlin
+interface A {
+    fun foo() = println("A")
+}
+
+interface B {
+    fun foo() = println("B")
+}
+
+class C : A, B {
+    override fun foo() {
+        super<A>.foo()  // Explicitly call A's implementation
+        super<B>.foo()  // Explicitly call B's implementation
+        println("C")
+    }
+}
+```
+
+## Visibility Modifiers in Inheritance
+
+```kotlin
+open class Parent {
+    public open fun publicMethod() = println("Public in parent")
+    protected open fun protectedMethod() = println("Protected in parent")
+    internal open fun internalMethod() = println("Internal in parent")
+    private fun privateMethod() = println("Private in parent")  // Not inheritable
+}
+
+class Child : Parent() {
+    override fun publicMethod() = println("Public in child")
+    override fun protectedMethod() = println("Protected in child")
+    override fun internalMethod() = println("Internal in child")
+    
+    // private fun privateMethod() = println("This is a new method, not an override")
+    
+    fun accessParentMethods() {
+        publicMethod()        // OK
+        protectedMethod()     // OK - accessible in subclass
+        internalMethod()      // OK - same module
+        // privateMethod()    // Error - not accessible
+    }
+}
+```
+
+## Constructor Inheritance
+
+### Primary Constructor Inheritance
+
+```kotlin
+open class Person(val name: String, val age: Int) {
+    init {
+        println("Person created: $name, $age years old")
+    }
+}
+
+// Inheriting and calling parent primary constructor
+class Student(name: String, age: Int, val studentId: String) : Person(name, age) {
+    init {
+        println("Student created with ID: $studentId")
+    }
+}
+```
+
+### Secondary Constructor Inheritance
+
+```kotlin
+open class Animal(val name: String) {
+    constructor(name: String, age: Int) : this(name) {
+        println("Animal with age: $age")
+    }
+}
+
+class Dog : Animal {
+    constructor(name: String) : super(name) {
+        println("Dog created: $name")
+    }
+    
+    constructor(name: String, breed: String) : super(name) {
+        println("Dog created: $name, breed: $breed")
+    }
+    
+    constructor(name: String, age: Int, breed: String) : super(name, age) {
+        println("Dog with breed: $breed")
+    }
+}
+```
+
+### Constructor Delegation Rules
+
+```kotlin
+open class Base(val value: Int) {
+    constructor(value: Int, name: String) : this(value) {
+        println("Base secondary constructor: $name")
+    }
+}
+
+class Derived : Base {
+    constructor(value: Int) : super(value)
+    constructor(value: Int, name: String) : super(value, name)
+    
+    // If you have a primary constructor, secondary constructors must delegate to it
+    // constructor(value: Int, name: String, extra: String) : this(value) {
+    //     // Must call this(), not super() when primary constructor exists
+    // }
+}
+```
+
+## Super Keyword
+
+### Calling Parent Methods
+
+```kotlin
+open class Parent {
+    open fun greet() = println("Hello from Parent")
+    open fun work() = println("Parent working")
+}
+
+class Child : Parent() {
+    override fun greet() {
+        super.greet()  // Call parent implementation
+        println("Hello from Child")
+    }
+    
+    override fun work() {
+        println("Child working")
+        super.work()  // Call parent implementation after
+    }
+}
+```
+
+### Super with Generics
+
+```kotlin
+open class GenericParent<T>(val value: T) {
+    open fun process(): T = value
+}
+
+class GenericChild<T>(value: T) : GenericParent<T>(value) {
+    override fun process(): T {
+        val parentResult = super.process()
+        // Additional processing
+        return parentResult
+    }
+}
+```
+
+## Type Checking and Casting
+
+### Smart Casts
+
+```kotlin
+open class Animal
+class Dog : Animal() {
+    fun bark() = println("Woof!")
+}
+class Cat : Animal() {
+    fun meow() = println("Meow!")
+}
+
+fun handleAnimal(animal: Animal) {
+    when (animal) {
+        is Dog -> animal.bark()  // Smart cast to Dog
+        is Cat -> animal.meow()  // Smart cast to Cat
+        else -> println("Unknown animal")
+    }
+}
+```
+
+### Manual Casting
+
+```kotlin
+fun processAnimal(animal: Animal) {
+    // Safe cast - returns null if cast fails
+    val dog = animal as? Dog
+    dog?.bark()
+    
+    // Unsafe cast - throws exception if cast fails
+    try {
+        val cat = animal as Cat
+        cat.meow()
+    } catch (e: ClassCastException) {
+        println("Not a cat!")
+    }
+}
+```
+
+### Type Checking in Inheritance Hierarchy
+
+```kotlin
+abstract class Shape
+open class Polygon : Shape()
+class Triangle : Polygon()
+class Rectangle : Polygon()
+class Circle : Shape()
+
+fun analyzeShape(shape: Shape) {
+    println("Shape type checks:")
+    println("Is Shape: ${shape is Shape}")        // Always true
+    println("Is Polygon: ${shape is Polygon}")    // True for Triangle, Rectangle
+    println("Is Triangle: ${shape is Triangle}")  // True only for Triangle
+    println("Is Circle: ${shape is Circle}")      // True only for Circle
+}
+```
+
+## Best Practices
+
+### 1. Favor Composition Over Inheritance
+
+```kotlin
+// Instead of deep inheritance hierarchies
+class FileLogger : Logger()
+class DatabaseLogger : Logger()
+class EmailLogger : Logger()
+
+// Consider composition
+class Logger(private val output: LogOutput) {
+    fun log(message: String) = output.write(message)
+}
+
+interface LogOutput {
+    fun write(message: String)
+}
+
+class FileOutput : LogOutput {
+    override fun write(message: String) = println("Writing to file: $message")
+}
+```
+
+### 2. Use Sealed Classes for Restricted Hierarchies
+
+```kotlin
+// Good for known, limited set of subclasses
+sealed class Command {
+    object Start : Command()
+    object Stop : Command()
+    data class Move(val direction: String, val distance: Int) : Command()
+}
+```
+
+### 3. Proper Use of Abstract Classes vs Interfaces
+
+```kotlin
+// Use abstract class when you have common implementation
+abstract class DatabaseEntity {
+    abstract val id: Long
+    abstract val tableName: String
+    
+    fun save() {  // Common implementation
+        println("Saving to $tableName with ID $id")
+    }
+}
+
+// Use interface for contracts without shared implementation
+interface Serializable {
+    fun serialize(): String
+    fun deserialize(data: String)
+}
+```
+
+### 4. Design for Extension or Make Final
+
+```kotlin
+// Either design explicitly for inheritance
+open class ExtensibleService {
+    protected val config = loadConfig()
+    open fun processRequest() { /* template method */ }
+    protected open fun validateRequest() { /* hook method */ }
+}
+
+// Or keep it final (default in Kotlin)
+class FinalService {
+    fun processRequest() { /* complete implementation */ }
+}
+```
+
+### 5. Use Visibility Modifiers Appropriately
+
+```kotlin
+open class WellDesignedClass {
+    // Public API
+    fun publicMethod() = internalLogic()
+    
+    // Protected for subclasses
+    protected open fun hookMethod() = Unit
+    
+    // Internal implementation
+    private fun internalLogic() {
+        // Implementation details
+    }
+}
+```
+
+This reference covers the essential aspects of open classes and inheritance in Kotlin, providing practical examples and best practices for effective object-oriented programming.

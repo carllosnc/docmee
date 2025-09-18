@@ -1,0 +1,741 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Abstract Classes
+
+## Table of Contents
+1. [What are Abstract Classes?](#what-are-abstract-classes)
+2. [Basic Syntax](#basic-syntax)
+3. [Abstract Properties](#abstract-properties)
+4. [Abstract Methods](#abstract-methods)
+5. [Concrete Members](#concrete-members)
+6. [Constructors in Abstract Classes](#constructors-in-abstract-classes)
+7. [Inheritance and Implementation](#inheritance-and-implementation)
+8. [Abstract vs Interface](#abstract-vs-interface)
+9. [Sealed Classes vs Abstract Classes](#sealed-classes-vs-abstract-classes)
+10. [Best Practices](#best-practices)
+11. [Common Use Cases](#common-use-cases)
+12. [Advanced Examples](#advanced-examples)
+
+---
+
+## What are Abstract Classes?
+
+An **abstract class** is a class that cannot be instantiated directly. It serves as a blueprint for other classes and can contain both abstract and concrete (implemented) members. Abstract classes are used to define common structure and behavior that subclasses must implement or can inherit.
+
+### Key Characteristics:
+- Cannot be instantiated directly
+- Can have abstract and non-abstract members
+- Can have constructors
+- Can have state (properties with backing fields)
+- Classes can only inherit from one abstract class (single inheritance)
+
+---
+
+## Basic Syntax
+
+```kotlin
+// Basic abstract class declaration
+abstract class Animal {
+    // Abstract class content
+}
+
+// Cannot instantiate abstract class
+// val animal = Animal() // Compilation error!
+
+// Must create a subclass
+class Dog : Animal() {
+    // Implementation
+}
+
+val dog = Dog() // This works
+```
+
+---
+
+## Abstract Properties
+
+Abstract properties must be overridden in subclasses. They can be declared with or without custom getters/setters.
+
+```kotlin
+abstract class Shape {
+    // Abstract property - must be overridden
+    abstract val area: Double
+    
+    // Abstract property with custom getter
+    abstract val perimeter: Double
+        get
+    
+    // Concrete property - can be inherited as-is
+    val description: String = "This is a shape"
+}
+
+class Rectangle(private val width: Double, private val height: Double) : Shape() {
+    // Must override abstract properties
+    override val area: Double
+        get() = width * height
+    
+    override val perimeter: Double
+        get() = 2 * (width + height)
+}
+
+class Circle(private val radius: Double) : Shape() {
+    override val area: Double = Math.PI * radius * radius
+    override val perimeter: Double = 2 * Math.PI * radius
+}
+```
+
+### Property Initialization in Abstract Classes
+
+```kotlin
+abstract class Vehicle {
+    // Concrete properties with initialization
+    protected val maxSpeed: Int = 120
+    var isRunning: Boolean = false
+        private set
+    
+    // Abstract property
+    abstract val fuelType: String
+    
+    // Property with custom accessor
+    val status: String
+        get() = if (isRunning) "Running" else "Stopped"
+}
+```
+
+---
+
+## Abstract Methods
+
+Abstract methods have no implementation and must be overridden in subclasses.
+
+```kotlin
+abstract class Animal {
+    // Abstract method - no implementation
+    abstract fun makeSound(): String
+    
+    // Abstract method with parameters
+    abstract fun move(distance: Int): String
+    
+    // Concrete method - has implementation
+    fun sleep(): String = "Zzz..."
+}
+
+class Cat : Animal() {
+    override fun makeSound(): String = "Meow!"
+    
+    override fun move(distance: Int): String = "Cat walks $distance meters"
+}
+
+class Bird : Animal() {
+    override fun makeSound(): String = "Tweet!"
+    
+    override fun move(distance: Int): String = "Bird flies $distance meters"
+}
+```
+
+### Generic Abstract Methods
+
+```kotlin
+abstract class DataProcessor<T> {
+    abstract fun process(data: T): T
+    abstract fun validate(data: T): Boolean
+    
+    fun execute(data: T): T? {
+        return if (validate(data)) {
+            process(data)
+        } else {
+            null
+        }
+    }
+}
+
+class StringProcessor : DataProcessor<String>() {
+    override fun process(data: String): String = data.uppercase()
+    override fun validate(data: String): Boolean = data.isNotEmpty()
+}
+```
+
+---
+
+## Concrete Members
+
+Abstract classes can have fully implemented members that subclasses can use directly or override.
+
+```kotlin
+abstract class GameCharacter {
+    // Concrete properties
+    var health: Int = 100
+    var level: Int = 1
+    
+    // Abstract properties
+    abstract val characterClass: String
+    abstract val baseAttack: Int
+    
+    // Concrete methods
+    fun takeDamage(damage: Int) {
+        health = maxOf(0, health - damage)
+    }
+    
+    fun isAlive(): Boolean = health > 0
+    
+    // Abstract methods
+    abstract fun specialAttack(): String
+    
+    // Concrete method using abstract properties
+    fun getTotalAttack(): Int = baseAttack + (level * 5)
+}
+
+class Warrior : GameCharacter() {
+    override val characterClass: String = "Warrior"
+    override val baseAttack: Int = 15
+    
+    override fun specialAttack(): String = "Sword Strike!"
+    
+    // Can override concrete methods too
+    override fun takeDamage(damage: Int) {
+        val reducedDamage = maxOf(1, damage - 2) // Armor reduces damage
+        super.takeDamage(reducedDamage)
+    }
+}
+```
+
+---
+
+## Constructors in Abstract Classes
+
+Abstract classes can have constructors that are called when subclasses are instantiated.
+
+```kotlin
+abstract class Person(
+    protected val name: String,
+    protected val age: Int
+) {
+    // Secondary constructor
+    constructor(name: String) : this(name, 0)
+    
+    // Abstract method
+    abstract fun introduce(): String
+    
+    // Concrete method using constructor parameters
+    fun getInfo(): String = "Name: $name, Age: $age"
+}
+
+class Student(
+    name: String,
+    age: Int,
+    private val studentId: String
+) : Person(name, age) {
+    
+    // Using secondary constructor of abstract class
+    constructor(name: String, studentId: String) : this(name, 18, studentId)
+    
+    override fun introduce(): String = "Hi, I'm $name, student ID: $studentId"
+}
+
+class Teacher(
+    name: String,
+    age: Int,
+    private val subject: String
+) : Person(name, age) {
+    
+    override fun introduce(): String = "Hello, I'm $name and I teach $subject"
+}
+```
+
+### Constructor with Initialization Block
+
+```kotlin
+abstract class Database(protected val connectionString: String) {
+    protected val isConnected: Boolean
+    
+    init {
+        println("Initializing database connection...")
+        isConnected = connect()
+    }
+    
+    private fun connect(): Boolean {
+        // Simulate connection logic
+        return connectionString.isNotEmpty()
+    }
+    
+    abstract fun query(sql: String): List<String>
+    abstract fun close()
+}
+```
+
+---
+
+## Inheritance and Implementation
+
+### Single Inheritance
+
+```kotlin
+abstract class Appliance(protected val brand: String) {
+    abstract fun turnOn()
+    abstract fun turnOff()
+    
+    fun getBrand(): String = brand
+}
+
+class WashingMachine(brand: String, private val capacity: Int) : Appliance(brand) {
+    override fun turnOn() {
+        println("Washing machine is starting...")
+    }
+    
+    override fun turnOff() {
+        println("Washing machine is stopping...")
+    }
+    
+    fun wash() {
+        println("Washing clothes with $capacity kg capacity")
+    }
+}
+```
+
+### Multiple Interface Implementation with Abstract Class
+
+```kotlin
+interface Flyable {
+    fun fly()
+}
+
+interface Swimmable {
+    fun swim()
+}
+
+abstract class Animal {
+    abstract val species: String
+    fun breathe() = println("Breathing...")
+}
+
+class Duck : Animal(), Flyable, Swimmable {
+    override val species: String = "Duck"
+    
+    override fun fly() {
+        println("Duck is flying")
+    }
+    
+    override fun swim() {
+        println("Duck is swimming")
+    }
+}
+```
+
+---
+
+## Abstract vs Interface
+
+| Feature | Abstract Class | Interface |
+|---------|----------------|-----------|
+| Instantiation | Cannot be instantiated | Cannot be instantiated |
+| Inheritance | Single inheritance only | Multiple inheritance |
+| State | Can have properties with backing fields | Properties have no backing fields |
+| Constructors | Can have constructors | Cannot have constructors |
+| Access Modifiers | All access modifiers allowed | Only public (default) |
+| Implementation | Can have concrete and abstract members | Can have default implementations (since Kotlin 1.0) |
+
+### Example Comparison
+
+```kotlin
+// Abstract Class
+abstract class AbstractPayment {
+    protected var amount: Double = 0.0 // Has state
+    
+    constructor(amount: Double) { // Has constructor
+        this.amount = amount
+    }
+    
+    abstract fun processPayment(): Boolean
+    
+    protected fun logTransaction() { // Can have protected members
+        println("Transaction logged for amount: $amount")
+    }
+}
+
+// Interface
+interface PaymentProcessor {
+    val fee: Double // No backing field
+        get() = 0.0
+    
+    fun processPayment(): Boolean
+    
+    fun logTransaction() { // Default implementation
+        println("Transaction logged")
+    }
+}
+
+// Can implement multiple interfaces but extend only one abstract class
+class CreditCardPayment(amount: Double) : AbstractPayment(amount), PaymentProcessor {
+    override val fee: Double = amount * 0.03
+    
+    override fun processPayment(): Boolean {
+        logTransaction() // Calls the protected method from abstract class
+        return true
+    }
+}
+```
+
+---
+
+## Sealed Classes vs Abstract Classes
+
+Sealed classes are a special kind of abstract class with restricted inheritance.
+
+```kotlin
+// Sealed class - inheritance is restricted to same file/package
+sealed class Result<T>
+
+class Success<T>(val data: T) : Result<T>()
+class Error<T>(val message: String) : Result<T>()
+
+// Abstract class - can be inherited from anywhere
+abstract class Shape {
+    abstract fun area(): Double
+}
+
+// This can be in any file
+class Triangle(private val base: Double, private val height: Double) : Shape() {
+    override fun area(): Double = 0.5 * base * height
+}
+```
+
+### When to Use Each
+
+```kotlin
+// Use sealed classes for representing restricted hierarchies
+sealed class NetworkResponse
+data class Success(val data: String) : NetworkResponse()
+data class Error(val code: Int, val message: String) : NetworkResponse()
+object Loading : NetworkResponse()
+
+fun handleResponse(response: NetworkResponse) = when (response) {
+    is Success -> println("Data: ${response.data}")
+    is Error -> println("Error ${response.code}: ${response.message}")
+    Loading -> println("Loading...")
+    // No else clause needed - compiler knows all possibilities
+}
+
+// Use abstract classes for shared implementation
+abstract class HttpClient {
+    protected val timeout: Long = 30000
+    
+    abstract fun get(url: String): String
+    abstract fun post(url: String, body: String): String
+    
+    protected fun logRequest(method: String, url: String) {
+        println("$method request to $url")
+    }
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Use Abstract Classes When You Need Shared State
+
+```kotlin
+// Good: Shared state and behavior
+abstract class GameEntity(
+    protected var x: Float,
+    protected var y: Float
+) {
+    fun move(dx: Float, dy: Float) {
+        x += dx
+        y += dy
+    }
+    
+    abstract fun render()
+}
+
+// Bad: No shared state, use interface instead
+abstract class Drawable {
+    abstract fun draw() // Could be an interface
+}
+```
+
+### 2. Provide Template Methods
+
+```kotlin
+abstract class DataImporter<T> {
+    // Template method
+    fun import(source: String): List<T> {
+        val rawData = readData(source)
+        val validatedData = validate(rawData)
+        return parse(validatedData)
+    }
+    
+    protected abstract fun readData(source: String): String
+    protected abstract fun validate(data: String): String
+    protected abstract fun parse(data: String): List<T>
+}
+```
+
+### 3. Use Protected Members for Subclass Access
+
+```kotlin
+abstract class WebService {
+    protected val baseUrl: String = "https://api.example.com"
+    protected val apiKey: String = System.getenv("API_KEY") ?: ""
+    
+    protected fun buildUrl(endpoint: String): String = "$baseUrl/$endpoint"
+    
+    abstract fun authenticate(): Boolean
+}
+```
+
+### 4. Document Abstract Contracts
+
+```kotlin
+abstract class CacheManager<K, V> {
+    /**
+     * Stores a value in the cache.
+     * @param key The cache key (must not be null)
+     * @param value The value to store
+     * @throws IllegalArgumentException if key is invalid
+     */
+    abstract fun put(key: K, value: V)
+    
+    /**
+     * Retrieves a value from the cache.
+     * @param key The cache key
+     * @return The cached value or null if not found
+     */
+    abstract fun get(key: K): V?
+}
+```
+
+---
+
+## Common Use Cases
+
+### 1. Template Method Pattern
+
+```kotlin
+abstract class DocumentProcessor {
+    fun processDocument(document: String): String {
+        val opened = openDocument(document)
+        val processed = processContent(opened)
+        val saved = saveDocument(processed)
+        return saved
+    }
+    
+    protected abstract fun openDocument(path: String): String
+    protected abstract fun processContent(content: String): String
+    protected abstract fun saveDocument(content: String): String
+}
+
+class PDFProcessor : DocumentProcessor() {
+    override fun openDocument(path: String): String = "PDF content from $path"
+    override fun processContent(content: String): String = content.uppercase()
+    override fun saveDocument(content: String): String = "Saved PDF: $content"
+}
+```
+
+### 2. Framework Base Classes
+
+```kotlin
+abstract class Activity {
+    private var isStarted = false
+    
+    fun start() {
+        if (!isStarted) {
+            onCreate()
+            onStart()
+            isStarted = true
+        }
+    }
+    
+    fun stop() {
+        if (isStarted) {
+            onStop()
+            onDestroy()
+            isStarted = false
+        }
+    }
+    
+    protected abstract fun onCreate()
+    protected abstract fun onStart()
+    protected open fun onStop() {} // Optional override
+    protected open fun onDestroy() {} // Optional override
+}
+
+class MainActivity : Activity() {
+    override fun onCreate() {
+        println("MainActivity created")
+    }
+    
+    override fun onStart() {
+        println("MainActivity started")
+    }
+    
+    override fun onStop() {
+        println("MainActivity stopped")
+        super.onStop()
+    }
+}
+```
+
+### 3. Data Access Objects
+
+```kotlin
+abstract class Repository<T, ID> {
+    protected val cache = mutableMapOf<ID, T>()
+    
+    abstract fun findById(id: ID): T?
+    abstract fun save(entity: T): T
+    abstract fun delete(id: ID): Boolean
+    
+    fun findAll(): List<T> = cache.values.toList()
+    
+    protected fun cacheEntity(id: ID, entity: T) {
+        cache[id] = entity
+    }
+}
+
+class UserRepository : Repository<User, Long>() {
+    override fun findById(id: Long): User? {
+        return cache[id] ?: findInDatabase(id)?.also { 
+            cacheEntity(id, it) 
+        }
+    }
+    
+    override fun save(entity: User): User {
+        // Save to database logic
+        cacheEntity(entity.id, entity)
+        return entity
+    }
+    
+    override fun delete(id: Long): Boolean {
+        cache.remove(id)
+        return deleteFromDatabase(id)
+    }
+    
+    private fun findInDatabase(id: Long): User? = TODO("Database lookup")
+    private fun deleteFromDatabase(id: Long): Boolean = TODO("Database deletion")
+}
+
+data class User(val id: Long, val name: String, val email: String)
+```
+
+---
+
+## Advanced Examples
+
+### 1. Generic Abstract Class with Type Bounds
+
+```kotlin
+abstract class Validator<T : Any> {
+    abstract fun validate(item: T): ValidationResult
+    
+    fun validateAll(items: List<T>): List<ValidationResult> {
+        return items.map { validate(it) }
+    }
+    
+    protected fun createError(message: String): ValidationResult = 
+        ValidationResult.Error(message)
+    
+    protected fun createSuccess(): ValidationResult = 
+        ValidationResult.Success
+}
+
+sealed class ValidationResult {
+    object Success : ValidationResult()
+    data class Error(val message: String) : ValidationResult()
+}
+
+class EmailValidator : Validator<String>() {
+    override fun validate(item: String): ValidationResult {
+        return if (item.contains("@") && item.contains(".")) {
+            createSuccess()
+        } else {
+            createError("Invalid email format")
+        }
+    }
+}
+```
+
+### 2. Abstract Class with Delegation
+
+```kotlin
+interface Logger {
+    fun log(message: String)
+}
+
+abstract class Service(private val logger: Logger) : Logger by logger {
+    protected var isInitialized = false
+        private set
+    
+    fun initialize() {
+        if (!isInitialized) {
+            log("Initializing ${this::class.simpleName}")
+            onInitialize()
+            isInitialized = true
+            log("Initialized ${this::class.simpleName}")
+        }
+    }
+    
+    protected abstract fun onInitialize()
+    abstract fun execute(): String
+}
+
+class FileLogger : Logger {
+    override fun log(message: String) {
+        println("[LOG] $message")
+    }
+}
+
+class DatabaseService(logger: Logger) : Service(logger) {
+    override fun onInitialize() {
+        log("Connecting to database...")
+    }
+    
+    override fun execute(): String = "Database operation completed"
+}
+```
+
+### 3. Abstract Class with Companion Object
+
+```kotlin
+abstract class ConfigurableService {
+    companion object {
+        const val DEFAULT_TIMEOUT = 30000L
+        private val instances = mutableMapOf<String, ConfigurableService>()
+        
+        fun getInstance(type: String): ConfigurableService? = instances[type]
+        
+        protected fun registerInstance(type: String, instance: ConfigurableService) {
+            instances[type] = instance
+        }
+    }
+    
+    protected val timeout: Long = DEFAULT_TIMEOUT
+    abstract val serviceType: String
+    
+    init {
+        registerInstance(serviceType, this)
+    }
+    
+    abstract fun start()
+    abstract fun stop()
+}
+
+class HttpService : ConfigurableService() {
+    override val serviceType: String = "HTTP"
+    
+    override fun start() {
+        println("HTTP service started with timeout: $timeout")
+    }
+    
+    override fun stop() {
+        println("HTTP service stopped")
+    }
+}
+```
+
+---
+
+This reference covers all the essential aspects of abstract classes in Kotlin. Abstract classes are powerful tools for creating hierarchies with shared state and behavior while enforcing certain contracts through abstract members. They're particularly useful in framework design, template method patterns, and when you need to provide both interface contracts and concrete implementations in a single inheritance hierarchy.
