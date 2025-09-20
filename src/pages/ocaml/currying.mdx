@@ -1,0 +1,531 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← OCaml</a> <br /> <br />
+
+# Currying
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Basic Concepts](#basic-concepts)
+3. [Function Types and Currying](#function-types-and-currying)
+4. [Partial Application](#partial-application)
+5. [Currying vs Uncurrying](#currying-vs-uncurrying)
+6. [Advanced Examples](#advanced-examples)
+7. [Performance Considerations](#performance-considerations)
+8. [Common Patterns](#common-patterns)
+9. [Best Practices](#best-practices)
+10. [Exercises](#exercises)
+
+## Introduction
+
+Currying is a fundamental concept in functional programming and OCaml. Named after mathematician Haskell Curry, currying is the technique of transforming a function that takes multiple arguments into a series of functions that each take a single argument. In OCaml, all functions are curried by default.
+
+## Basic Concepts
+
+### What is Currying?
+
+Currying converts a function of multiple arguments into a chain of functions, each taking a single argument:
+
+```ocaml
+(* Traditional multi-argument function concept *)
+f(x, y, z) = result
+
+(* Curried version *)
+f x y z = ((f x) y) z = result
+```
+
+### OCaml's Default Behavior
+
+In OCaml, when you write:
+
+```ocaml
+let add x y = x + y
+```
+
+You're actually creating a curried function. The type signature is:
+
+```ocaml
+val add : int -> int -> int
+```
+
+This should be read as `int -> (int -> int)`, meaning a function that takes an `int` and returns a function that takes an `int` and returns an `int`.
+
+## Function Types and Currying
+
+### Understanding Function Types
+
+```ocaml
+(* Single argument function *)
+let square x = x * x
+(* Type: int -> int *)
+
+(* Two argument curried function *)
+let add x y = x + y
+(* Type: int -> int -> int *)
+(* Actually: int -> (int -> int) *)
+
+(* Three argument curried function *)
+let add_three x y z = x + y + z
+(* Type: int -> int -> int -> int *)
+(* Actually: int -> (int -> (int -> int)) *)
+```
+
+### Function Application
+
+Function application is left-associative:
+
+```ocaml
+add 3 4
+(* Same as: (add 3) 4 *)
+(* First applies 3 to add, returning a function *)
+(* Then applies 4 to that function *)
+```
+
+## Partial Application
+
+### Basic Partial Application
+
+```ocaml
+let add x y = x + y
+
+(* Partial application - creating specialized functions *)
+let add_five = add 5
+(* Type: int -> int *)
+
+let result = add_five 3  (* Returns 8 *)
+
+(* Multiple partial applications *)
+let multiply x y z = x * y * z
+let double = multiply 2
+(* Type: int -> int -> int *)
+
+let double_and_multiply_by_three = double 3
+(* Type: int -> int *)
+
+let result = double_and_multiply_by_three 4  (* Returns 24 *)
+```
+
+### Practical Examples
+
+```ocaml
+(* String operations *)
+let starts_with prefix str = 
+  String.length str >= String.length prefix &&
+  String.sub str 0 (String.length prefix) = prefix
+
+let starts_with_http = starts_with "http://"
+let starts_with_https = starts_with "https://"
+
+(* List operations *)
+let map f lst = List.map f lst
+let filter p lst = List.filter p lst
+
+(* Specialized list functions *)
+let square_all = map (fun x -> x * x)
+let filter_positive = filter (fun x -> x > 0)
+
+(* Usage *)
+let squared_list = square_all [1; 2; 3; 4]  (* [1; 4; 9; 16] *)
+let positive_only = filter_positive [-2; -1; 0; 1; 2]  (* [1; 2] *)
+```
+
+## Currying vs Uncurrying
+
+### Tuple-Based Functions (Uncurried)
+
+```ocaml
+(* Uncurried function - takes a tuple *)
+let add_tuple (x, y) = x + y
+(* Type: int * int -> int *)
+
+(* Usage *)
+let result = add_tuple (3, 4)  (* Must pass a tuple *)
+```
+
+### Converting Between Curried and Uncurried
+
+```ocaml
+(* Convert curried to uncurried *)
+let curry f x y = f (x, y)
+let uncurry f (x, y) = f x y
+
+(* Examples *)
+let add_curried x y = x + y
+let add_uncurried (x, y) = x + y
+
+let add_uncurried_from_curried = uncurry add_curried
+let add_curried_from_uncurried = curry add_uncurried
+
+(* Verification *)
+let () = 
+  assert (add_curried 3 4 = 7);
+  assert (add_uncurried (3, 4) = 7);
+  assert (add_uncurried_from_curried (3, 4) = 7);
+  assert (add_curried_from_uncurried 3 4 = 7)
+```
+
+### Standard Library Curry/Uncurry
+
+OCaml's standard library doesn't provide curry/uncurry functions, but you can define them:
+
+```ocaml
+module Curry = struct
+  let curry f x y = f (x, y)
+  let curry3 f x y z = f (x, y, z)
+  let curry4 f w x y z = f (w, x, y, z)
+  
+  let uncurry f (x, y) = f x y
+  let uncurry3 f (x, y, z) = f x y z
+  let uncurry4 f (w, x, y, z) = f w x y z
+end
+```
+
+## Advanced Examples
+
+### Higher-Order Functions
+
+```ocaml
+(* Function composition *)
+let compose f g x = f (g x)
+(* Type: ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c *)
+
+let add_one x = x + 1
+let multiply_by_two x = x * 2
+
+let add_one_then_multiply = compose multiply_by_two add_one
+let result = add_one_then_multiply 5  (* (5 + 1) * 2 = 12 *)
+
+(* Pipe operator (custom) *)
+let (|>) x f = f x
+
+let result = 5 |> add_one |> multiply_by_two  (* Same as above *)
+```
+
+### Partial Application with Built-in Functions
+
+```ocaml
+(* List operations *)
+let numbers = [1; 2; 3; 4; 5]
+
+(* Partial application with List.map *)
+let add_ten = (+) 10
+let numbers_plus_ten = List.map add_ten numbers  (* [11; 12; 13; 14; 15] *)
+
+(* Partial application with List.filter *)
+let is_greater_than n x = x > n
+let is_greater_than_three = is_greater_than 3
+let big_numbers = List.filter is_greater_than_three numbers  (* [4; 5] *)
+
+(* Partial application with List.fold_left *)
+let sum_with_initial initial lst = List.fold_left (+) initial lst
+let sum_from_zero = sum_with_initial 0
+let sum_from_hundred = sum_with_initial 100
+
+let total = sum_from_zero [1; 2; 3]  (* 6 *)
+let total_plus_hundred = sum_from_hundred [1; 2; 3]  (* 106 *)
+```
+
+### Creating Domain-Specific Functions
+
+```ocaml
+(* HTTP request builder example *)
+type http_method = GET | POST | PUT | DELETE
+
+let make_request method_type url headers body =
+  Printf.sprintf "%s %s\nHeaders: %s\nBody: %s"
+    (match method_type with
+     | GET -> "GET" | POST -> "POST" 
+     | PUT -> "PUT" | DELETE -> "DELETE")
+    url headers body
+
+(* Specialized request builders *)
+let get_request = make_request GET
+let post_request = make_request POST
+
+let api_get = get_request "https://api.example.com"
+let api_post = post_request "https://api.example.com"
+
+(* Even more specialized *)
+let api_get_no_headers = api_get ""
+let api_get_json = api_get "Content-Type: application/json"
+
+(* Usage *)
+let user_request = api_get_json "{}"
+let health_check = api_get_no_headers "{}"
+```
+
+## Performance Considerations
+
+### Memory Allocation
+
+```ocaml
+(* Each partial application creates a closure *)
+let add x y z = x + y + z
+
+(* This creates intermediate closures *)
+let add_1 = add 1      (* Closure created *)
+let add_1_2 = add_1 2  (* Another closure created *)
+let result = add_1_2 3 (* Final computation *)
+
+(* vs direct application *)
+let result_direct = add 1 2 3  (* No intermediate closures *)
+```
+
+### When to Use Tuples vs Currying
+
+```ocaml
+(* Use currying for: *)
+(* - Partial application scenarios *)
+let multiply x y = x * y
+let double = multiply 2  (* Useful partial application *)
+
+(* Use tuples for: *)
+(* - Performance-critical code *)
+(* - When you always pass all arguments *)
+let multiply_tuple (x, y) = x * y  (* Slightly more efficient *)
+
+(* - Mathematical operations *)
+let distance (x1, y1) (x2, y2) = 
+  sqrt ((x2 -. x1) ** 2.0 +. (y2 -. y1) ** 2.0)
+```
+
+## Common Patterns
+
+### The "Configuration" Pattern
+
+```ocaml
+(* Database connection example *)
+type db_config = { host: string; port: int; database: string }
+
+let query config table_name where_clause =
+  Printf.sprintf "SELECT * FROM %s WHERE %s (connecting to %s:%d/%s)"
+    table_name where_clause config.host config.port config.database
+
+let prod_config = { host = "prod.db.com"; port = 5432; database = "prod_db" }
+let dev_config = { host = "localhost"; port = 5432; database = "dev_db" }
+
+(* Specialized query functions *)
+let prod_query = query prod_config
+let dev_query = query dev_config
+
+(* Even more specialized *)
+let prod_user_query = prod_query "users"
+let dev_user_query = dev_query "users"
+
+(* Usage *)
+let active_users = prod_user_query "status = 'active'"
+```
+
+### The "Validator" Pattern
+
+```ocaml
+(* Form validation *)
+let validate_length min_len max_len field_name value =
+  let len = String.length value in
+  if len < min_len then Error (field_name ^ " too short")
+  else if len > max_len then Error (field_name ^ " too long")
+  else Ok value
+
+(* Specialized validators *)
+let validate_username = validate_length 3 20 "Username"
+let validate_password = validate_length 8 128 "Password"
+let validate_email = validate_length 5 254 "Email"
+
+(* Usage *)
+let username_result = validate_username "john"  (* Ok "john" *)
+let password_result = validate_password "123"   (* Error "Password too short" *)
+```
+
+### The "Transform" Pattern
+
+```ocaml
+(* Data transformation pipeline *)
+let transform_with_context context transformer data =
+  transformer context data
+
+type context = { multiplier: int; offset: int }
+
+let scale_transform ctx value = value * ctx.multiplier + ctx.offset
+let log_transform ctx value = 
+  Printf.printf "Transforming %d with context %s\n" 
+    value (string_of_int ctx.multiplier);
+  value
+
+let math_context = { multiplier = 2; offset = 10 }
+
+(* Specialized transformers *)
+let scale_with_math = transform_with_context math_context scale_transform
+let log_with_math = transform_with_context math_context log_transform
+
+(* Pipeline *)
+let result = [1; 2; 3; 4; 5]
+  |> List.map scale_with_math
+  |> List.map log_with_math
+```
+
+## Best Practices
+
+### Do's
+
+1. **Use currying for natural partial application scenarios**
+   ```ocaml
+   let starts_with prefix str = (* ... *)
+   let is_http_url = starts_with "http://"
+   ```
+
+2. **Order parameters from general to specific**
+   ```ocaml
+   (* Good: general config first, specific data last *)
+   let process_with_config config options data = (* ... *)
+   
+   (* This allows: *)
+   let process_prod = process_with_config prod_config default_options
+   ```
+
+3. **Use meaningful intermediate functions**
+   ```ocaml
+   let validate_and_save validator saver data =
+     match validator data with
+     | Ok valid_data -> saver valid_data
+     | Error e -> Error e
+   
+   let validate_and_save_user = validate_and_save validate_user save_user
+   ```
+
+### Don'ts
+
+1. **Don't over-curry when tuples make more sense**
+   ```ocaml
+   (* Avoid this for coordinate-like data *)
+   let bad_distance x1 y1 x2 y2 = (* ... *)
+   
+   (* Better *)
+   let good_distance (x1, y1) (x2, y2) = (* ... *)
+   ```
+
+2. **Don't create confusing partial applications**
+   ```ocaml
+   (* Confusing parameter order *)
+   let bad_substr str start length = String.sub str start length
+   let get_first_5 = bad_substr (* what? *) 0 5  (* Unclear *)
+   
+   (* Better parameter order *)
+   let good_substr start length str = String.sub str start length
+   let get_first_5 = good_substr 0 5  (* Clear: gets first 5 chars *)
+   ```
+
+3. **Don't ignore performance when it matters**
+   ```ocaml
+   (* In tight loops, direct calls might be better *)
+   let process_array arr =
+     for i = 0 to Array.length arr - 1 do
+       (* Direct call in performance-critical section *)
+       arr.(i) <- compute_directly arr.(i) param1 param2
+     done
+   ```
+
+## Exercises
+
+### Exercise 1: Basic Currying
+Create a curried function `make_adder` that takes a number and returns a function that adds that number to its argument.
+
+```ocaml
+(* Your implementation here *)
+let make_adder = (* ... *)
+
+(* Test *)
+let add_10 = make_adder 10
+assert (add_10 5 = 15)
+```
+
+### Exercise 2: Partial Application with Lists
+Create specialized list processing functions using partial application.
+
+```ocaml
+(* Create these specialized functions using partial application *)
+let square_all_numbers = (* ... *)
+let filter_even_numbers = (* ... *)
+let sum_all_numbers = (* ... *)
+
+(* Test *)
+let numbers = [1; 2; 3; 4; 5; 6]
+let result = numbers 
+  |> filter_even_numbers 
+  |> square_all_numbers 
+  |> sum_all_numbers
+(* Should equal 56: (2² + 4² + 6²) = (4 + 16 + 36) *)
+```
+
+### Exercise 3: Configuration Pattern
+Implement a logging system using the configuration pattern.
+
+```ocaml
+type log_level = DEBUG | INFO | WARN | ERROR
+type log_config = { level: log_level; prefix: string }
+
+let log config level message = (* ... *)
+
+(* Create specialized loggers *)
+let debug_logger = (* ... *)
+let prod_logger = (* ... *)
+
+(* Test *)
+let () = debug_logger DEBUG "Debug message"
+let () = prod_logger ERROR "Error message"
+```
+
+### Solutions
+
+#### Exercise 1 Solution
+```ocaml
+let make_adder x y = x + y
+(* or equivalently: let make_adder x = fun y -> x + y *)
+
+let add_10 = make_adder 10
+assert (add_10 5 = 15)
+```
+
+#### Exercise 2 Solution
+```ocaml
+let square_all_numbers = List.map (fun x -> x * x)
+let filter_even_numbers = List.filter (fun x -> x mod 2 = 0)
+let sum_all_numbers = List.fold_left (+) 0
+
+let numbers = [1; 2; 3; 4; 5; 6]
+let result = numbers 
+  |> filter_even_numbers 
+  |> square_all_numbers 
+  |> sum_all_numbers
+(* result = 56 *)
+```
+
+#### Exercise 3 Solution
+```ocaml
+type log_level = DEBUG | INFO | WARN | ERROR
+type log_config = { level: log_level; prefix: string }
+
+let log config level message =
+  let level_int = function
+    | DEBUG -> 0 | INFO -> 1 | WARN -> 2 | ERROR -> 3
+  in
+  if level_int level >= level_int config.level then
+    Printf.printf "[%s] %s: %s\n" 
+      config.prefix 
+      (match level with 
+       | DEBUG -> "DEBUG" | INFO -> "INFO" 
+       | WARN -> "WARN" | ERROR -> "ERROR")
+      message
+
+let debug_config = { level = DEBUG; prefix = "DEV" }
+let prod_config = { level = WARN; prefix = "PROD" }
+
+let debug_logger = log debug_config
+let prod_logger = log prod_config
+```
+
+## Conclusion
+
+Currying is a powerful feature in OCaml that enables elegant partial application, function composition, and the creation of specialized functions. By understanding and properly utilizing currying, you can write more modular, reusable, and expressive code. Remember to balance the elegance of curried functions with performance considerations and code clarity.
+
+The key to mastering currying in OCaml is practice and understanding when to apply these patterns effectively in real-world scenarios.
