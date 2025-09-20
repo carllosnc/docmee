@@ -1,0 +1,553 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Pattern Matching
+
+## Table of Contents
+1. [When Expressions](#when-expressions)
+2. [Sealed Classes and Interfaces](#sealed-classes-and-interfaces)
+3. [Data Classes and Destructuring](#data-classes-and-destructuring)
+4. [Type Checking and Smart Casting](#type-checking-and-smart-casting)
+5. [Collections Pattern Matching](#collections-pattern-matching)
+6. [Range and Equality Patterns](#range-and-equality-patterns)
+7. [Guard Conditions](#guard-conditions)
+8. [Advanced Patterns](#advanced-patterns)
+9. [Best Practices](#best-practices)
+
+## When Expressions
+
+The `when` expression is Kotlin's primary pattern matching construct, similar to `switch` statements but more powerful.
+
+### Basic When Expression
+```kotlin
+fun describe(x: Any): String = when (x) {
+    1 -> "One"
+    "Hello" -> "Greeting"
+    is Long -> "Long number"
+    !is String -> "Not a string"
+    else -> "Something else"
+}
+```
+
+### When with Multiple Values
+```kotlin
+fun processInput(input: String) = when (input) {
+    "yes", "y", "true" -> true
+    "no", "n", "false" -> false
+    else -> null
+}
+```
+
+### When with Ranges and Collections
+```kotlin
+fun categorizeNumber(x: Int) = when (x) {
+    in 1..10 -> "Small"
+    in 11..100 -> "Medium" 
+    in 101..1000 -> "Large"
+    !in 1..1000 -> "Out of range"
+    else -> "Unknown"
+}
+
+fun checkMembership(item: String) = when (item) {
+    in listOf("apple", "banana", "orange") -> "Fruit"
+    in setOf("carrot", "broccoli", "spinach") -> "Vegetable"
+    else -> "Unknown food"
+}
+```
+
+### When without Arguments
+```kotlin
+fun getTemperatureDescription(temp: Int) = when {
+    temp < 0 -> "Freezing"
+    temp < 10 -> "Cold"
+    temp < 25 -> "Mild"
+    temp < 35 -> "Warm"
+    else -> "Hot"
+}
+```
+
+### When as Statement vs Expression
+```kotlin
+// As expression (returns value)
+val result = when (x) {
+    1 -> "one"
+    2 -> "two"
+    else -> "other"
+}
+
+// As statement (performs actions)
+when (status) {
+    "loading" -> showProgressBar()
+    "error" -> showErrorMessage()
+    "success" -> displayResults()
+}
+```
+
+## Sealed Classes and Interfaces
+
+Sealed classes provide exhaustive pattern matching, ensuring all cases are handled.
+
+### Basic Sealed Class
+```kotlin
+sealed class Result<out T>
+data class Success<T>(val data: T) : Result<T>()
+data class Error(val exception: Exception) : Result<Nothing>()
+object Loading : Result<Nothing>()
+
+fun handleResult(result: Result<String>) = when (result) {
+    is Success -> println("Data: ${result.data}")
+    is Error -> println("Error: ${result.exception.message}")
+    Loading -> println("Loading...")
+    // No 'else' needed - compiler knows all cases are covered
+}
+```
+
+### Nested Sealed Classes
+```kotlin
+sealed class NetworkResult {
+    data class Success(val data: String) : NetworkResult()
+    
+    sealed class Error : NetworkResult() {
+        object NetworkError : Error()
+        object ServerError : Error()
+        data class ClientError(val code: Int) : Error()
+    }
+}
+
+fun processNetworkResult(result: NetworkResult) = when (result) {
+    is NetworkResult.Success -> "Got data: ${result.data}"
+    NetworkResult.Error.NetworkError -> "Network connection failed"
+    NetworkResult.Error.ServerError -> "Server error occurred"
+    is NetworkResult.Error.ClientError -> "Client error: ${result.code}"
+}
+```
+
+### Sealed Interfaces (Kotlin 1.5+)
+```kotlin
+sealed interface Command
+data class Move(val direction: String) : Command
+data class Attack(val target: String) : Command
+object Quit : Command
+
+fun executeCommand(command: Command) = when (command) {
+    is Move -> println("Moving ${command.direction}")
+    is Attack -> println("Attacking ${command.target}")
+    Quit -> println("Quitting game")
+}
+```
+
+## Data Classes and Destructuring
+
+Data classes allow pattern matching through destructuring declarations.
+
+### Basic Destructuring
+```kotlin
+data class Person(val name: String, val age: Int, val city: String)
+
+fun processPersons(people: List<Person>) {
+    for ((name, age, city) in people) {
+        when {
+            age < 18 -> println("$name is a minor in $city")
+            age >= 65 -> println("$name is a senior in $city")
+            else -> println("$name is an adult in $city")
+        }
+    }
+}
+```
+
+### Destructuring in When
+```kotlin
+data class Point(val x: Int, val y: Int)
+
+fun analyzePoint(point: Point) = when (point) {
+    Point(0, 0) -> "Origin"
+    Point(0, _) -> "On Y-axis"
+    Point(_, 0) -> "On X-axis"
+    Point(x, y) when x == y -> "On diagonal"
+    Point(x, y) when x > 0 && y > 0 -> "First quadrant"
+    else -> "Other location"
+}
+```
+
+### Partial Destructuring
+```kotlin
+data class User(val id: Int, val name: String, val email: String, val isActive: Boolean)
+
+fun categorizeUsers(users: List<User>) {
+    users.forEach { user ->
+        val (id, name, _, isActive) = user  // Skip email with _
+        when {
+            !isActive -> println("User $name (ID: $id) is inactive")
+            id < 1000 -> println("Early user: $name")
+            else -> println("Regular user: $name")
+        }
+    }
+}
+```
+
+### Destructuring with Collections
+```kotlin
+fun processCoordinates(coords: List<Int>) = when (coords.size) {
+    0 -> "No coordinates"
+    1 -> {
+        val (x) = coords
+        "Point at ($x, 0)"
+    }
+    2 -> {
+        val (x, y) = coords
+        "Point at ($x, $y)"
+    }
+    else -> {
+        val (x, y) = coords  // Take first two
+        "Point at ($x, $y) with additional coordinates"
+    }
+}
+```
+
+## Type Checking and Smart Casting
+
+Kotlin's type system provides intelligent casting after type checks.
+
+### Basic Type Checking
+```kotlin
+fun processValue(value: Any) = when (value) {
+    is String -> value.length  // Smart cast to String
+    is Int -> value * 2        // Smart cast to Int
+    is List<*> -> value.size   // Smart cast to List
+    is Map<*, *> -> value.keys.size  // Smart cast to Map
+    else -> 0
+}
+```
+
+### Nullable Type Patterns
+```kotlin
+fun handleNullable(value: String?) = when (value) {
+    null -> "No value"
+    "" -> "Empty string"
+    else -> "Value: $value"  // Smart cast to non-null String
+}
+```
+
+### Complex Type Patterns
+```kotlin
+sealed class Expression
+data class Num(val value: Double) : Expression()
+data class Sum(val left: Expression, val right: Expression) : Expression()
+data class Mul(val left: Expression, val right: Expression) : Expression()
+
+fun eval(expr: Expression): Double = when (expr) {
+    is Num -> expr.value
+    is Sum -> eval(expr.left) + eval(expr.right)
+    is Mul -> eval(expr.left) * eval(expr.right)
+}
+```
+
+### Generic Type Matching
+```kotlin
+fun processContainer(container: Any) = when (container) {
+    is List<*> -> when {
+        container.all { it is String } -> "List of strings"
+        container.all { it is Int } -> "List of integers"
+        else -> "Mixed list"
+    }
+    is Map<*, *> -> "Map with ${container.size} entries"
+    is Set<*> -> "Set with ${container.size} elements"
+    else -> "Unknown container"
+}
+```
+
+## Collections Pattern Matching
+
+Advanced patterns for working with collections.
+
+### List Patterns
+```kotlin
+fun analyzeList(list: List<Int>) = when {
+    list.isEmpty() -> "Empty list"
+    list.size == 1 -> "Single element: ${list.first()}"
+    list.first() == list.last() -> "First and last are same"
+    list.all { it > 0 } -> "All positive numbers"
+    list.any { it < 0 } -> "Contains negative numbers"
+    list.sorted() == list -> "Already sorted"
+    else -> "Mixed list"
+}
+```
+
+### Map Patterns
+```kotlin
+fun analyzeMap(map: Map<String, Any>) = when {
+    map.isEmpty() -> "Empty map"
+    "id" !in map -> "Missing ID"
+    "name" !in map -> "Missing name" 
+    map["active"] == true -> "Active record"
+    map.size > 10 -> "Large record"
+    else -> "Standard record"
+}
+```
+
+### Pattern Matching with Collection Operations
+```kotlin
+fun processNumbers(numbers: List<Int>) = when {
+    numbers.isEmpty() -> "No numbers"
+    numbers.count { it % 2 == 0 } > numbers.size / 2 -> "Mostly even"
+    numbers.maxOrNull()?.let { it > 100 } == true -> "Has large numbers"
+    numbers.zipWithNext().all { (a, b) -> a <= b } -> "Sorted ascending"
+    else -> "Mixed pattern"
+}
+```
+
+## Range and Equality Patterns
+
+Various ways to match ranges and specific values.
+
+### Range Patterns
+```kotlin
+fun categorizeAge(age: Int) = when (age) {
+    in 0..12 -> "Child"
+    in 13..19 -> "Teenager"
+    in 20..64 -> "Adult"
+    in 65..Int.MAX_VALUE -> "Senior"
+    else -> "Invalid age"
+}
+
+fun checkGrade(score: Double) = when (score) {
+    in 90.0..100.0 -> "A"
+    in 80.0 until 90.0 -> "B" 
+    in 70.0 until 80.0 -> "C"
+    in 60.0 until 70.0 -> "D"
+    else -> "F"
+}
+```
+
+### Custom Range Classes
+```kotlin
+class VersionRange(private val min: String, private val max: String) {
+    operator fun contains(version: String): Boolean {
+        // Custom version comparison logic
+        return version >= min && version <= max
+    }
+}
+
+fun checkCompatibility(version: String) = when (version) {
+    in VersionRange("1.0", "1.9") -> "Legacy version"
+    in VersionRange("2.0", "2.9") -> "Current version"
+    in VersionRange("3.0", "3.9") -> "Future version"
+    else -> "Unknown version"
+}
+```
+
+## Guard Conditions
+
+Adding additional conditions to pattern matches.
+
+### When with Guards
+```kotlin
+data class Student(val name: String, val grade: Int, val isPresent: Boolean)
+
+fun evaluateStudent(student: Student) = when (student.grade) {
+    in 90..100 when student.isPresent -> "Excellent and present"
+    in 90..100 when !student.isPresent -> "Excellent but absent"
+    in 70..89 when student.isPresent -> "Good and present"
+    in 70..89 -> "Good but check attendance"
+    else -> "Needs improvement"
+}
+```
+
+### Complex Guard Conditions
+```kotlin
+fun processOrder(order: Order) = when {
+    order.items.isEmpty() -> "Empty order"
+    order.total > 1000 && order.customer.isPremium -> "Large premium order"
+    order.total > 100 && order.shippingAddress.country == "US" -> "Standard US order"
+    order.items.any { it.category == "electronics" } && order.total > 500 -> "Electronics order"
+    else -> "Regular order"
+}
+```
+
+### Combining Patterns with Guards
+```kotlin
+sealed class Animal
+data class Dog(val breed: String, val age: Int) : Animal()
+data class Cat(val color: String, val isIndoor: Boolean) : Animal()
+
+fun describeAnimal(animal: Animal) = when (animal) {
+    is Dog when animal.age < 1 -> "Puppy ${animal.breed}"
+    is Dog when animal.age > 10 -> "Senior ${animal.breed}"
+    is Dog -> "${animal.breed} dog"
+    is Cat when animal.isIndoor -> "Indoor ${animal.color} cat"
+    is Cat -> "Outdoor ${animal.color} cat"
+}
+```
+
+## Advanced Patterns
+
+Sophisticated pattern matching techniques.
+
+### Recursive Patterns
+```kotlin
+sealed class Tree<T>
+object Empty : Tree<Nothing>()
+data class Node<T>(val value: T, val left: Tree<T>, val right: Tree<T>) : Tree<T>()
+
+fun <T> depth(tree: Tree<T>): Int = when (tree) {
+    Empty -> 0
+    is Node -> 1 + maxOf(depth(tree.left), depth(tree.right))
+}
+
+fun <T> inOrder(tree: Tree<T>): List<T> = when (tree) {
+    Empty -> emptyList()
+    is Node -> inOrder(tree.left) + tree.value + inOrder(tree.right)
+}
+```
+
+### Pattern Matching with Lambdas
+```kotlin
+fun <T> processWithPattern(
+    items: List<T>,
+    pattern: (T) -> Boolean,
+    action: (T) -> Unit
+) {
+    items.forEach { item ->
+        when {
+            pattern(item) -> action(item)
+        }
+    }
+}
+
+// Usage
+val numbers = listOf(1, 2, 3, 4, 5)
+processWithPattern(
+    numbers,
+    pattern = { it % 2 == 0 },
+    action = { println("Even number: $it") }
+)
+```
+
+### Multi-Step Pattern Matching
+```kotlin
+fun parseAndValidate(input: String): String = when {
+    input.isBlank() -> "Empty input"
+    else -> when (val parsed = input.toIntOrNull()) {
+        null -> "Invalid number format"
+        in 1..100 -> "Valid: $parsed"
+        else -> "Number out of range: $parsed"
+    }
+}
+```
+
+### Pattern Matching with Regex
+```kotlin
+fun validateInput(input: String) = when {
+    input.matches(Regex("""\d{3}-\d{3}-\d{4}""")) -> "Valid phone number"
+    input.matches(Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")) -> "Valid email"
+    input.matches(Regex("""\d{4}-\d{2}-\d{2}""")) -> "Valid date"
+    else -> "Unknown format"
+}
+```
+
+## Best Practices
+
+### Exhaustive When Expressions
+Always ensure when expressions are exhaustive, especially with sealed classes:
+
+```kotlin
+sealed class State
+object Loading : State()
+object Success : State()
+data class Error(val message: String) : State()
+
+// Good - exhaustive
+fun handleState(state: State) = when (state) {
+    Loading -> showLoader()
+    Success -> showContent()
+    is Error -> showError(state.message)
+    // No else needed - compiler enforces exhaustiveness
+}
+```
+
+### Prefer Sealed Classes Over Enums for Complex Data
+```kotlin
+// Instead of this:
+enum class Status { LOADING, SUCCESS, ERROR }
+data class Result(val status: Status, val data: String?, val error: String?)
+
+// Prefer this:
+sealed class Result
+object Loading : Result()
+data class Success(val data: String) : Result()
+data class Error(val message: String) : Result()
+```
+
+### Use Data Classes for Pattern Matching
+```kotlin
+// Good for pattern matching
+data class Coordinate(val x: Int, val y: Int)
+
+fun processCoordinate(coord: Coordinate) = when (coord) {
+    Coordinate(0, 0) -> "Origin"
+    Coordinate(x, 0) -> "On X-axis at $x"
+    Coordinate(0, y) -> "On Y-axis at $y"
+    else -> "At (${coord.x}, ${coord.y})"
+}
+```
+
+### Avoid Deep Nesting
+```kotlin
+// Instead of deeply nested when
+fun processComplexData(data: ComplexData) = when (data.type) {
+    "A" -> when (data.subType) {
+        "1" -> when (data.value) {
+            in 1..10 -> "A1 small"
+            else -> "A1 large"
+        }
+        else -> "A other"
+    }
+    else -> "Not A"
+}
+
+// Extract functions for clarity
+fun processComplexData(data: ComplexData) = when (data.type) {
+    "A" -> processTypeA(data)
+    "B" -> processTypeB(data)
+    else -> "Unknown type"
+}
+
+private fun processTypeA(data: ComplexData) = when (data.subType) {
+    "1" -> processA1(data)
+    "2" -> processA2(data)
+    else -> "Unknown A subtype"
+}
+```
+
+### Leverage Smart Casting
+```kotlin
+fun processValue(value: Any?) = when (value) {
+    null -> "Null value"
+    is String -> "String of length ${value.length}"  // Smart cast
+    is List<*> -> "List with ${value.size} items"    // Smart cast
+    is Number -> "Number: ${value.toDouble()}"       // Smart cast
+    else -> "Unknown type: ${value::class.simpleName}"
+}
+```
+
+### Use Type Aliases for Complex Types
+```kotlin
+typealias UserId = String
+typealias ProductId = String
+typealias OrderItems = Map<ProductId, Int>
+
+sealed class OrderEvent
+data class ItemAdded(val userId: UserId, val productId: ProductId, val quantity: Int) : OrderEvent()
+data class ItemRemoved(val userId: UserId, val productId: ProductId) : OrderEvent()
+data class OrderCompleted(val userId: UserId, val items: OrderItems) : OrderEvent()
+
+fun processOrderEvent(event: OrderEvent) = when (event) {
+    is ItemAdded -> addItem(event.userId, event.productId, event.quantity)
+    is ItemRemoved -> removeItem(event.userId, event.productId)
+    is OrderCompleted -> completeOrder(event.userId, event.items)
+}
+```
+
+This comprehensive guide covers all major aspects of pattern matching in Kotlin. The key is to leverage the type system, use sealed classes for exhaustive matching, and combine different techniques to create clear and maintainable code.
