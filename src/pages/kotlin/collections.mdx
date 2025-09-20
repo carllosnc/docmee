@@ -1,0 +1,518 @@
+# Complete Kotlin Collections Reference
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Collection Hierarchy](#collection-hierarchy)
+3. [List Collections](#list-collections)
+4. [Set Collections](#set-collections)
+5. [Map Collections](#map-collections)
+6. [Collection Operations](#collection-operations)
+7. [Sequences](#sequences)
+8. [Arrays](#arrays)
+9. [Collection Builders](#collection-builders)
+10. [Performance Characteristics](#performance-characteristics)
+
+## Overview
+
+Kotlin provides a rich collections framework that distinguishes between mutable and immutable collections. The collections are based on Java's collections but provide additional functionality and type safety.
+
+### Key Concepts
+- **Immutable Collections**: Read-only interfaces (List, Set, Map)
+- **Mutable Collections**: Read-write interfaces (MutableList, MutableSet, MutableMap)
+- **Collection vs Sequence**: Collections are eagerly evaluated, sequences are lazily evaluated
+
+## Collection Hierarchy
+
+```
+Collection<T>
+├── List<T>
+│   └── MutableList<T>
+├── Set<T>
+│   └── MutableSet<T>
+└── Map<K, V>
+    └── MutableMap<K, V>
+```
+
+## List Collections
+
+Lists are ordered collections that can contain duplicate elements.
+
+### Immutable Lists
+
+#### listOf()
+```kotlin
+val list = listOf(1, 2, 3, 4, 5)
+val emptyList = listOf<Int>()
+val mixedList = listOf("hello", 1, true)
+```
+
+#### emptyList()
+```kotlin
+val empty: List<String> = emptyList()
+```
+
+#### listOfNotNull()
+```kotlin
+val list = listOfNotNull(1, null, 3, null, 5) // [1, 3, 5]
+```
+
+### Mutable Lists
+
+#### ArrayList
+```kotlin
+val arrayList = arrayListOf(1, 2, 3)
+val mutableList: MutableList<Int> = arrayListOf()
+```
+
+#### mutableListOf()
+```kotlin
+val mutableList = mutableListOf(1, 2, 3)
+mutableList.add(4)
+mutableList.removeAt(0)
+```
+
+### List Operations
+
+```kotlin
+val list = listOf(1, 2, 3, 4, 5)
+
+// Access
+val first = list.first()
+val last = list.last()
+val element = list[2] // or list.get(2)
+
+// Search
+val index = list.indexOf(3)
+val contains = list.contains(4)
+
+// Sublist
+val sublist = list.subList(1, 4) // [2, 3, 4]
+
+// Conversion
+val mutable = list.toMutableList()
+```
+
+## Set Collections
+
+Sets are collections of unique elements with no defined order (except LinkedHashSet).
+
+### Immutable Sets
+
+#### setOf()
+```kotlin
+val set = setOf(1, 2, 3, 2, 1) // [1, 2, 3]
+val emptySet = setOf<String>()
+```
+
+#### emptySet()
+```kotlin
+val empty: Set<Int> = emptySet()
+```
+
+### Mutable Sets
+
+#### HashSet
+```kotlin
+val hashSet = hashSetOf(1, 2, 3)
+val mutableSet: MutableSet<Int> = hashSetOf()
+```
+
+#### LinkedHashSet
+```kotlin
+val linkedSet = linkedSetOf(3, 1, 2) // Maintains insertion order
+```
+
+#### mutableSetOf()
+```kotlin
+val mutableSet = mutableSetOf(1, 2, 3)
+mutableSet.add(4)
+mutableSet.remove(1)
+```
+
+### Set Operations
+
+```kotlin
+val set1 = setOf(1, 2, 3)
+val set2 = setOf(3, 4, 5)
+
+// Union
+val union = set1 union set2 // [1, 2, 3, 4, 5]
+val unionOp = set1 + set2
+
+// Intersection
+val intersection = set1 intersect set2 // [3]
+
+// Difference
+val difference = set1 subtract set2 // [1, 2]
+val diffOp = set1 - set2
+```
+
+## Map Collections
+
+Maps store key-value pairs where keys are unique.
+
+### Immutable Maps
+
+#### mapOf()
+```kotlin
+val map = mapOf(1 to "one", 2 to "two", 3 to "three")
+val emptyMap = mapOf<String, Int>()
+val map2 = mapOf("a" to 1, "b" to 2)
+```
+
+#### emptyMap()
+```kotlin
+val empty: Map<String, Int> = emptyMap()
+```
+
+### Mutable Maps
+
+#### HashMap
+```kotlin
+val hashMap = hashMapOf(1 to "one", 2 to "two")
+val mutableMap: MutableMap<Int, String> = hashMapOf()
+```
+
+#### LinkedHashMap
+```kotlin
+val linkedMap = linkedMapOf("c" to 3, "a" to 1, "b" to 2)
+// Maintains insertion order
+```
+
+#### mutableMapOf()
+```kotlin
+val mutableMap = mutableMapOf(1 to "one", 2 to "two")
+mutableMap[3] = "three"
+mutableMap.remove(1)
+```
+
+### Map Operations
+
+```kotlin
+val map = mapOf("a" to 1, "b" to 2, "c" to 3)
+
+// Access
+val value = map["a"] // or map.get("a")
+val valueOrDefault = map.getOrDefault("d", 0)
+val valueOrElse = map.getOrElse("d") { 0 }
+
+// Keys and Values
+val keys = map.keys
+val values = map.values
+val entries = map.entries
+
+// Check
+val containsKey = map.containsKey("a")
+val containsValue = map.containsValue(2)
+
+// Filtering
+val filtered = map.filter { it.value > 1 }
+val filteredKeys = map.filterKeys { it != "a" }
+val filteredValues = map.filterValues { it > 1 }
+```
+
+## Collection Operations
+
+### Transformation Operations
+
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// map - transform each element
+val doubled = numbers.map { it * 2 } // [2, 4, 6, 8, 10]
+
+// mapIndexed - transform with index
+val withIndex = numbers.mapIndexed { index, value -> "$index: $value" }
+
+// mapNotNull - transform and filter nulls
+val strings = listOf("1", "2", "abc", "4")
+val validNumbers = strings.mapNotNull { it.toIntOrNull() } // [1, 2, 4]
+
+// flatMap - transform and flatten
+val lists = listOf(listOf(1, 2), listOf(3, 4))
+val flattened = lists.flatMap { it } // [1, 2, 3, 4]
+
+// flatten - just flatten
+val nestedLists = listOf(listOf(1, 2), listOf(3, 4))
+val flat = nestedLists.flatten() // [1, 2, 3, 4]
+```
+
+### Filtering Operations
+
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5, 6)
+
+// filter - keep elements matching predicate
+val evens = numbers.filter { it % 2 == 0 } // [2, 4, 6]
+
+// filterNot - keep elements not matching predicate
+val odds = numbers.filterNot { it % 2 == 0 } // [1, 3, 5]
+
+// filterIndexed - filter with index
+val filtered = numbers.filterIndexed { index, value -> index > 2 && value % 2 == 0 }
+
+// take/drop
+val first3 = numbers.take(3) // [1, 2, 3]
+val skip2 = numbers.drop(2) // [3, 4, 5, 6]
+
+// takeWhile/dropWhile
+val takeWhileSmall = numbers.takeWhile { it < 4 } // [1, 2, 3]
+val dropWhileSmall = numbers.dropWhile { it < 4 } // [4, 5, 6]
+```
+
+### Aggregation Operations
+
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// reduce - combine elements
+val sum = numbers.reduce { acc, n -> acc + n } // 15
+val product = numbers.reduce { acc, n -> acc * n } // 120
+
+// fold - reduce with initial value
+val sumWithInitial = numbers.fold(10) { acc, n -> acc + n } // 25
+
+// count
+val count = numbers.count() // 5
+val evenCount = numbers.count { it % 2 == 0 } // 2
+
+// min/max
+val min = numbers.minOrNull() // 1
+val max = numbers.maxOrNull() // 5
+val minBy = numbers.minByOrNull { -it } // 5
+val maxBy = numbers.maxByOrNull { -it } // 1
+
+// sum/average (for numeric types)
+val total = numbers.sum() // 15
+val average = numbers.average() // 3.0
+```
+
+### Grouping Operations
+
+```kotlin
+val words = listOf("apple", "banana", "cherry", "apricot", "blueberry")
+
+// groupBy - group by key
+val byFirstLetter = words.groupBy { it.first() }
+// {a=[apple, apricot], b=[banana, blueberry], c=[cherry]}
+
+// partition - split into two lists
+val (longWords, shortWords) = words.partition { it.length > 5 }
+// longWords = [banana, cherry, apricot, blueberry]
+// shortWords = [apple]
+```
+
+### Ordering Operations
+
+```kotlin
+val numbers = listOf(3, 1, 4, 1, 5, 9, 2, 6)
+
+// sorted
+val sorted = numbers.sorted() // [1, 1, 2, 3, 4, 5, 6, 9]
+val sortedDesc = numbers.sortedDescending() // [9, 6, 5, 4, 3, 2, 1, 1]
+
+// sortedBy
+val words = listOf("apple", "pie", "cherry")
+val sortedByLength = words.sortedBy { it.length } // [pie, apple, cherry]
+
+// reversed
+val reversed = numbers.reversed() // [6, 2, 9, 5, 1, 4, 1, 3]
+
+// shuffled
+val shuffled = numbers.shuffled() // random order
+```
+
+### Element Operations
+
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// first/last
+val first = numbers.first() // 1
+val last = numbers.last() // 5
+val firstEven = numbers.first { it % 2 == 0 } // 2
+val firstOrNull = numbers.firstOrNull { it > 10 } // null
+
+// single
+val single = listOf(42).single() // 42
+val singleOrNull = numbers.singleOrNull { it > 4 } // 5
+
+// find
+val found = numbers.find { it > 3 } // 4 (first match)
+val foundLast = numbers.findLast { it > 3 } // 5 (last match)
+
+// elementAt
+val element = numbers.elementAt(2) // 3
+val elementOrElse = numbers.elementAtOrElse(10) { -1 } // -1
+```
+
+### Boolean Operations
+
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// any/all/none
+val hasEven = numbers.any { it % 2 == 0 } // true
+val allPositive = numbers.all { it > 0 } // true
+val noneNegative = numbers.none { it < 0 } // true
+
+// contains/containsAll
+val contains3 = numbers.contains(3) // true
+val containsAll = numbers.containsAll(listOf(2, 4)) // true
+```
+
+## Sequences
+
+Sequences provide lazy evaluation for collection operations.
+
+```kotlin
+val sequence = sequenceOf(1, 2, 3, 4, 5)
+
+// generateSequence - infinite sequences
+val fibonacci = generateSequence(Pair(0, 1)) { Pair(it.second, it.first + it.second) }
+    .map { it.first }
+    .take(10)
+    .toList()
+
+// asSequence - convert collection to sequence
+val result = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    .asSequence()
+    .filter { it % 2 == 0 }
+    .map { it * it }
+    .take(3)
+    .toList() // [4, 16, 36]
+
+// Sequence operations are lazy until terminal operation
+val lazySequence = numbers.asSequence()
+    .filter { println("filtering $it"); it % 2 == 0 }
+    .map { println("mapping $it"); it * it }
+
+// Nothing is printed until we call a terminal operation
+val result2 = lazySequence.toList() // Now the operations execute
+```
+
+## Arrays
+
+Kotlin provides several array types with different characteristics.
+
+### Array Types
+
+```kotlin
+// Generic Array
+val array = arrayOf(1, 2, 3, 4, 5)
+val typedArray: Array<String> = arrayOf("a", "b", "c")
+val emptyArray = emptyArray<Int>()
+
+// Primitive Arrays (more memory efficient)
+val intArray = intArrayOf(1, 2, 3, 4, 5)
+val doubleArray = doubleArrayOf(1.0, 2.0, 3.0)
+val booleanArray = booleanArrayOf(true, false, true)
+val charArray = charArrayOf('a', 'b', 'c')
+
+// Array creation with lambda
+val squares = Array(5) { i -> i * i } // [0, 1, 4, 9, 16]
+val initIntArray = IntArray(5) { it * 2 } // [0, 2, 4, 6, 8]
+```
+
+### Array Operations
+
+```kotlin
+val numbers = intArrayOf(1, 2, 3, 4, 5)
+
+// Access
+val first = numbers[0]
+val last = numbers[numbers.size - 1]
+
+// Modification
+numbers[0] = 10
+
+// Conversion
+val list = numbers.toList()
+val mutableList = numbers.toMutableList()
+val set = numbers.toSet()
+
+// Array-specific operations
+val sum = numbers.sum()
+val sorted = numbers.sortedArray()
+```
+
+## Collection Builders
+
+Collection builders allow you to build collections using a mutable interface but return an immutable collection.
+
+```kotlin
+// buildList
+val list = buildList {
+    add(1)
+    add(2)
+    addAll(listOf(3, 4, 5))
+} // Returns immutable List<Int>
+
+// buildSet
+val set = buildSet {
+    add(1)
+    add(2)
+    add(1) // Duplicate ignored
+    addAll(listOf(3, 4))
+} // Returns immutable Set<Int>
+
+// buildMap
+val map = buildMap {
+    put("a", 1)
+    put("b", 2)
+    putAll(mapOf("c" to 3, "d" to 4))
+} // Returns immutable Map<String, Int>
+```
+
+## Performance Characteristics
+
+### List Implementations
+- **ArrayList**: Good for random access, poor for insertions/deletions in middle
+- **LinkedList**: Good for insertions/deletions, poor for random access
+
+### Set Implementations
+- **HashSet**: O(1) average for basic operations, no order
+- **LinkedHashSet**: O(1) average for basic operations, maintains insertion order
+- **TreeSet**: O(log n) for basic operations, maintains sorted order
+
+### Map Implementations
+- **HashMap**: O(1) average for basic operations, no order
+- **LinkedHashMap**: O(1) average for basic operations, maintains insertion order
+- **TreeMap**: O(log n) for basic operations, maintains sorted order by keys
+
+### Memory Considerations
+- Primitive arrays (IntArray, DoubleArray, etc.) are more memory efficient than Array<Int>, Array<Double>
+- Sequences use lazy evaluation and can save memory for large datasets
+- Immutable collections can share structure and save memory
+
+## Best Practices
+
+1. **Prefer immutable collections** when you don't need to modify them
+2. **Use sequences** for large datasets or when chaining many operations
+3. **Choose the right collection type** based on your access patterns
+4. **Use primitive arrays** for large arrays of primitive types
+5. **Use collection builders** when you need to build complex immutable collections
+6. **Leverage extension functions** to write more readable code
+
+## Common Patterns
+
+```kotlin
+// Safe access with null handling
+val firstEven = numbers.firstOrNull { it % 2 == 0 } ?: 0
+
+// Chaining operations
+val result = words
+    .filter { it.length > 3 }
+    .map { it.uppercase() }
+    .sorted()
+    .take(5)
+
+// Converting between collection types
+val set = list.toSet()
+val array = list.toTypedArray()
+val map = list.associateWith { it * 2 }
+
+// Creating maps from lists
+val nameToLength = names.associateWith { it.length }
+val indexToName = names.withIndex().associate { it.index to it.value }
+```
