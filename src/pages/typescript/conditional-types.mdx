@@ -1,0 +1,164 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Typescript</a> <br /> <br />
+
+# Conditional Types
+
+Conditional types in TypeScript allow you to choose types based on a condition. They are a powerful feature that enables you to create more flexible and reusable types.
+
+The syntax for a conditional type is:
+
+```typescript
+T extends U ? X : Y
+```
+
+Here, if `T` is assignable to `U`, the type is `X`. Otherwise, the type is `Y`.
+
+## Basic Example
+
+Let's start with a simple example. We'll create a type that checks if a given type is a string.
+
+```typescript
+type IsString<T> = T extends string ? "string" : "not a string";
+
+type A = IsString<string>; // "string"
+type B = IsString<number>; // "not a string"
+```
+
+In this example, `IsString<T>` checks if the type `T` extends `string`. If it does, the type is `"string"`. Otherwise, it's `"not a string"`.
+
+## The `infer` Keyword
+
+The `infer` keyword can be used within the `extends` clause of a conditional type to infer a type from another type.
+
+Let's create a type that extracts the type of an array's elements.
+
+```typescript
+type Flatten<T> = T extends (infer U)[] ? U : T;
+
+type Str = Flatten<string[]>; // string
+type Num = Flatten<number[]>; // number
+type JustAString = Flatten<string>; // string
+```
+
+In this example, `Flatten<T>` checks if `T` is an array. If it is, it infers the type of the array's elements into a new type variable `U` and returns `U`. Otherwise, it returns `T`.
+
+## Advanced Example: Extracting Function Return Type
+
+A common use case for conditional types is to extract the return type of a function. TypeScript even has a built-in utility type for this called `ReturnType<T>`. Let's see how we could implement it ourselves.
+
+```typescript
+type GetReturnType<T> = T extends (...args: any[]) => infer R ? R : T;
+
+function sayHello() {
+  return "hello";
+}
+
+type HelloReturnType = GetReturnType<typeof sayHello>; // string
+
+const add = (a: number, b: number) => a + b;
+
+type AddReturnType = GetReturnType<typeof add>; // number
+```
+
+Here, `GetReturnType<T>` checks if `T` is a function. If it is, it infers the return type into a new type variable `R` and returns `R`. Otherwise, it returns `T`.
+
+## Distributive Conditional Types
+
+Conditional types in which the checked type is a naked type parameter are called distributive conditional types. Distributive conditional types are automatically distributed over union types during instantiation.
+
+For example, if we have a type `ToArray<T>` that wraps a type in an array, and we pass a union type to it, the conditional type will be applied to each member of the union.
+
+```typescript
+type ToArray<T> = T extends any ? T[] : never;
+
+type StrArrOrNumArr = ToArray<string | number>; // string[] | number[]
+```
+
+In this example, `ToArray<string | number>` is resolved as `ToArray<string> | ToArray<number>`, which results in `string[] | number[]`.
+
+To avoid this behavior, you can wrap each side of the `extends` keyword in square brackets.
+
+```typescript
+type ToArrayNonDist<T> = [T] extends [any] ? T[] : never;
+
+type StrOrNumArr = ToArrayNonDist<string | number>; // (string | number)[]
+```
+
+## More Complex Examples
+
+Let's dive into some more advanced use cases for conditional types.
+
+### Inferring from Object Properties
+
+You can use conditional types to infer types from the properties of an object. For example, let's create a type that gets the type of a specific property from an object.
+
+```typescript
+type GetTypeOfProperty<T, K extends keyof T> = T extends { [key in K]: infer U } ? U : never;
+
+const person = {
+  name: "John",
+  age: 30,
+};
+
+type NameType = GetTypeOfProperty<typeof person, "name">; // string
+type AgeType = GetTypeOfProperty<typeof person, "age">; // number
+```
+
+### Recursive Conditional Types
+
+Conditional types can be recursive, allowing you to define types that operate on nested data structures. A classic example is a type that deeply makes all properties of an object `readonly`.
+
+```typescript
+type DeepReadonly<T> = {
+  readonly [P in keyof T]: T[P] extends object ? DeepReadonly<T[P]> : T[P];
+};
+
+interface User {
+  name: string;
+  address: {
+    street: string;
+    city: string;
+  };
+}
+
+const user: DeepReadonly<User> = {
+  name: "Jane",
+  address: {
+    street: "123 Main St",
+    city: "Anytown",
+  },
+};
+
+// The following lines would cause a compile-time error:
+// user.name = "John";
+// user.address.city = "Othertown";
+```
+
+### Filtering Properties from a Type
+
+Conditional types can be used to create utility types that filter properties from an object type. For instance, let's implement a type that picks properties of a certain type from another type.
+
+```typescript
+type PickByType<T, U> = {
+  [P in keyof T as T[P] extends U ? P : never]: T[P]
+};
+
+interface Example {
+  name: string;
+  age: number;
+  isAdmin: boolean;
+  createdAt: Date;
+}
+
+type StringProperties = PickByType<Example, string>; // { name: string; }
+type NumericProperties = PickByType<Example, number>; // { age: number; }
+type BooleanProperties = PickByType<Example, boolean>; // { isAdmin: boolean; }
+```
+
+This example uses key remapping with `as` to filter the keys before creating the new type.
+
+## Conclusion
+
+Conditional types are a powerful feature in TypeScript that allow for the creation of more flexible and dynamic types. By using conditional types with the `infer` keyword, you can extract and manipulate types in complex ways, leading to more robust and type-safe code.

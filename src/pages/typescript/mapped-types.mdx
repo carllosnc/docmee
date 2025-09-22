@@ -1,0 +1,158 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/rust">← Typescript</a> <br /> <br />
+
+# Mapped Types
+
+Mapped types are a powerful feature in TypeScript that allow you to create new types by transforming the properties of an existing type. You can think of them as a way to loop over the keys of a type and create a new property for each key.
+
+The syntax for a mapped type is:
+
+```typescript
+type NewType = {
+  [Property in keyof OldType]: NewPropertyType;
+};
+```
+
+This syntax iterates over all the property names in `OldType` (represented by `keyof OldType`) and creates a new property for each one with a transformed type.
+
+## Basic Examples
+
+Let's look at some common utility types that are implemented using mapped types.
+
+### Readonly Type
+
+TypeScript's built-in `Readonly<T>` utility type is a great example of a mapped type. It takes a type `T` and makes all of its properties readonly.
+
+Here's how you could implement it yourself:
+
+```typescript
+type MyReadonly<T> = {
+  readonly [P in keyof T]: T[P];
+};
+
+interface User {
+  name: string;
+  age: number;
+}
+
+const user: MyReadonly<User> = {
+  name: "John",
+  age: 30,
+};
+
+// This would cause a compile-time error:
+// user.name = "Jane";
+```
+
+In this example, `[P in keyof T]` iterates over each property key in `T`. The `readonly` modifier is added to each property, and the type of the property `T[P]` remains the same.
+
+### Optional Type
+
+Similarly, the built-in `Partial<T>` makes all properties of a type optional.
+
+Here's a custom implementation:
+
+```typescript
+type MyPartial<T> = {
+  [P in keyof T]?: T[P];
+};
+
+const updateUser = (user: MyPartial<User>) => {
+  // ...
+};
+
+updateUser({ name: "Jane" }); // This is valid
+```
+
+The `?` after the property key `[P in keyof T]` makes each property optional.
+
+## Advanced Mapped Types
+
+Mapped types can be combined with other TypeScript features like conditional types and key remapping to create even more powerful transformations.
+
+### Key Remapping with `as`
+
+You can use the `as` clause in a mapped type to change the names of the keys. This is useful for creating new types with modified property names.
+
+For example, you can create a type that adds a `get` prefix to each property name, transforming them into getter methods.
+
+```typescript
+type Getters<T> = {
+  [P in keyof T as `get${Capitalize<string & P>}`]: () => T[P];
+};
+
+interface Person {
+  name: string;
+  age: number;
+}
+
+type PersonGetters = Getters<Person>;
+/*
+Resulting type:
+{
+  getName: () => string;
+  getAge: () => number;
+}
+*/
+```
+
+### Filtering Keys
+
+You can filter out keys by remapping them to the `never` type.
+
+Let's create a type that removes all properties starting with `_`.
+
+```typescript
+type RemovePrivateProperties<T> = {
+  [P in keyof T as P extends `_${string}` ? never : P]: T[P];
+};
+
+interface Example {
+  name: string;
+  _internalId: number;
+  age: number;
+}
+
+type PublicType = RemovePrivateProperties<Example>;
+/*
+Resulting type:
+{
+  name: string;
+  age: number;
+}
+*/
+```
+
+If a property key starts with `_`, it is remapped to `never`, which effectively removes it from the resulting type.
+
+### Mapping to a Different Type
+
+You can also map each property to a completely different type. For example, a type that maps each property of an object to a boolean.
+
+```typescript
+type BooleanFlags<T> = {
+  [P in keyof T]: boolean;
+};
+
+interface Options {
+  darkMode: boolean;
+  showNotifications: boolean;
+  fontSize: number;
+}
+
+type OptionFlags = BooleanFlags<Options>;
+/*
+Resulting type:
+{
+  darkMode: boolean;
+  showNotifications: boolean;
+  fontSize: boolean;
+}
+*/
+```
+
+## Conclusion
+
+Mapped types are a cornerstone of advanced type manipulation in TypeScript. They provide a concise and powerful way to create new types from existing ones, enabling you to write more generic, reusable, and type-safe code. By combining them with other features, you can perform complex type transformations that can significantly improve your development workflow.
