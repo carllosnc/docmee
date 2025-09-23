@@ -1,0 +1,770 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dsa">← Data Structures and Algorithms</a> <br /> <br />
+
+# Linked List
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Basic Structure](#basic-structure)
+3. [Types of Linked Lists](#types-of-linked-lists)
+4. [Singly Linked List](#singly-linked-list)
+5. [Doubly Linked List](#doubly-linked-list)
+6. [Circular Linked List](#circular-linked-list)
+7. [Memory Management](#memory-management)
+8. [Time and Space Complexity](#time-and-space-complexity)
+9. [Common Applications](#common-applications)
+10. [Practice Problems](#practice-problems)
+
+## Introduction
+
+A linked list is a linear data structure where elements are stored in nodes, and each node contains data and a reference (or link) to the next node in the sequence. Unlike arrays, linked lists don't store elements in contiguous memory locations.
+
+### Advantages
+- Dynamic size allocation
+- Efficient insertion/deletion at any position
+- Memory efficient (allocates memory as needed)
+- No memory waste
+
+### Disadvantages
+- No random access (must traverse from head)
+- Extra memory overhead for storing pointers
+- Not cache-friendly due to non-contiguous memory
+- No backward traversal in singly linked lists
+
+## Basic Structure
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+// Basic node structure
+struct Node {
+    int data;
+    struct Node* next;
+};
+
+// Alternative using typedef
+typedef struct Node {
+    int data;
+    struct Node* next;
+} Node;
+```
+
+## Types of Linked Lists
+
+1. **Singly Linked List**: Each node points to the next node
+2. **Doubly Linked List**: Each node has pointers to both next and previous nodes
+3. **Circular Linked List**: Last node points back to the first node
+4. **Circular Doubly Linked List**: Combination of doubly and circular
+
+## Singly Linked List
+
+### Basic Operations Implementation
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node {
+    int data;
+    struct Node* next;
+} Node;
+
+// Create a new node
+Node* createNode(int data) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+    newNode->data = data;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Insert at the beginning
+Node* insertAtBeginning(Node* head, int data) {
+    Node* newNode = createNode(data);
+    if (newNode == NULL) return head;
+    
+    newNode->next = head;
+    return newNode;
+}
+
+// Insert at the end
+Node* insertAtEnd(Node* head, int data) {
+    Node* newNode = createNode(data);
+    if (newNode == NULL) return head;
+    
+    if (head == NULL) return newNode;
+    
+    Node* current = head;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+    current->next = newNode;
+    return head;
+}
+
+// Insert at specific position (0-indexed)
+Node* insertAtPosition(Node* head, int data, int position) {
+    if (position < 0) {
+        printf("Invalid position\n");
+        return head;
+    }
+    
+    if (position == 0) {
+        return insertAtBeginning(head, data);
+    }
+    
+    Node* newNode = createNode(data);
+    if (newNode == NULL) return head;
+    
+    Node* current = head;
+    for (int i = 0; i < position - 1 && current != NULL; i++) {
+        current = current->next;
+    }
+    
+    if (current == NULL) {
+        printf("Position out of bounds\n");
+        free(newNode);
+        return head;
+    }
+    
+    newNode->next = current->next;
+    current->next = newNode;
+    return head;
+}
+
+// Delete first occurrence of data
+Node* deleteByValue(Node* head, int data) {
+    if (head == NULL) return NULL;
+    
+    if (head->data == data) {
+        Node* temp = head;
+        head = head->next;
+        free(temp);
+        return head;
+    }
+    
+    Node* current = head;
+    while (current->next != NULL && current->next->data != data) {
+        current = current->next;
+    }
+    
+    if (current->next != NULL) {
+        Node* temp = current->next;
+        current->next = current->next->next;
+        free(temp);
+    }
+    
+    return head;
+}
+
+// Delete at specific position
+Node* deleteAtPosition(Node* head, int position) {
+    if (head == NULL || position < 0) return head;
+    
+    if (position == 0) {
+        Node* temp = head;
+        head = head->next;
+        free(temp);
+        return head;
+    }
+    
+    Node* current = head;
+    for (int i = 0; i < position - 1 && current->next != NULL; i++) {
+        current = current->next;
+    }
+    
+    if (current->next != NULL) {
+        Node* temp = current->next;
+        current->next = current->next->next;
+        free(temp);
+    }
+    
+    return head;
+}
+
+// Search for a value
+int search(Node* head, int data) {
+    Node* current = head;
+    int position = 0;
+    
+    while (current != NULL) {
+        if (current->data == data) {
+            return position;
+        }
+        current = current->next;
+        position++;
+    }
+    return -1; // Not found
+}
+
+// Get length of the list
+int getLength(Node* head) {
+    int count = 0;
+    Node* current = head;
+    while (current != NULL) {
+        count++;
+        current = current->next;
+    }
+    return count;
+}
+
+// Display the list
+void display(Node* head) {
+    if (head == NULL) {
+        printf("List is empty\n");
+        return;
+    }
+    
+    Node* current = head;
+    printf("List: ");
+    while (current != NULL) {
+        printf("%d", current->data);
+        if (current->next != NULL) printf(" -> ");
+        current = current->next;
+    }
+    printf(" -> NULL\n");
+}
+
+// Reverse the list
+Node* reverse(Node* head) {
+    Node* prev = NULL;
+    Node* current = head;
+    Node* next = NULL;
+    
+    while (current != NULL) {
+        next = current->next;
+        current->next = prev;
+        prev = current;
+        current = next;
+    }
+    
+    return prev;
+}
+
+// Free the entire list
+void freeList(Node* head) {
+    Node* current = head;
+    Node* next;
+    
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+}
+
+// Example usage
+int main() {
+    Node* head = NULL;
+    
+    // Insert elements
+    head = insertAtBeginning(head, 10);
+    head = insertAtBeginning(head, 20);
+    head = insertAtEnd(head, 30);
+    head = insertAtPosition(head, 25, 2);
+    
+    display(head); // Output: 20 -> 10 -> 25 -> 30 -> NULL
+    
+    printf("Length: %d\n", getLength(head));
+    printf("Search 25: Position %d\n", search(head, 25));
+    
+    head = deleteByValue(head, 25);
+    display(head);
+    
+    head = reverse(head);
+    printf("Reversed: ");
+    display(head);
+    
+    freeList(head);
+    return 0;
+}
+```
+
+## Doubly Linked List
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct DNode {
+    int data;
+    struct DNode* prev;
+    struct DNode* next;
+} DNode;
+
+// Create a new node
+DNode* createDNode(int data) {
+    DNode* newNode = (DNode*)malloc(sizeof(DNode));
+    if (newNode == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+    newNode->data = data;
+    newNode->prev = NULL;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Insert at the beginning
+DNode* insertAtBeginning(DNode* head, int data) {
+    DNode* newNode = createDNode(data);
+    if (newNode == NULL) return head;
+    
+    if (head != NULL) {
+        head->prev = newNode;
+    }
+    newNode->next = head;
+    return newNode;
+}
+
+// Insert at the end
+DNode* insertAtEnd(DNode* head, int data) {
+    DNode* newNode = createDNode(data);
+    if (newNode == NULL) return head;
+    
+    if (head == NULL) return newNode;
+    
+    DNode* current = head;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+    
+    current->next = newNode;
+    newNode->prev = current;
+    return head;
+}
+
+// Delete a node
+DNode* deleteNode(DNode* head, DNode* nodeToDelete) {
+    if (head == NULL || nodeToDelete == NULL) return head;
+    
+    // If it's the head node
+    if (head == nodeToDelete) {
+        head = head->next;
+        if (head != NULL) {
+            head->prev = NULL;
+        }
+    } else {
+        // Update previous node's next pointer
+        if (nodeToDelete->prev != NULL) {
+            nodeToDelete->prev->next = nodeToDelete->next;
+        }
+        
+        // Update next node's previous pointer
+        if (nodeToDelete->next != NULL) {
+            nodeToDelete->next->prev = nodeToDelete->prev;
+        }
+    }
+    
+    free(nodeToDelete);
+    return head;
+}
+
+// Display forward
+void displayForward(DNode* head) {
+    printf("Forward: ");
+    DNode* current = head;
+    while (current != NULL) {
+        printf("%d", current->data);
+        if (current->next != NULL) printf(" <-> ");
+        current = current->next;
+    }
+    printf(" <-> NULL\n");
+}
+
+// Display backward
+void displayBackward(DNode* head) {
+    if (head == NULL) {
+        printf("List is empty\n");
+        return;
+    }
+    
+    // Go to the last node
+    DNode* current = head;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+    
+    printf("Backward: ");
+    while (current != NULL) {
+        printf("%d", current->data);
+        if (current->prev != NULL) printf(" <-> ");
+        current = current->prev;
+    }
+    printf(" <-> NULL\n");
+}
+
+// Free doubly linked list
+void freeDList(DNode* head) {
+    DNode* current = head;
+    DNode* next;
+    
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+}
+```
+
+## Circular Linked List
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct CNode {
+    int data;
+    struct CNode* next;
+} CNode;
+
+// Create a new node
+CNode* createCNode(int data) {
+    CNode* newNode = (CNode*)malloc(sizeof(CNode));
+    if (newNode == NULL) return NULL;
+    newNode->data = data;
+    newNode->next = newNode; // Points to itself initially
+    return newNode;
+}
+
+// Insert at the beginning
+CNode* insertAtBeginning(CNode* head, int data) {
+    CNode* newNode = createCNode(data);
+    if (newNode == NULL) return head;
+    
+    if (head == NULL) return newNode;
+    
+    // Find the last node
+    CNode* current = head;
+    while (current->next != head) {
+        current = current->next;
+    }
+    
+    newNode->next = head;
+    current->next = newNode;
+    return newNode;
+}
+
+// Insert at the end
+CNode* insertAtEnd(CNode* head, int data) {
+    CNode* newNode = createCNode(data);
+    if (newNode == NULL) return head;
+    
+    if (head == NULL) return newNode;
+    
+    CNode* current = head;
+    while (current->next != head) {
+        current = current->next;
+    }
+    
+    current->next = newNode;
+    newNode->next = head;
+    return head;
+}
+
+// Display circular list
+void displayCircular(CNode* head) {
+    if (head == NULL) {
+        printf("List is empty\n");
+        return;
+    }
+    
+    CNode* current = head;
+    printf("Circular List: ");
+    do {
+        printf("%d", current->data);
+        current = current->next;
+        if (current != head) printf(" -> ");
+    } while (current != head);
+    printf(" -> (back to %d)\n", head->data);
+}
+
+// Delete a node by value
+CNode* deleteByValue(CNode* head, int data) {
+    if (head == NULL) return NULL;
+    
+    CNode* current = head;
+    CNode* prev = NULL;
+    
+    // Find the node to delete
+    do {
+        if (current->data == data) break;
+        prev = current;
+        current = current->next;
+    } while (current != head);
+    
+    // If node not found
+    if (current->data != data) return head;
+    
+    // If there's only one node
+    if (current->next == current) {
+        free(current);
+        return NULL;
+    }
+    
+    // If it's the head node
+    if (current == head) {
+        // Find the last node
+        while (prev->next != head) {
+            prev = prev->next;
+        }
+        head = head->next;
+        prev->next = head;
+    } else {
+        prev->next = current->next;
+    }
+    
+    free(current);
+    return head;
+}
+```
+
+## Memory Management
+
+### Best Practices
+
+```c
+// Always check for malloc failure
+Node* createNodeSafe(int data) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        exit(1);
+    }
+    newNode->data = data;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Function to safely free a list
+void safeFreelist(Node** head) {
+    Node* current = *head;
+    Node* next;
+    
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+    *head = NULL; // Set head to NULL to avoid dangling pointer
+}
+
+// Check for memory leaks (simple version)
+int allocatedNodes = 0;
+
+Node* createNodeWithCounter(int data) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode != NULL) {
+        allocatedNodes++;
+        newNode->data = data;
+        newNode->next = NULL;
+    }
+    return newNode;
+}
+
+void freeNodeWithCounter(Node* node) {
+    if (node != NULL) {
+        allocatedNodes--;
+        free(node);
+    }
+}
+```
+
+## Time and Space Complexity
+
+| Operation | Time Complexity | Space Complexity |
+|-----------|----------------|------------------|
+| Access by index | O(n) | O(1) |
+| Search | O(n) | O(1) |
+| Insert at beginning | O(1) | O(1) |
+| Insert at end | O(n) | O(1) |
+| Insert at position | O(n) | O(1) |
+| Delete by value | O(n) | O(1) |
+| Delete at position | O(n) | O(1) |
+| Reverse | O(n) | O(1) |
+
+### Space Complexity Notes
+- Each node requires extra memory for the pointer(s)
+- Singly linked list: 1 pointer per node
+- Doubly linked list: 2 pointers per node
+- Memory overhead = (pointer size) × (number of pointers per node) × (number of nodes)
+
+## Common Applications
+
+1. **Implementation of other data structures**:
+   - Stacks and Queues
+   - Hash tables (chaining for collision resolution)
+   - Graphs (adjacency lists)
+
+2. **Dynamic memory allocation**:
+   - When size is unknown at compile time
+   - Frequent insertion/deletion operations
+
+3. **System programming**:
+   - Process scheduling (ready queue, wait queue)
+   - Memory management (free memory blocks)
+
+4. **Real-world examples**:
+   - Music playlist (circular linked list)
+   - Browser history (doubly linked list)
+   - Undo functionality in applications
+
+## Practice Problems
+
+### 1. Merge Two Sorted Lists
+
+```c
+Node* mergeTwoSortedLists(Node* list1, Node* list2) {
+    Node dummy;
+    Node* tail = &dummy;
+    dummy.next = NULL;
+    
+    while (list1 != NULL && list2 != NULL) {
+        if (list1->data <= list2->data) {
+            tail->next = list1;
+            list1 = list1->next;
+        } else {
+            tail->next = list2;
+            list2 = list2->next;
+        }
+        tail = tail->next;
+    }
+    
+    tail->next = (list1 != NULL) ? list1 : list2;
+    return dummy.next;
+}
+```
+
+### 2. Find Middle Element
+
+```c
+Node* findMiddle(Node* head) {
+    if (head == NULL) return NULL;
+    
+    Node* slow = head;
+    Node* fast = head;
+    
+    while (fast->next != NULL && fast->next->next != NULL) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    
+    return slow;
+}
+```
+
+### 3. Detect Cycle (Floyd's Algorithm)
+
+```c
+int hasCycle(Node* head) {
+    if (head == NULL || head->next == NULL) return 0;
+    
+    Node* slow = head;
+    Node* fast = head;
+    
+    while (fast != NULL && fast->next != NULL) {
+        slow = slow->next;
+        fast = fast->next->next;
+        
+        if (slow == fast) return 1; // Cycle detected
+    }
+    
+    return 0; // No cycle
+}
+```
+
+### 4. Remove Nth Node from End
+
+```c
+Node* removeNthFromEnd(Node* head, int n) {
+    Node dummy;
+    dummy.next = head;
+    Node* first = &dummy;
+    Node* second = &dummy;
+    
+    // Move first pointer n+1 steps ahead
+    for (int i = 0; i <= n; i++) {
+        if (first == NULL) return head; // n is larger than list size
+        first = first->next;
+    }
+    
+    // Move both pointers until first reaches end
+    while (first != NULL) {
+        first = first->next;
+        second = second->next;
+    }
+    
+    // Remove the nth node from end
+    Node* nodeToDelete = second->next;
+    second->next = second->next->next;
+    free(nodeToDelete);
+    
+    return dummy.next;
+}
+```
+
+### 5. Check if Palindrome
+
+```c
+int isPalindrome(Node* head) {
+    if (head == NULL || head->next == NULL) return 1;
+    
+    // Find middle
+    Node* slow = head;
+    Node* fast = head;
+    Node* prevSlow = NULL;
+    
+    while (fast != NULL && fast->next != NULL) {
+        prevSlow = slow;
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    
+    // For odd length, move slow one step ahead
+    Node* secondHalf = slow;
+    if (fast != NULL) {
+        secondHalf = slow->next;
+    }
+    
+    // Reverse second half
+    prevSlow->next = NULL; // Split the list
+    Node* reversedSecondHalf = reverse(secondHalf);
+    
+    // Compare both halves
+    Node* first = head;
+    Node* second = reversedSecondHalf;
+    int result = 1;
+    
+    while (second != NULL) {
+        if (first->data != second->data) {
+            result = 0;
+            break;
+        }
+        first = first->next;
+        second = second->next;
+    }
+    
+    // Restore the list (optional)
+    reversedSecondHalf = reverse(reversedSecondHalf);
+    prevSlow->next = reversedSecondHalf;
+    
+    return result;
+}
+```
+
+## Conclusion
+
+Linked lists are fundamental data structures that provide dynamic memory allocation and efficient insertion/deletion operations. While they have some disadvantages like lack of random access and memory overhead, they are essential for many applications and serve as building blocks for more complex data structures.
+
+Key takeaways:
+- Choose the right type of linked list based on your needs
+- Always handle memory allocation failures
+- Be careful with pointer manipulations to avoid segmentation faults
+- Consider using doubly linked lists when backward traversal is needed
+- Implement proper memory cleanup to avoid memory leaks
