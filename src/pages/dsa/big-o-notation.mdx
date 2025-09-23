@@ -1,0 +1,544 @@
+# Big O Notation: Complete Reference Guide
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [What is Big O Notation?](#what-is-big-o-notation)
+3. [Common Time Complexities](#common-time-complexities)
+4. [Space Complexity](#space-complexity)
+5. [Rules for Big O Analysis](#rules-for-big-o-analysis)
+6. [Detailed Examples with C Code](#detailed-examples-with-c-code)
+7. [Best, Average, and Worst Case](#best-average-and-worst-case)
+8. [Common Data Structures and Their Complexities](#common-data-structures-and-their-complexities)
+9. [Algorithm Analysis Tips](#algorithm-analysis-tips)
+10. [Practice Problems](#practice-problems)
+
+## Introduction
+
+Big O Notation is a mathematical notation used in computer science to describe the performance characteristics of algorithms. It provides a way to analyze how the runtime or space requirements of an algorithm grow as the input size increases.
+
+## What is Big O Notation?
+
+Big O Notation expresses the **upper bound** of an algorithm's growth rate. It describes the worst-case scenario of how an algorithm performs as the input size (n) approaches infinity.
+
+### Key Concepts:
+- **Time Complexity**: How execution time grows with input size
+- **Space Complexity**: How memory usage grows with input size
+- **Asymptotic Analysis**: Behavior as input approaches infinity
+- **Upper Bound**: Maximum resources an algorithm will consume
+
+## Common Time Complexities
+
+Listed from best to worst performance:
+
+### O(1) - Constant Time
+Algorithm takes the same amount of time regardless of input size.
+
+```c
+// Accessing array element by index
+int getElement(int arr[], int index) {
+    return arr[index];  // Always takes same time
+}
+
+// Basic arithmetic operations
+int add(int a, int b) {
+    return a + b;  // Constant time operation
+}
+```
+
+### O(log n) - Logarithmic Time
+Algorithm's time increases logarithmically with input size. Common in divide-and-conquer algorithms.
+
+```c
+// Binary search in sorted array
+int binarySearch(int arr[], int size, int target) {
+    int left = 0, right = size - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        
+        if (arr[mid] == target)
+            return mid;
+        else if (arr[mid] < target)
+            left = mid + 1;
+        else
+            right = mid - 1;
+    }
+    return -1;  // Not found
+}
+```
+
+### O(n) - Linear Time
+Algorithm's time grows linearly with input size.
+
+```c
+// Linear search
+int linearSearch(int arr[], int size, int target) {
+    for (int i = 0; i < size; i++) {
+        if (arr[i] == target)
+            return i;
+    }
+    return -1;  // Not found
+}
+
+// Sum of array elements
+int sumArray(int arr[], int size) {
+    int sum = 0;
+    for (int i = 0; i < size; i++) {
+        sum += arr[i];  // n iterations
+    }
+    return sum;
+}
+```
+
+### O(n log n) - Linearithmic Time
+Common in efficient sorting algorithms.
+
+```c
+// Merge sort implementation
+void merge(int arr[], int left, int mid, int right) {
+    int leftSize = mid - left + 1;
+    int rightSize = right - mid;
+    
+    int leftArr[leftSize], rightArr[rightSize];
+    
+    // Copy data to temporary arrays
+    for (int i = 0; i < leftSize; i++)
+        leftArr[i] = arr[left + i];
+    for (int j = 0; j < rightSize; j++)
+        rightArr[j] = arr[mid + 1 + j];
+    
+    // Merge the temporary arrays back
+    int i = 0, j = 0, k = left;
+    
+    while (i < leftSize && j < rightSize) {
+        if (leftArr[i] <= rightArr[j]) {
+            arr[k] = leftArr[i];
+            i++;
+        } else {
+            arr[k] = rightArr[j];
+            j++;
+        }
+        k++;
+    }
+    
+    // Copy remaining elements
+    while (i < leftSize) {
+        arr[k] = leftArr[i];
+        i++;
+        k++;
+    }
+    
+    while (j < rightSize) {
+        arr[k] = rightArr[j];
+        j++;
+        k++;
+    }
+}
+
+void mergeSort(int arr[], int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        
+        mergeSort(arr, left, mid);      // T(n/2)
+        mergeSort(arr, mid + 1, right); // T(n/2)
+        merge(arr, left, mid, right);   // O(n)
+    }
+}
+// Total: O(n log n)
+```
+
+### O(n²) - Quadratic Time
+Algorithm has nested loops over the input.
+
+```c
+// Bubble sort
+void bubbleSort(int arr[], int size) {
+    for (int i = 0; i < size - 1; i++) {        // n iterations
+        for (int j = 0; j < size - i - 1; j++) { // n iterations
+            if (arr[j] > arr[j + 1]) {
+                // Swap elements
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+// Finding all pairs in array
+void printAllPairs(int arr[], int size) {
+    for (int i = 0; i < size; i++) {        // n iterations
+        for (int j = i + 1; j < size; j++) { // n iterations
+            printf("(%d, %d)\n", arr[i], arr[j]);
+        }
+    }
+}
+```
+
+### O(n³) - Cubic Time
+Three nested loops over the input.
+
+```c
+// Matrix multiplication (naive approach)
+void matrixMultiply(int A[][100], int B[][100], int C[][100], int n) {
+    for (int i = 0; i < n; i++) {        // n iterations
+        for (int j = 0; j < n; j++) {    // n iterations
+            C[i][j] = 0;
+            for (int k = 0; k < n; k++) { // n iterations
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+```
+
+### O(2ⁿ) - Exponential Time
+Algorithm's time doubles with each additional input element.
+
+```c
+// Naive fibonacci implementation
+int fibonacci(int n) {
+    if (n <= 1)
+        return n;
+    
+    return fibonacci(n - 1) + fibonacci(n - 2);
+    // Each call spawns 2 more calls: 2^n complexity
+}
+
+// Generate all subsets of a set
+void generateSubsets(int arr[], int size, int index, int current[], int currentSize) {
+    if (index == size) {
+        // Print current subset
+        printf("{ ");
+        for (int i = 0; i < currentSize; i++) {
+            printf("%d ", current[i]);
+        }
+        printf("}\n");
+        return;
+    }
+    
+    // Include current element
+    current[currentSize] = arr[index];
+    generateSubsets(arr, size, index + 1, current, currentSize + 1);
+    
+    // Exclude current element
+    generateSubsets(arr, size, index + 1, current, currentSize);
+}
+```
+
+### O(n!) - Factorial Time
+Extremely slow growth, often in permutation problems.
+
+```c
+// Generate all permutations
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void generatePermutations(int arr[], int start, int end) {
+    if (start == end) {
+        // Print permutation
+        for (int i = 0; i <= end; i++) {
+            printf("%d ", arr[i]);
+        }
+        printf("\n");
+        return;
+    }
+    
+    for (int i = start; i <= end; i++) {
+        swap(&arr[start], &arr[i]);
+        generatePermutations(arr, start + 1, end);
+        swap(&arr[start], &arr[i]); // backtrack
+    }
+}
+```
+
+## Space Complexity
+
+Space complexity measures how much extra memory an algorithm uses relative to input size.
+
+```c
+// O(1) Space - Constant extra space
+int findMax(int arr[], int size) {
+    int max = arr[0];  // Only uses constant extra variables
+    for (int i = 1; i < size; i++) {
+        if (arr[i] > max)
+            max = arr[i];
+    }
+    return max;
+}
+
+// O(n) Space - Linear extra space
+int* createCopy(int arr[], int size) {
+    int* copy = (int*)malloc(size * sizeof(int));  // n extra space
+    for (int i = 0; i < size; i++) {
+        copy[i] = arr[i];
+    }
+    return copy;
+}
+
+// O(log n) Space - Logarithmic extra space (recursive call stack)
+int binarySearchRecursive(int arr[], int left, int right, int target) {
+    if (left > right)
+        return -1;
+    
+    int mid = left + (right - left) / 2;
+    
+    if (arr[mid] == target)
+        return mid;
+    else if (arr[mid] > target)
+        return binarySearchRecursive(arr, left, mid - 1, target);
+    else
+        return binarySearchRecursive(arr, mid + 1, right, target);
+}
+// Call stack depth: log n
+```
+
+## Rules for Big O Analysis
+
+### 1. Drop Constants
+```c
+// This is O(n), not O(2n)
+void example1(int arr[], int size) {
+    for (int i = 0; i < size; i++) {     // n operations
+        printf("%d\n", arr[i]);
+    }
+    for (int i = 0; i < size; i++) {     // another n operations
+        printf("%d\n", arr[i] * 2);
+    }
+}
+// Total: 2n operations = O(n)
+```
+
+### 2. Drop Non-Dominant Terms
+```c
+// This is O(n²), not O(n² + n)
+void example2(int arr[], int size) {
+    // O(n) operation
+    for (int i = 0; i < size; i++) {
+        printf("%d\n", arr[i]);
+    }
+    
+    // O(n²) operation
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            printf("(%d, %d)\n", arr[i], arr[j]);
+        }
+    }
+}
+// Total: n + n² = O(n²)
+```
+
+### 3. Different Inputs Use Different Variables
+```c
+// This is O(a + b), not O(n)
+void example3(int arr1[], int size1, int arr2[], int size2) {
+    for (int i = 0; i < size1; i++) {    // a operations
+        printf("%d\n", arr1[i]);
+    }
+    for (int i = 0; i < size2; i++) {    // b operations
+        printf("%d\n", arr2[i]);
+    }
+}
+
+// This is O(a * b), not O(n²)
+void example4(int arr1[], int size1, int arr2[], int size2) {
+    for (int i = 0; i < size1; i++) {        // a operations
+        for (int j = 0; j < size2; j++) {     // b operations each
+            printf("(%d, %d)\n", arr1[i], arr2[j]);
+        }
+    }
+}
+```
+
+## Best, Average, and Worst Case
+
+Different scenarios can lead to different performance characteristics.
+
+```c
+// Quick Sort Example
+int partition(int arr[], int low, int high) {
+    int pivot = arr[high];
+    int i = (low - 1);
+    
+    for (int j = low; j < high; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            int temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    }
+    
+    int temp = arr[i + 1];
+    arr[i + 1] = arr[high];
+    arr[high] = temp;
+    
+    return (i + 1);
+}
+
+void quickSort(int arr[], int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+/*
+Quick Sort Complexity:
+- Best Case: O(n log n) - pivot always divides array in half
+- Average Case: O(n log n) - random pivot selection
+- Worst Case: O(n²) - pivot is always smallest/largest element
+*/
+```
+
+## Common Data Structures and Their Complexities
+
+### Array
+```c
+// Access: O(1)
+int getValue(int arr[], int index) {
+    return arr[index];
+}
+
+// Search: O(n)
+int search(int arr[], int size, int value) {
+    for (int i = 0; i < size; i++) {
+        if (arr[i] == value) return i;
+    }
+    return -1;
+}
+
+// Insertion at end: O(1)
+// Insertion at beginning/middle: O(n)
+void insertAt(int arr[], int* size, int index, int value) {
+    for (int i = *size; i > index; i--) {
+        arr[i] = arr[i-1];  // Shift elements
+    }
+    arr[index] = value;
+    (*size)++;
+}
+```
+
+### Linked List
+```c
+typedef struct Node {
+    int data;
+    struct Node* next;
+} Node;
+
+// Access: O(n)
+int getValueAt(Node* head, int index) {
+    Node* current = head;
+    for (int i = 0; i < index && current; i++) {
+        current = current->next;
+    }
+    return current ? current->data : -1;
+}
+
+// Insertion at beginning: O(1)
+Node* insertAtBeginning(Node* head, int value) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->data = value;
+    newNode->next = head;
+    return newNode;
+}
+
+// Search: O(n)
+Node* search(Node* head, int value) {
+    Node* current = head;
+    while (current) {
+        if (current->data == value)
+            return current;
+        current = current->next;
+    }
+    return NULL;
+}
+```
+
+## Algorithm Analysis Tips
+
+### 1. Identify the Basic Operation
+Focus on the operation that contributes most to the total running time.
+
+### 2. Look for Loops
+- Single loop: Usually O(n)
+- Nested loops: Usually O(n²), O(n³), etc.
+- Loops that divide the problem: Usually O(log n)
+
+### 3. Recursive Relations
+```c
+// Example: Merge Sort
+// T(n) = 2T(n/2) + O(n)
+// Solution: T(n) = O(n log n)
+
+// Example: Binary Search  
+// T(n) = T(n/2) + O(1)
+// Solution: T(n) = O(log n)
+```
+
+### 4. Amortized Analysis
+Some operations might be expensive occasionally but cheap on average.
+
+```c
+// Dynamic array (like vector in C++)
+// Most insertions: O(1)
+// Occasional resize: O(n)
+// Amortized: O(1)
+```
+
+## Practice Problems
+
+### Problem 1: Analyze This Function
+```c
+void mystery1(int arr[], int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < 100; j++) {
+            printf("%d ", arr[i]);
+        }
+    }
+}
+// Answer: O(n) - inner loop is constant
+```
+
+### Problem 2: What's the Complexity?
+```c
+void mystery2(int n) {
+    for (int i = 1; i < n; i *= 2) {
+        for (int j = 0; j < i; j++) {
+            printf("*");
+        }
+    }
+}
+// Answer: O(n) - geometric series sum
+```
+
+### Problem 3: Recursive Analysis
+```c
+int mystery3(int n) {
+    if (n <= 1) return 1;
+    return mystery3(n/2) + mystery3(n/2);
+}
+// Answer: O(n) - T(n) = 2T(n/2) + O(1)
+```
+
+## Summary
+
+Big O Notation is essential for:
+- **Algorithm comparison**: Choose the most efficient solution
+- **Scalability prediction**: Understand how algorithms perform with large inputs  
+- **Resource planning**: Estimate computational requirements
+- **Performance optimization**: Identify bottlenecks in code
+
+### Key Takeaways:
+1. Focus on growth rate, not exact operations
+2. Consider worst-case scenarios
+3. Drop constants and non-dominant terms
+4. Analyze both time and space complexity
+5. Practice with real code examples
+
+Remember: Big O gives you the tools to write efficient, scalable code that performs well as your data grows!
