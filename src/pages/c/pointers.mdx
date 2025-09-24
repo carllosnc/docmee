@@ -1,0 +1,995 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/c">← Pointers</a> <br /> <br />
+
+# Pointers
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Basic Pointer Concepts](#basic-pointer-concepts)
+3. [Pointer Declaration and Initialization](#pointer-declaration-and-initialization)
+4. [Pointer Operations](#pointer-operations)
+5. [Pointer Arithmetic](#pointer-arithmetic)
+6. [Pointers and Arrays](#pointers-and-arrays)
+7. [Pointers and Strings](#pointers-and-strings)
+8. [Pointers and Functions](#pointers-and-functions)
+9. [Double Pointers (Pointers to Pointers)](#double-pointers)
+10. [Function Pointers](#function-pointers)
+11. [Dynamic Memory Allocation](#dynamic-memory-allocation)
+12. [Pointers and Structures](#pointers-and-structures)
+
+## Introduction
+
+A pointer in C is a variable that stores the memory address of another variable. Pointers are one of the most powerful features of C, allowing for dynamic memory allocation, efficient array manipulation, and complex data structures.
+
+### Why Use Pointers?
+- **Memory Efficiency**: Direct memory access without copying data
+- **Dynamic Memory Management**: Allocate and deallocate memory at runtime
+- **Data Structures**: Enable linked lists, trees, and other complex structures
+- **Function Parameters**: Pass large data structures efficiently
+- **Flexibility**: Modify variables indirectly
+
+## Basic Pointer Concepts
+
+### Memory and Addresses
+Every variable in C is stored at a specific memory location with a unique address. A pointer holds this address.
+
+```c
+int x = 10;        // x is stored at some memory address
+int *ptr = &x;     // ptr holds the address of x
+```
+
+### Key Terminology
+- **Pointer**: A variable that stores a memory address
+- **Address-of Operator (&)**: Returns the address of a variable
+- **Dereference Operator (*)**: Accesses the value at the address stored in a pointer
+- **NULL Pointer**: A pointer that doesn't point to any valid memory location
+
+## Pointer Declaration and Initialization
+
+### Basic Declaration Syntax
+```c
+data_type *pointer_name;
+```
+
+### Examples
+```c
+int *int_ptr;           // Pointer to int
+char *char_ptr;         // Pointer to char
+float *float_ptr;       // Pointer to float
+double *double_ptr;     // Pointer to double
+```
+
+### Initialization Methods
+```c
+// Method 1: Declare then assign
+int x = 42;
+int *ptr;
+ptr = &x;
+
+// Method 2: Declare and initialize together
+int y = 100;
+int *ptr2 = &y;
+
+// Method 3: Initialize to NULL
+int *ptr3 = NULL;
+
+// Method 4: Initialize with malloc (dynamic allocation)
+int *ptr4 = (int*)malloc(sizeof(int));
+```
+
+### Multiple Pointer Declarations
+```c
+int *ptr1, *ptr2, *ptr3;    // Three pointers to int
+int *ptr4, x, *ptr5;        // ptr4 and ptr5 are pointers, x is int
+```
+
+## Pointer Operations
+
+### Address-of Operator (&)
+```c
+int x = 10;
+printf("Value of x: %d\n", x);           // 10
+printf("Address of x: %p\n", &x);        // Memory address
+```
+
+### Dereference Operator (*)
+```c
+int x = 10;
+int *ptr = &x;
+
+printf("Value of ptr: %p\n", ptr);       // Address of x
+printf("Value at ptr: %d\n", *ptr);      // 10 (value of x)
+
+*ptr = 20;                                // Modify x through ptr
+printf("New value of x: %d\n", x);       // 20
+```
+
+### Complete Example
+```c
+#include <stdio.h>
+
+int main() {
+    int num = 42;
+    int *ptr = &num;
+    
+    printf("Variable num:\n");
+    printf("  Value: %d\n", num);
+    printf("  Address: %p\n", &num);
+    
+    printf("\nPointer ptr:\n");
+    printf("  Value (address it points to): %p\n", ptr);
+    printf("  Address of ptr itself: %p\n", &ptr);
+    printf("  Value at address (dereferenced): %d\n", *ptr);
+    
+    // Modify through pointer
+    *ptr = 100;
+    printf("\nAfter *ptr = 100:\n");
+    printf("  num = %d\n", num);
+    
+    return 0;
+}
+```
+
+## Pointer Arithmetic
+
+Pointer arithmetic allows you to perform mathematical operations on pointers.
+
+### Valid Operations
+```c
+int arr[] = {10, 20, 30, 40, 50};
+int *ptr = arr;  // Points to first element
+
+// Increment/Decrement
+ptr++;           // Points to next element
+ptr--;           // Points to previous element
+ptr += 2;        // Move 2 elements forward
+ptr -= 1;        // Move 1 element backward
+
+// Addition/Subtraction with integers
+int *ptr2 = ptr + 3;    // Points 3 elements ahead
+int *ptr3 = ptr - 1;    // Points 1 element behind
+
+// Difference between pointers
+ptrdiff_t diff = ptr2 - ptr;  // Number of elements between pointers
+```
+
+### Example: Array Traversal
+```c
+#include <stdio.h>
+
+int main() {
+    int arr[] = {1, 2, 3, 4, 5};
+    int *ptr = arr;
+    int size = sizeof(arr) / sizeof(arr[0]);
+    
+    printf("Forward traversal:\n");
+    for (int i = 0; i < size; i++) {
+        printf("arr[%d] = %d, address = %p\n", i, *ptr, ptr);
+        ptr++;
+    }
+    
+    printf("\nBackward traversal:\n");
+    ptr--;  // ptr now points past the last element, move back
+    for (int i = size - 1; i >= 0; i--) {
+        printf("arr[%d] = %d, address = %p\n", i, *ptr, ptr);
+        ptr--;
+    }
+    
+    return 0;
+}
+```
+
+## Pointers and Arrays
+
+### Array Name as Pointer
+In C, an array name is essentially a constant pointer to its first element.
+
+```c
+int arr[5] = {1, 2, 3, 4, 5};
+int *ptr = arr;  // Equivalent to: int *ptr = &arr[0];
+
+// These are equivalent:
+printf("%d\n", arr[0]);    // 1
+printf("%d\n", *arr);      // 1
+printf("%d\n", *ptr);      // 1
+printf("%d\n", ptr[0]);    // 1
+```
+
+### Array Access Methods
+```c
+int arr[] = {10, 20, 30, 40, 50};
+int *ptr = arr;
+
+// Method 1: Array subscript notation
+for (int i = 0; i < 5; i++) {
+    printf("%d ", arr[i]);
+}
+
+// Method 2: Pointer arithmetic with dereference
+for (int i = 0; i < 5; i++) {
+    printf("%d ", *(arr + i));
+}
+
+// Method 3: Pointer with subscript
+for (int i = 0; i < 5; i++) {
+    printf("%d ", ptr[i]);
+}
+
+// Method 4: Pointer arithmetic
+for (int i = 0; i < 5; i++) {
+    printf("%d ", *(ptr + i));
+}
+```
+
+### Multidimensional Arrays
+```c
+int matrix[3][4] = {
+    {1, 2, 3, 4},
+    {5, 6, 7, 8},
+    {9, 10, 11, 12}
+};
+
+// Pointer to first row
+int (*row_ptr)[4] = matrix;
+
+// Access elements
+printf("%d\n", matrix[1][2]);        // 7
+printf("%d\n", *(*(matrix + 1) + 2)); // 7
+printf("%d\n", row_ptr[1][2]);       // 7
+```
+
+## Pointers and Strings
+
+### String as Character Array
+```c
+char str[] = "Hello";
+char *ptr = str;
+
+// These are equivalent:
+printf("%c\n", str[0]);    // 'H'
+printf("%c\n", *str);      // 'H'
+printf("%c\n", *ptr);      // 'H'
+printf("%c\n", ptr[0]);    // 'H'
+```
+
+### String Literals
+```c
+char *str1 = "Hello World";     // Points to string literal (read-only)
+char str2[] = "Hello World";    // Creates modifiable copy
+
+// str1[0] = 'h';  // ERROR: Undefined behavior (modifying string literal)
+str2[0] = 'h';     // OK: "hello World"
+```
+
+### String Functions with Pointers
+```c
+// Custom strlen implementation
+int my_strlen(char *str) {
+    int len = 0;
+    while (*str != '\0') {
+        len++;
+        str++;
+    }
+    return len;
+}
+
+// Custom strcpy implementation
+char* my_strcpy(char *dest, char *src) {
+    char *original_dest = dest;
+    while (*src != '\0') {
+        *dest = *src;
+        dest++;
+        src++;
+    }
+    *dest = '\0';  // Null terminate
+    return original_dest;
+}
+```
+
+## Pointers and Functions
+
+### Pass by Reference
+```c
+// Pass by value - doesn't modify original
+void swap_wrong(int a, int b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+// Pass by reference - modifies original
+void swap_correct(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 10, y = 20;
+    
+    swap_wrong(x, y);
+    printf("After swap_wrong: x = %d, y = %d\n", x, y);  // x = 10, y = 20
+    
+    swap_correct(&x, &y);
+    printf("After swap_correct: x = %d, y = %d\n", x, y); // x = 20, y = 10
+    
+    return 0;
+}
+```
+
+### Returning Pointers from Functions
+```c
+// WRONG: Returning pointer to local variable
+int* bad_function() {
+    int local_var = 42;
+    return &local_var;  // Dangling pointer!
+}
+
+// CORRECT: Returning pointer to dynamically allocated memory
+int* good_function() {
+    int *ptr = (int*)malloc(sizeof(int));
+    *ptr = 42;
+    return ptr;
+}
+
+// CORRECT: Returning pointer to static variable
+int* another_good_function() {
+    static int static_var = 42;
+    return &static_var;
+}
+```
+
+### Array Parameters
+```c
+// These function declarations are equivalent:
+void process_array(int arr[]);
+void process_array(int arr[10]);
+void process_array(int *arr);
+
+// Implementation
+void process_array(int *arr) {
+    // arr is treated as a pointer, not an array
+    printf("Size of arr parameter: %lu\n", sizeof(arr)); // Size of pointer, not array
+}
+```
+
+## Double Pointers (Pointers to Pointers)
+
+### Basic Concept
+```c
+int x = 42;
+int *ptr = &x;      // ptr points to x
+int **dptr = &ptr;  // dptr points to ptr
+
+printf("Value of x: %d\n", x);           // 42
+printf("Value of x: %d\n", *ptr);        // 42
+printf("Value of x: %d\n", **dptr);      // 42
+
+printf("Address of x: %p\n", &x);        // Address of x
+printf("Address of x: %p\n", ptr);       // Same as above
+printf("Address of x: %p\n", *dptr);     // Same as above
+
+printf("Address of ptr: %p\n", &ptr);    // Address of ptr
+printf("Address of ptr: %p\n", dptr);    // Same as above
+```
+
+### Practical Use Cases
+```c
+// Modifying pointer in function
+void allocate_memory(int **ptr) {
+    *ptr = (int*)malloc(sizeof(int));
+    **ptr = 100;
+}
+
+int main() {
+    int *p = NULL;
+    allocate_memory(&p);
+    printf("Value: %d\n", *p);  // 100
+    free(p);
+    return 0;
+}
+
+// Array of strings
+char *names[] = {"Alice", "Bob", "Charlie"};
+char **name_ptr = names;
+
+for (int i = 0; i < 3; i++) {
+    printf("Name %d: %s\n", i, name_ptr[i]);
+}
+```
+
+## Function Pointers
+
+### Declaration and Basic Usage
+```c
+// Function declaration
+int add(int a, int b) {
+    return a + b;
+}
+
+int multiply(int a, int b) {
+    return a * b;
+}
+
+int main() {
+    // Function pointer declaration
+    int (*operation)(int, int);
+    
+    // Assign function to pointer
+    operation = add;
+    printf("5 + 3 = %d\n", operation(5, 3));  // 8
+    
+    // Assign different function
+    operation = multiply;
+    printf("5 * 3 = %d\n", operation(5, 3));  // 15
+    
+    return 0;
+}
+```
+
+### Array of Function Pointers
+```c
+#include <stdio.h>
+
+int add(int a, int b) { return a + b; }
+int subtract(int a, int b) { return a - b; }
+int multiply(int a, int b) { return a * b; }
+int divide(int a, int b) { return a / b; }
+
+int main() {
+    // Array of function pointers
+    int (*operations[])(int, int) = {add, subtract, multiply, divide};
+    char *op_names[] = {"+", "-", "*", "/"};
+    
+    int a = 20, b = 4;
+    
+    for (int i = 0; i < 4; i++) {
+        printf("%d %s %d = %d\n", a, op_names[i], b, operations[i](a, b));
+    }
+    
+    return 0;
+}
+```
+
+### Callback Functions
+```c
+#include <stdio.h>
+
+void process_array(int arr[], int size, void (*callback)(int)) {
+    for (int i = 0; i < size; i++) {
+        callback(arr[i]);
+    }
+}
+
+void print_value(int x) {
+    printf("%d ", x);
+}
+
+void print_square(int x) {
+    printf("%d ", x * x);
+}
+
+int main() {
+    int numbers[] = {1, 2, 3, 4, 5};
+    int size = sizeof(numbers) / sizeof(numbers[0]);
+    
+    printf("Original values: ");
+    process_array(numbers, size, print_value);
+    
+    printf("\nSquared values: ");
+    process_array(numbers, size, print_square);
+    
+    return 0;
+}
+```
+
+## Dynamic Memory Allocation
+
+### malloc, calloc, realloc, and free
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    // malloc: allocates uninitialized memory
+    int *ptr1 = (int*)malloc(5 * sizeof(int));
+    if (ptr1 == NULL) {
+        printf("Memory allocation failed\n");
+        return 1;
+    }
+    
+    // Initialize and use
+    for (int i = 0; i < 5; i++) {
+        ptr1[i] = i + 1;
+        printf("%d ", ptr1[i]);
+    }
+    printf("\n");
+    
+    // calloc: allocates zero-initialized memory
+    int *ptr2 = (int*)calloc(5, sizeof(int));
+    if (ptr2 == NULL) {
+        free(ptr1);
+        printf("Memory allocation failed\n");
+        return 1;
+    }
+    
+    printf("Calloc initialized values: ");
+    for (int i = 0; i < 5; i++) {
+        printf("%d ", ptr2[i]);  // All zeros
+    }
+    printf("\n");
+    
+    // realloc: resize memory block
+    ptr1 = (int*)realloc(ptr1, 10 * sizeof(int));
+    if (ptr1 == NULL) {
+        free(ptr2);
+        printf("Memory reallocation failed\n");
+        return 1;
+    }
+    
+    // Initialize new elements
+    for (int i = 5; i < 10; i++) {
+        ptr1[i] = i + 1;
+    }
+    
+    printf("After realloc: ");
+    for (int i = 0; i < 10; i++) {
+        printf("%d ", ptr1[i]);
+    }
+    printf("\n");
+    
+    // Free allocated memory
+    free(ptr1);
+    free(ptr2);
+    
+    return 0;
+}
+```
+
+### Dynamic Arrays
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int* create_array(int size) {
+    int *arr = (int*)malloc(size * sizeof(int));
+    if (arr == NULL) return NULL;
+    
+    for (int i = 0; i < size; i++) {
+        arr[i] = i * i;  // Square of index
+    }
+    
+    return arr;
+}
+
+int* resize_array(int *arr, int old_size, int new_size) {
+    arr = (int*)realloc(arr, new_size * sizeof(int));
+    if (arr == NULL) return NULL;
+    
+    // Initialize new elements if array grew
+    for (int i = old_size; i < new_size; i++) {
+        arr[i] = i * i;
+    }
+    
+    return arr;
+}
+
+int main() {
+    int size = 5;
+    int *dynamic_arr = create_array(size);
+    
+    if (dynamic_arr == NULL) {
+        printf("Failed to create array\n");
+        return 1;
+    }
+    
+    printf("Original array: ");
+    for (int i = 0; i < size; i++) {
+        printf("%d ", dynamic_arr[i]);
+    }
+    printf("\n");
+    
+    // Resize array
+    int new_size = 8;
+    dynamic_arr = resize_array(dynamic_arr, size, new_size);
+    
+    if (dynamic_arr == NULL) {
+        printf("Failed to resize array\n");
+        return 1;
+    }
+    
+    printf("Resized array: ");
+    for (int i = 0; i < new_size; i++) {
+        printf("%d ", dynamic_arr[i]);
+    }
+    printf("\n");
+    
+    free(dynamic_arr);
+    return 0;
+}
+```
+
+## Pointers and Structures
+
+### Basic Structure Pointers
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    char name[50];
+    int age;
+    float salary;
+} Employee;
+
+int main() {
+    // Stack allocation
+    Employee emp1 = {"John Doe", 30, 50000.0};
+    Employee *ptr1 = &emp1;
+    
+    // Access members using pointer
+    printf("Name: %s\n", ptr1->name);        // Using -> operator
+    printf("Age: %d\n", (*ptr1).age);        // Using * and . operators
+    printf("Salary: %.2f\n", ptr1->salary);
+    
+    // Dynamic allocation
+    Employee *ptr2 = (Employee*)malloc(sizeof(Employee));
+    if (ptr2 == NULL) {
+        printf("Memory allocation failed\n");
+        return 1;
+    }
+    
+    // Initialize dynamically allocated structure
+    strcpy(ptr2->name, "Jane Smith");
+    ptr2->age = 28;
+    ptr2->salary = 60000.0;
+    
+    printf("\nDynamic employee:\n");
+    printf("Name: %s\n", ptr2->name);
+    printf("Age: %d\n", ptr2->age);
+    printf("Salary: %.2f\n", ptr2->salary);
+    
+    free(ptr2);
+    return 0;
+}
+```
+
+### Array of Structure Pointers
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    char name[30];
+    int id;
+} Student;
+
+int main() {
+    const int num_students = 3;
+    Student *students[num_students];
+    
+    // Allocate memory for each student
+    for (int i = 0; i < num_students; i++) {
+        students[i] = (Student*)malloc(sizeof(Student));
+        if (students[i] == NULL) {
+            printf("Memory allocation failed\n");
+            return 1;
+        }
+    }
+    
+    // Initialize students
+    strcpy(students[0]->name, "Alice");
+    students[0]->id = 101;
+    
+    strcpy(students[1]->name, "Bob");
+    students[1]->id = 102;
+    
+    strcpy(students[2]->name, "Charlie");
+    students[2]->id = 103;
+    
+    // Print student information
+    printf("Students:\n");
+    for (int i = 0; i < num_students; i++) {
+        printf("ID: %d, Name: %s\n", students[i]->id, students[i]->name);
+    }
+    
+    // Free allocated memory
+    for (int i = 0; i < num_students; i++) {
+        free(students[i]);
+    }
+    
+    return 0;
+}
+```
+
+### Linked List Example
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node {
+    int data;
+    struct Node *next;
+} Node;
+
+// Function to create a new node
+Node* create_node(int data) {
+    Node *new_node = (Node*)malloc(sizeof(Node));
+    if (new_node == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+    new_node->data = data;
+    new_node->next = NULL;
+    return new_node;
+}
+
+// Function to insert at beginning
+Node* insert_beginning(Node *head, int data) {
+    Node *new_node = create_node(data);
+    if (new_node == NULL) return head;
+    
+    new_node->next = head;
+    return new_node;
+}
+
+// Function to print the list
+void print_list(Node *head) {
+    Node *current = head;
+    while (current != NULL) {
+        printf("%d -> ", current->data);
+        current = current->next;
+    }
+    printf("NULL\n");
+}
+
+// Function to free the list
+void free_list(Node *head) {
+    Node *current = head;
+    Node *next;
+    
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+}
+
+int main() {
+    Node *head = NULL;
+    
+    // Insert elements
+    head = insert_beginning(head, 10);
+    head = insert_beginning(head, 20);
+    head = insert_beginning(head, 30);
+    
+    // Print the list
+    printf("Linked List: ");
+    print_list(head);
+    
+    // Free memory
+    free_list(head);
+    
+    return 0;
+}
+```
+
+## Common Pointer Pitfalls
+
+### 1. Dangling Pointers
+```c
+// WRONG: Returning pointer to local variable
+int* dangerous_function() {
+    int local_var = 42;
+    return &local_var;  // local_var is destroyed when function returns
+}
+
+// CORRECT: Use dynamic allocation or static variables
+int* safe_function() {
+    int *ptr = (int*)malloc(sizeof(int));
+    *ptr = 42;
+    return ptr;  // Remember to free this later
+}
+```
+
+### 2. Memory Leaks
+```c
+// WRONG: Forgetting to free memory
+void memory_leak() {
+    int *ptr = (int*)malloc(100 * sizeof(int));
+    // ... use ptr ...
+    // Oops! Forgot to call free(ptr)
+}
+
+// CORRECT: Always free dynamically allocated memory
+void proper_cleanup() {
+    int *ptr = (int*)malloc(100 * sizeof(int));
+    if (ptr == NULL) return;
+    
+    // ... use ptr ...
+    
+    free(ptr);
+    ptr = NULL;  // Good practice to avoid accidental reuse
+}
+```
+
+### 3. Double Free
+```c
+// WRONG: Freeing same memory twice
+void double_free_error() {
+    int *ptr = (int*)malloc(sizeof(int));
+    *ptr = 42;
+    
+    free(ptr);
+    free(ptr);  // ERROR: Double free
+}
+
+// CORRECT: Set pointer to NULL after freeing
+void safe_free() {
+    int *ptr = (int*)malloc(sizeof(int));
+    *ptr = 42;
+    
+    free(ptr);
+    ptr = NULL;  // Prevents accidental double free
+}
+```
+
+### 4. Using Uninitialized Pointers
+```c
+// WRONG: Using uninitialized pointer
+void uninitialized_pointer() {
+    int *ptr;  // Uninitialized, contains garbage value
+    *ptr = 42; // ERROR: Undefined behavior
+}
+
+// CORRECT: Initialize pointer before use
+void initialized_pointer() {
+    int *ptr = NULL;  // Initialize to NULL
+    int x = 10;
+    ptr = &x;         // Now safe to use
+    *ptr = 42;
+}
+```
+
+### 5. Buffer Overflows
+```c
+// WRONG: No bounds checking
+void buffer_overflow() {
+    int arr[5];
+    int *ptr = arr;
+    
+    for (int i = 0; i <= 10; i++) {  // Goes beyond array bounds
+        ptr[i] = i;  // ERROR: Writing outside allocated memory
+    }
+}
+
+// CORRECT: Always check bounds
+void safe_array_access() {
+    int arr[5];
+    int *ptr = arr;
+    int size = sizeof(arr) / sizeof(arr[0]);
+    
+    for (int i = 0; i < size; i++) {  // Proper bounds checking
+        ptr[i] = i;
+    }
+}
+```
+
+## Best Practices
+
+### 1. Always Check for NULL
+```c
+int *ptr = (int*)malloc(sizeof(int));
+if (ptr == NULL) {
+    fprintf(stderr, "Memory allocation failed\n");
+    return -1;
+}
+```
+
+### 2. Initialize Pointers
+```c
+int *ptr = NULL;  // Always initialize
+// ... later in code ...
+if (ptr != NULL) {
+    *ptr = 42;
+}
+```
+
+### 3. Set Pointers to NULL After Freeing
+```c
+free(ptr);
+ptr = NULL;
+```
+
+### 4. Use const for Read-Only Data
+```c
+void print_array(const int *arr, int size) {
+    for (int i = 0; i < size; i++) {
+        printf("%d ", arr[i]);
+        // arr[i] = 0;  // ERROR: Cannot modify const data
+    }
+}
+```
+
+### 5. Avoid Pointer Arithmetic on Void Pointers
+```c
+// WRONG: Arithmetic on void pointer
+void wrong_void_arithmetic(void *ptr) {
+    ptr++;  // ERROR: void has no size
+}
+
+// CORRECT: Cast to specific type first
+void correct_void_arithmetic(void *ptr) {
+    int *int_ptr = (int*)ptr;
+    int_ptr++;
+}
+```
+
+### 6. Use Static Analysis Tools
+- Use tools like `valgrind`, `AddressSanitizer`, or `static analyzers`
+- Compile with warnings enabled: `gcc -Wall -Wextra`
+
+## Advanced Topics
+
+### Generic Pointers and void*
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+void print_data(void *data, char type) {
+    switch (type) {
+        case 'i':
+            printf("Integer: %d\n", *(int*)data);
+            break;
+        case 'f':
+            printf("Float: %.2f\n", *(float*)data);
+            break;
+        case 'c':
+            printf("Character: %c\n", *(char*)data);
+            break;
+        default:
+            printf("Unknown type\n");
+    }
+}
+
+int main() {
+    int i = 42;
+    float f = 3.14f;
+    char c = 'A';
+    
+    print_data(&i, 'i');
+    print_data(&f, 'f');
+    print_data(&c, 'c');
+    
+    return 0;
+}
+```
+
+### Function Pointers in Structures
+```c
+#include <stdio.h>
+
+typedef struct {
+    int (*add)(int, int);
+    int (*subtract)(int, int);
+    int (*multiply)(int, int);
+} Calculator;
+
+int add(int a, int b) { return a + b; }
+int subtract(int a, int b) { return a - b; }
+int multiply(int a, int b) { return a * b; }
+
+int main() {
+    Calculator calc = {add, subtract, multiply};
+    
+    printf("5 + 3 = %d\n", calc.add(5, 3));
+    printf("5 - 3 = %d\n", calc.subtract(5, 3));
+    printf("5 * 3 = %d\n", calc.multiply(5, 3));
+    
+    return 0;
+}
+```
