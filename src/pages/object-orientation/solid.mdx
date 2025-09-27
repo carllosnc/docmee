@@ -1,0 +1,489 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Object Orientation</a> <br /> <br />
+
+# SOLID Principles
+
+## Overview
+
+SOLID is an acronym that represents five fundamental design principles in object-oriented programming, introduced by Robert C. Martin (Uncle Bob). These principles help create maintainable, flexible, and robust software systems by promoting good design practices.
+
+**SOLID stands for:**
+- **S** - Single Responsibility Principle (SRP)
+- **O** - Open/Closed Principle (OCP)
+- **L** - Liskov Substitution Principle (LSP)
+- **I** - Interface Segregation Principle (ISP)
+- **D** - Dependency Inversion Principle (DIP)
+
+---
+
+## 1. Single Responsibility Principle (SRP)
+
+### Definition
+"A class should have only one reason to change" or "A class should have only one responsibility."
+
+### Key Concepts
+- Each class should focus on a single functionality
+- Separation of concerns
+- High cohesion within classes
+- Easier testing and maintenance
+
+### Example - Violation of SRP
+```java
+// BAD: Multiple responsibilities
+class User {
+    private String name;
+    private String email;
+    
+    // User data management
+    public void setName(String name) { this.name = name; }
+    public String getName() { return name; }
+    
+    // Email functionality
+    public void sendEmail(String message) {
+        // Email sending logic
+    }
+    
+    // Database operations
+    public void saveToDatabase() {
+        // Database saving logic
+    }
+}
+```
+
+### Example - Following SRP
+```java
+// GOOD: Single responsibility per class
+class User {
+    private String name;
+    private String email;
+    
+    public void setName(String name) { this.name = name; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+}
+
+class EmailService {
+    public void sendEmail(User user, String message) {
+        // Email sending logic
+    }
+}
+
+class UserRepository {
+    public void save(User user) {
+        // Database saving logic
+    }
+}
+```
+
+### Benefits
+- Easier to understand and maintain
+- Reduced coupling between functionalities
+- Better testability
+- Clearer code organization
+
+---
+
+## 2. Open/Closed Principle (OCP)
+
+### Definition
+"Software entities should be open for extension but closed for modification."
+
+### Key Concepts
+- Extend behavior without modifying existing code
+- Use abstraction and polymorphism
+- Protect existing functionality from bugs
+- Follow the "Don't touch working code" principle
+
+### Example - Violation of OCP
+```java
+// BAD: Must modify existing code for new shapes
+class AreaCalculator {
+    public double calculateArea(Object shape) {
+        if (shape instanceof Rectangle) {
+            Rectangle rectangle = (Rectangle) shape;
+            return rectangle.width * rectangle.height;
+        } else if (shape instanceof Circle) {
+            Circle circle = (Circle) shape;
+            return Math.PI * circle.radius * circle.radius;
+        }
+        // Need to modify this method for each new shape
+        return 0;
+    }
+}
+```
+
+### Example - Following OCP
+```java
+// GOOD: Open for extension, closed for modification
+interface Shape {
+    double calculateArea();
+}
+
+class Rectangle implements Shape {
+    private double width, height;
+    
+    public double calculateArea() {
+        return width * height;
+    }
+}
+
+class Circle implements Shape {
+    private double radius;
+    
+    public double calculateArea() {
+        return Math.PI * radius * radius;
+    }
+}
+
+class AreaCalculator {
+    public double calculateArea(Shape shape) {
+        return shape.calculateArea(); // No modification needed for new shapes
+    }
+}
+
+// New shape can be added without modifying existing code
+class Triangle implements Shape {
+    private double base, height;
+    
+    public double calculateArea() {
+        return 0.5 * base * height;
+    }
+}
+```
+
+### Benefits
+- Reduced risk of introducing bugs
+- Easier to add new features
+- Better code maintainability
+- Follows the principle of not breaking existing functionality
+
+---
+
+## 3. Liskov Substitution Principle (LSP)
+
+### Definition
+"Objects of a superclass should be replaceable with objects of a subclass without breaking the application."
+
+### Key Concepts
+- Subtypes must be substitutable for their base types
+- Behavioral subtyping
+- Contract compliance
+- Inheritance should strengthen, not weaken, preconditions and postconditions
+
+### Example - Violation of LSP
+```java
+// BAD: Penguin violates LSP as it can't fly
+class Bird {
+    public void fly() {
+        // Flying logic
+    }
+}
+
+class Penguin extends Bird {
+    @Override
+    public void fly() {
+        throw new UnsupportedOperationException("Penguins can't fly!");
+    }
+}
+
+// This will break when Penguin is used
+void makeBirdFly(Bird bird) {
+    bird.fly(); // Throws exception for Penguin
+}
+```
+
+### Example - Following LSP
+```java
+// GOOD: Proper abstraction hierarchy
+abstract class Bird {
+    public abstract void move();
+}
+
+class FlyingBird extends Bird {
+    public void fly() {
+        // Flying logic
+    }
+    
+    @Override
+    public void move() {
+        fly();
+    }
+}
+
+class FlightlessBird extends Bird {
+    @Override
+    public void move() {
+        walk();
+    }
+    
+    public void walk() {
+        // Walking logic
+    }
+}
+
+class Eagle extends FlyingBird {
+    // Can substitute FlyingBird without issues
+}
+
+class Penguin extends FlightlessBird {
+    // Can substitute FlightlessBird without issues
+}
+```
+
+### Rules for LSP Compliance
+1. Preconditions cannot be strengthened in subtypes
+2. Postconditions cannot be weakened in subtypes
+3. Invariants must be preserved
+4. History constraint (new methods shouldn't allow state changes that the base class doesn't allow)
+
+### Benefits
+- Predictable inheritance behavior
+- Reliable polymorphism
+- Better code reusability
+- Reduced unexpected behavior
+
+---
+
+## 4. Interface Segregation Principle (ISP)
+
+### Definition
+"Clients should not be forced to depend on interfaces they do not use."
+
+### Key Concepts
+- Create specific, focused interfaces
+- Avoid "fat" interfaces
+- High cohesion in interfaces
+- Reduce unnecessary dependencies
+
+### Example - Violation of ISP
+```java
+// BAD: Fat interface forces unnecessary dependencies
+interface Worker {
+    void work();
+    void eat();
+    void sleep();
+}
+
+class HumanWorker implements Worker {
+    public void work() { /* work implementation */ }
+    public void eat() { /* eat implementation */ }
+    public void sleep() { /* sleep implementation */ }
+}
+
+class RobotWorker implements Worker {
+    public void work() { /* work implementation */ }
+    public void eat() { /* Robots don't eat! */ }
+    public void sleep() { /* Robots don't sleep! */ }
+}
+```
+
+### Example - Following ISP
+```java
+// GOOD: Segregated interfaces
+interface Workable {
+    void work();
+}
+
+interface Eatable {
+    void eat();
+}
+
+interface Sleepable {
+    void sleep();
+}
+
+class HumanWorker implements Workable, Eatable, Sleepable {
+    public void work() { /* work implementation */ }
+    public void eat() { /* eat implementation */ }
+    public void sleep() { /* sleep implementation */ }
+}
+
+class RobotWorker implements Workable {
+    public void work() { /* work implementation */ }
+    // Only implements what it needs
+}
+```
+
+### Benefits
+- Reduced coupling
+- Better code organization
+- Easier testing and mocking
+- More flexible design
+- Clearer dependencies
+
+---
+
+## 5. Dependency Inversion Principle (DIP)
+
+### Definition
+"High-level modules should not depend on low-level modules. Both should depend on abstractions. Abstractions should not depend on details. Details should depend on abstractions."
+
+### Key Concepts
+- Depend on abstractions, not concretions
+- Invert the dependency direction
+- Use dependency injection
+- Decouple high-level and low-level modules
+
+### Example - Violation of DIP
+```java
+// BAD: High-level class depends on low-level class
+class MySQLDatabase {
+    public void save(String data) {
+        // MySQL specific implementation
+    }
+}
+
+class UserService {
+    private MySQLDatabase database; // Direct dependency on concrete class
+    
+    public UserService() {
+        this.database = new MySQLDatabase(); // Tight coupling
+    }
+    
+    public void saveUser(String userData) {
+        database.save(userData);
+    }
+}
+```
+
+### Example - Following DIP
+```java
+// GOOD: Depend on abstraction
+interface Database {
+    void save(String data);
+}
+
+class MySQLDatabase implements Database {
+    public void save(String data) {
+        // MySQL specific implementation
+    }
+}
+
+class PostgreSQLDatabase implements Database {
+    public void save(String data) {
+        // PostgreSQL specific implementation
+    }
+}
+
+class UserService {
+    private Database database; // Depends on abstraction
+    
+    public UserService(Database database) { // Dependency injection
+        this.database = database;
+    }
+    
+    public void saveUser(String userData) {
+        database.save(userData);
+    }
+}
+
+// Usage
+Database db = new MySQLDatabase(); // or PostgreSQLDatabase
+UserService service = new UserService(db);
+```
+
+### Benefits
+- Flexible and extensible code
+- Easier testing (mock dependencies)
+- Reduced coupling
+- Better code reusability
+- Easier to change implementations
+
+---
+
+## Benefits of Following SOLID Principles
+
+### Code Quality Improvements
+- **Maintainability**: Easier to modify and extend code
+- **Readability**: Clearer, more understandable code structure
+- **Testability**: Easier to write unit tests
+- **Reusability**: Components can be reused in different contexts
+- **Flexibility**: Easier to adapt to changing requirements
+
+### Development Process Benefits
+- **Reduced Bugs**: Better separation of concerns reduces side effects
+- **Faster Development**: Well-structured code is easier to work with
+- **Team Collaboration**: Clear responsibilities make team work easier
+- **Code Reviews**: Easier to review and understand changes
+
+---
+
+## Common Anti-Patterns and How SOLID Helps
+
+### God Class/Object
+- **Problem**: One class doing too many things
+- **SOLID Solution**: SRP helps break down responsibilities
+
+### Fragile Base Class
+- **Problem**: Changes to base class break derived classes
+- **SOLID Solution**: LSP ensures proper inheritance relationships
+
+### Interface Pollution
+- **Problem**: Interfaces with too many methods
+- **SOLID Solution**: ISP promotes focused interfaces
+
+### Tight Coupling
+- **Problem**: Classes directly dependent on concrete implementations
+- **SOLID Solution**: DIP promotes loose coupling through abstractions
+
+---
+
+## Best Practices for Implementing SOLID
+
+### 1. Start with SRP
+- Identify single responsibilities for each class
+- Use the "one reason to change" test
+- Extract mixed responsibilities into separate classes
+
+### 2. Design with OCP in Mind
+- Use interfaces and abstract classes
+- Favor composition over inheritance
+- Consider future extensions during design
+
+### 3. Ensure LSP Compliance
+- Test substitutability
+- Maintain behavioral contracts
+- Avoid strengthening preconditions or weakening postconditions
+
+### 4. Apply ISP Gradually
+- Identify interface clients
+- Split large interfaces based on client needs
+- Create role-based interfaces
+
+### 5. Implement DIP Systematically
+- Identify abstractions
+- Use dependency injection frameworks
+- Invert control flow
+
+---
+
+## Tools and Techniques
+
+### Design Patterns That Support SOLID
+- **Strategy Pattern**: Supports OCP and DIP
+- **Factory Pattern**: Supports DIP
+- **Observer Pattern**: Supports OCP
+- **Adapter Pattern**: Supports LSP
+- **Command Pattern**: Supports SRP and OCP
+
+### Dependency Injection Frameworks
+- Spring (Java)
+- Unity (.NET)
+- Dagger (Android/Java)
+- Guice (Java)
+
+### Code Analysis Tools
+- SonarQube
+- PMD
+- CheckStyle
+- ESLint (JavaScript/TypeScript)
+
+---
+
+## Conclusion
+
+SOLID principles provide a foundation for writing maintainable, flexible, and robust object-oriented code. While following these principles may require more upfront design effort, the long-term benefits in terms of code quality, maintainability, and extensibility make them essential for any serious software development project.
+
+Remember that SOLID principles are guidelines, not rigid rules. The key is to understand the underlying concepts and apply them judiciously based on the specific context and requirements of your project.
