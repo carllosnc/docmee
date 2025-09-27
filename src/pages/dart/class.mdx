@@ -1,0 +1,1132 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dsa">← Dart</a> <br /> <br />
+
+# Class
+
+## Table of Contents
+1. [Basic Class Declaration](#basic-class-declaration)
+2. [Constructors](#constructors)
+3. [Properties and Fields](#properties-and-fields)
+4. [Methods](#methods)
+5. [Inheritance](#inheritance)
+6. [Abstract Classes](#abstract-classes)
+7. [Interfaces](#interfaces)
+8. [Mixins](#mixins)
+9. [Static Members](#static-members)
+10. [Getters and Setters](#getters-and-setters)
+11. [Operator Overloading](#operator-overloading)
+12. [Enums](#enums)
+13. [Extension Methods](#extension-methods)
+14. [Generic Classes](#generic-classes)
+15. [Access Modifiers](#access-modifiers)
+16. [Advanced Features](#advanced-features)
+
+## Basic Class Declaration
+
+### Simple Class
+```dart
+class Person {
+  String name;
+  int age;
+  
+  Person(this.name, this.age);
+  
+  void introduce() {
+    print('Hi, I\'m $name and I\'m $age years old.');
+  }
+}
+```
+
+### Class with Constructor Body
+```dart
+class Rectangle {
+  double width;
+  double height;
+  
+  Rectangle(double w, double h) {
+    width = w;
+    height = h;
+  }
+  
+  double get area => width * height;
+}
+```
+
+## Constructors
+
+### Default Constructor
+```dart
+class Point {
+  double x, y;
+  
+  Point(this.x, this.y);
+}
+```
+
+### Named Constructors
+```dart
+class Point {
+  double x, y;
+  
+  Point(this.x, this.y);
+  
+  // Named constructor
+  Point.origin() : x = 0, y = 0;
+  
+  Point.fromJson(Map<String, dynamic> json)
+      : x = json['x'],
+        y = json['y'];
+}
+
+// Usage
+var origin = Point.origin();
+var point = Point.fromJson({'x': 1.0, 'y': 2.0});
+```
+
+### Constructor with Initializer List
+```dart
+class Person {
+  final String name;
+  final int age;
+  final String email;
+  
+  Person(this.name, this.age) : email = '${name.toLowerCase()}@example.com';
+  
+  Person.withEmail(this.name, this.age, this.email);
+}
+```
+
+### Const Constructor
+```dart
+class ImmutablePoint {
+  final double x;
+  final double y;
+  
+  const ImmutablePoint(this.x, this.y);
+  
+  static const ImmutablePoint origin = ImmutablePoint(0, 0);
+}
+```
+
+### Factory Constructor
+```dart
+class Logger {
+  final String name;
+  static final Map<String, Logger> _cache = {};
+  
+  Logger._internal(this.name);
+  
+  factory Logger(String name) {
+    return _cache.putIfAbsent(name, () => Logger._internal(name));
+  }
+  
+  void log(String message) {
+    print('[$name]: $message');
+  }
+}
+```
+
+### Redirecting Constructors
+```dart
+class Point {
+  double x, y;
+  
+  Point(this.x, this.y);
+  
+  // Redirecting constructor
+  Point.alongXAxis(double x) : this(x, 0);
+  Point.alongYAxis(double y) : this(0, y);
+}
+```
+
+## Properties and Fields
+
+### Instance Variables
+```dart
+class Car {
+  String brand;
+  String model;
+  int year;
+  double _mileage; // Private field
+  
+  Car(this.brand, this.model, this.year, this._mileage);
+}
+```
+
+### Final and Const Fields
+```dart
+class Circle {
+  final double radius;
+  static const double pi = 3.14159;
+  
+  const Circle(this.radius);
+  
+  double get area => pi * radius * radius;
+}
+```
+
+### Late Variables
+```dart
+class DatabaseConnection {
+  late String connectionString;
+  late Database _database;
+  
+  void initialize(String host, int port) {
+    connectionString = 'mongodb://$host:$port';
+    _database = Database(connectionString);
+  }
+}
+```
+
+## Methods
+
+### Instance Methods
+```dart
+class Calculator {
+  double add(double a, double b) => a + b;
+  double subtract(double a, double b) => a - b;
+  
+  // Method with optional parameters
+  double multiply(double a, double b, [double factor = 1.0]) {
+    return a * b * factor;
+  }
+  
+  // Method with named parameters
+  double divide(double a, double b, {bool roundResult = false}) {
+    double result = a / b;
+    return roundResult ? result.round().toDouble() : result;
+  }
+}
+```
+
+### Method Overriding
+```dart
+class Animal {
+  void makeSound() {
+    print('Some generic animal sound');
+  }
+}
+
+class Dog extends Animal {
+  @override
+  void makeSound() {
+    print('Woof!');
+  }
+}
+```
+
+## Inheritance
+
+### Basic Inheritance
+```dart
+class Vehicle {
+  String brand;
+  int year;
+  
+  Vehicle(this.brand, this.year);
+  
+  void start() {
+    print('Vehicle starting...');
+  }
+}
+
+class Car extends Vehicle {
+  int doors;
+  
+  Car(String brand, int year, this.doors) : super(brand, year);
+  
+  @override
+  void start() {
+    print('Car engine starting...');
+    super.start(); // Call parent method
+  }
+  
+  void honk() {
+    print('Beep beep!');
+  }
+}
+```
+
+### Constructor Inheritance
+```dart
+class Person {
+  String name;
+  int age;
+  
+  Person(this.name, this.age);
+  Person.anonymous() : this('Unknown', 0);
+}
+
+class Employee extends Person {
+  String department;
+  
+  Employee(String name, int age, this.department) : super(name, age);
+  
+  Employee.intern(String name) : super(name, 18) {
+    department = 'Internship';
+  }
+}
+```
+
+## Abstract Classes
+
+### Abstract Class Definition
+```dart
+abstract class Shape {
+  // Abstract method (must be implemented by subclasses)
+  double calculateArea();
+  
+  // Concrete method
+  void printArea() {
+    print('Area: ${calculateArea()}');
+  }
+  
+  // Abstract getter
+  String get shapeName;
+}
+
+class Rectangle extends Shape {
+  double width, height;
+  
+  Rectangle(this.width, this.height);
+  
+  @override
+  double calculateArea() => width * height;
+  
+  @override
+  String get shapeName => 'Rectangle';
+}
+```
+
+### Abstract Class with Constructor
+```dart
+abstract class Animal {
+  String name;
+  
+  Animal(this.name);
+  
+  void sleep() {
+    print('$name is sleeping');
+  }
+  
+  void makeSound(); // Abstract method
+}
+
+class Cat extends Animal {
+  Cat(String name) : super(name);
+  
+  @override
+  void makeSound() {
+    print('$name says Meow!');
+  }
+}
+```
+
+## Interfaces
+
+### Implementing Interfaces
+```dart
+class Flyable {
+  void fly() {
+    print('Flying');
+  }
+}
+
+class Swimmable {
+  void swim() {
+    print('Swimming');
+  }
+}
+
+// Implementing multiple interfaces
+class Duck implements Flyable, Swimmable {
+  @override
+  void fly() {
+    print('Duck is flying');
+  }
+  
+  @override
+  void swim() {
+    print('Duck is swimming');
+  }
+}
+```
+
+### Interface with Abstract Class
+```dart
+abstract class Drawable {
+  void draw();
+  Color get color;
+  void setColor(Color newColor);
+}
+
+class Circle implements Drawable {
+  Color _color = Colors.blue;
+  double radius;
+  
+  Circle(this.radius);
+  
+  @override
+  void draw() {
+    print('Drawing a circle with radius $radius');
+  }
+  
+  @override
+  Color get color => _color;
+  
+  @override
+  void setColor(Color newColor) {
+    _color = newColor;
+  }
+}
+```
+
+## Mixins
+
+### Basic Mixin
+```dart
+mixin Musical {
+  bool canPlayMusic = false;
+  
+  void playMusic() {
+    if (canPlayMusic) {
+      print('Playing music');
+    }
+  }
+}
+
+mixin Aggressive {
+  void attack() {
+    print('Attacking!');
+  }
+}
+
+class Performer with Musical {
+  Performer() {
+    canPlayMusic = true;
+  }
+}
+
+class Warrior with Aggressive, Musical {
+  // Can use both mixins
+}
+```
+
+### Mixin with Constraints
+```dart
+class Animal {
+  void breathe() => print('Breathing');
+}
+
+mixin Walker on Animal {
+  void walk() {
+    print('Walking');
+    breathe(); // Can call Animal methods
+  }
+}
+
+mixin Swimmer on Animal {
+  void swim() {
+    print('Swimming');
+    breathe(); // Can call Animal methods
+  }
+}
+
+class Amphibian extends Animal with Walker, Swimmer {
+  // Must extend Animal to use these mixins
+}
+```
+
+### Mixin with Generic Types
+```dart
+mixin Comparable<T> {
+  bool isEqual(T other);
+  bool isGreaterThan(T other);
+  bool isLessThan(T other);
+}
+
+class Number with Comparable<Number> {
+  final double value;
+  
+  Number(this.value);
+  
+  @override
+  bool isEqual(Number other) => value == other.value;
+  
+  @override
+  bool isGreaterThan(Number other) => value > other.value;
+  
+  @override
+  bool isLessThan(Number other) => value < other.value;
+}
+```
+
+## Static Members
+
+### Static Fields and Methods
+```dart
+class MathUtils {
+  static const double pi = 3.14159;
+  static int _instanceCount = 0;
+  
+  static double circleArea(double radius) {
+    return pi * radius * radius;
+  }
+  
+  static int get instanceCount => _instanceCount;
+  
+  MathUtils() {
+    _instanceCount++;
+  }
+}
+
+// Usage
+print(MathUtils.pi);
+print(MathUtils.circleArea(5));
+```
+
+### Static Constructor Pattern
+```dart
+class Configuration {
+  static Configuration? _instance;
+  final Map<String, dynamic> _settings = {};
+  
+  Configuration._internal();
+  
+  static Configuration get instance {
+    _instance ??= Configuration._internal();
+    return _instance!;
+  }
+  
+  void setSetting(String key, dynamic value) {
+    _settings[key] = value;
+  }
+  
+  dynamic getSetting(String key) => _settings[key];
+}
+```
+
+## Getters and Setters
+
+### Basic Getters and Setters
+```dart
+class Rectangle {
+  double _width = 0;
+  double _height = 0;
+  
+  // Getter
+  double get area => _width * _height;
+  
+  // Getter and setter for width
+  double get width => _width;
+  set width(double value) {
+    if (value >= 0) _width = value;
+  }
+  
+  // Getter and setter for height
+  double get height => _height;
+  set height(double value) {
+    if (value >= 0) _height = value;
+  }
+  
+  // Computed property
+  double get perimeter => 2 * (_width + _height);
+}
+```
+
+### Advanced Getters and Setters
+```dart
+class Temperature {
+  double _celsius = 0;
+  
+  double get celsius => _celsius;
+  set celsius(double value) => _celsius = value;
+  
+  double get fahrenheit => (_celsius * 9/5) + 32;
+  set fahrenheit(double value) => _celsius = (value - 32) * 5/9;
+  
+  double get kelvin => _celsius + 273.15;
+  set kelvin(double value) => _celsius = value - 273.15;
+}
+```
+
+## Operator Overloading
+
+### Common Operators
+```dart
+class Vector {
+  double x, y;
+  
+  Vector(this.x, this.y);
+  
+  // Addition operator
+  Vector operator +(Vector other) {
+    return Vector(x + other.x, y + other.y);
+  }
+  
+  // Subtraction operator
+  Vector operator -(Vector other) {
+    return Vector(x - other.x, y - other.y);
+  }
+  
+  // Multiplication operator (scalar)
+  Vector operator *(double scalar) {
+    return Vector(x * scalar, y * scalar);
+  }
+  
+  // Equality operator
+  @override
+  bool operator ==(Object other) {
+    return other is Vector && x == other.x && y == other.y;
+  }
+  
+  @override
+  int get hashCode => Object.hash(x, y);
+  
+  // Index operators
+  double operator [](int index) {
+    switch (index) {
+      case 0: return x;
+      case 1: return y;
+      default: throw RangeError.index(index, this);
+    }
+  }
+  
+  void operator []=(int index, double value) {
+    switch (index) {
+      case 0: x = value; break;
+      case 1: y = value; break;
+      default: throw RangeError.index(index, this);
+    }
+  }
+  
+  @override
+  String toString() => 'Vector($x, $y)';
+}
+```
+
+### Comparison Operators
+```dart
+class Person implements Comparable<Person> {
+  String name;
+  int age;
+  
+  Person(this.name, this.age);
+  
+  @override
+  int compareTo(Person other) => age.compareTo(other.age);
+  
+  bool operator <(Person other) => age < other.age;
+  bool operator >(Person other) => age > other.age;
+  bool operator <=(Person other) => age <= other.age;
+  bool operator >=(Person other) => age >= other.age;
+}
+```
+
+## Enums
+
+### Basic Enum
+```dart
+enum Color {
+  red,
+  green,
+  blue,
+  yellow
+}
+
+// Usage
+Color favoriteColor = Color.blue;
+print(favoriteColor.name); // 'blue'
+print(favoriteColor.index); // 2
+```
+
+### Enhanced Enums
+```dart
+enum Planet {
+  mercury(3.303e+23, 2.4397e6),
+  venus(4.869e+24, 6.0518e6),
+  earth(5.976e+24, 6.37814e6),
+  mars(6.421e+23, 3.3972e6);
+  
+  const Planet(this.mass, this.radius);
+  
+  final double mass;
+  final double radius;
+  
+  double get surfaceGravity => 6.67300E-11 * mass / (radius * radius);
+}
+
+// Usage
+print(Planet.earth.surfaceGravity);
+```
+
+### Enum with Methods
+```dart
+enum Status {
+  pending,
+  processing,
+  completed,
+  failed;
+  
+  bool get isActive => this == pending || this == processing;
+  bool get isFinished => this == completed || this == failed;
+  
+  String get displayName {
+    switch (this) {
+      case Status.pending:
+        return 'Pending';
+      case Status.processing:
+        return 'Processing';
+      case Status.completed:
+        return 'Completed';
+      case Status.failed:
+        return 'Failed';
+    }
+  }
+}
+```
+
+## Extension Methods
+
+### Basic Extension
+```dart
+extension StringExtensions on String {
+  bool get isValidEmail {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(this);
+  }
+  
+  String get capitalizeFirst {
+    if (isEmpty) return this;
+    return this[0].toUpperCase() + substring(1).toLowerCase();
+  }
+  
+  String repeat(int times) {
+    return List.filled(times, this).join();
+  }
+}
+
+// Usage
+print('hello'.capitalizeFirst); // 'Hello'
+print('test@email.com'.isValidEmail); // true
+print('*'.repeat(5)); // '*****'
+```
+
+### Extension on Custom Classes
+```dart
+class Point {
+  double x, y;
+  Point(this.x, this.y);
+}
+
+extension PointExtensions on Point {
+  double distanceTo(Point other) {
+    double dx = x - other.x;
+    double dy = y - other.y;
+    return sqrt(dx * dx + dy * dy);
+  }
+  
+  Point get normalized {
+    double length = distanceTo(Point(0, 0));
+    return length == 0 ? Point(0, 0) : Point(x / length, y / length);
+  }
+}
+```
+
+### Generic Extensions
+```dart
+extension ListExtensions<T> on List<T> {
+  List<T> get unique {
+    return toSet().toList();
+  }
+  
+  T? get firstOrNull => isEmpty ? null : first;
+  T? get lastOrNull => isEmpty ? null : last;
+  
+  List<T> whereNotNull() {
+    return where((element) => element != null).toList();
+  }
+}
+```
+
+## Generic Classes
+
+### Basic Generic Class
+```dart
+class Box<T> {
+  T? _value;
+  
+  void put(T value) {
+    _value = value;
+  }
+  
+  T? get() => _value;
+  
+  bool get isEmpty => _value == null;
+}
+
+// Usage
+var stringBox = Box<String>();
+stringBox.put('Hello');
+print(stringBox.get()); // 'Hello'
+
+var intBox = Box<int>();
+intBox.put(42);
+print(intBox.get()); // 42
+```
+
+### Generic Class with Constraints
+```dart
+class NumberBox<T extends num> {
+  T _value;
+  
+  NumberBox(this._value);
+  
+  T get value => _value;
+  set value(T newValue) => _value = newValue;
+  
+  T add(T other) => (_value + other) as T;
+  T multiply(T other) => (_value * other) as T;
+  
+  bool isGreaterThan(T other) => _value > other;
+}
+
+// Usage
+var intBox = NumberBox<int>(10);
+var doubleBox = NumberBox<double>(3.14);
+```
+
+### Generic Class with Multiple Type Parameters
+```dart
+class Pair<T, U> {
+  T first;
+  U second;
+  
+  Pair(this.first, this.second);
+  
+  @override
+  String toString() => '($first, $second)';
+  
+  Pair<U, T> get swapped => Pair(second, first);
+}
+
+// Usage
+var nameAge = Pair<String, int>('Alice', 30);
+var coordinates = Pair<double, double>(3.14, 2.71);
+```
+
+### Generic Methods
+```dart
+class Utility {
+  static T findMax<T extends Comparable<T>>(List<T> items) {
+    if (items.isEmpty) throw ArgumentError('List cannot be empty');
+    
+    T max = items.first;
+    for (T item in items) {
+      if (item.compareTo(max) > 0) {
+        max = item;
+      }
+    }
+    return max;
+  }
+  
+  static List<T> filter<T>(List<T> items, bool Function(T) predicate) {
+    return items.where(predicate).toList();
+  }
+}
+```
+
+## Access Modifiers
+
+### Public and Private Members
+```dart
+class BankAccount {
+  String accountNumber; // Public
+  String _pin; // Private (underscore prefix)
+  double _balance = 0.0; // Private
+  
+  BankAccount(this.accountNumber, this._pin);
+  
+  // Public getter for balance
+  double get balance => _balance;
+  
+  // Public method
+  bool deposit(double amount) {
+    if (amount > 0) {
+      _balance += amount;
+      return true;
+    }
+    return false;
+  }
+  
+  // Public method that uses private method
+  bool withdraw(double amount, String pin) {
+    if (_verifyPin(pin) && amount <= _balance) {
+      _balance -= amount;
+      return true;
+    }
+    return false;
+  }
+  
+  // Private method
+  bool _verifyPin(String pin) => _pin == pin;
+}
+```
+
+### Library-Private Classes
+```dart
+// In file: _internal_utils.dart
+class _InternalHelper {
+  static String formatMessage(String message) {
+    return '[INFO] $message';
+  }
+}
+
+// In file: public_api.dart
+import '_internal_utils.dart';
+
+class Logger {
+  void log(String message) {
+    print(_InternalHelper.formatMessage(message));
+  }
+}
+```
+
+## Advanced Features
+
+### Callable Classes
+```dart
+class Multiplier {
+  final int factor;
+  
+  Multiplier(this.factor);
+  
+  int call(int value) => value * factor;
+}
+
+// Usage
+var doubler = Multiplier(2);
+print(doubler(5)); // 10 (same as doubler.call(5))
+```
+
+### Class with Tear-offs
+```dart
+class Calculator {
+  static int add(int a, int b) => a + b;
+  static int multiply(int a, int b) => a * b;
+  
+  int subtract(int a, int b) => a - b;
+}
+
+// Usage
+var calculator = Calculator();
+
+// Static method tear-off
+var addFunction = Calculator.add;
+print(addFunction(3, 4)); // 7
+
+// Instance method tear-off
+var subtractFunction = calculator.subtract;
+print(subtractFunction(10, 3)); // 7
+```
+
+### Metadata and Annotations
+```dart
+class Deprecated {
+  final String message;
+  const Deprecated(this.message);
+}
+
+class ApiEndpoint {
+  final String path;
+  const ApiEndpoint(this.path);
+}
+
+class UserController {
+  @Deprecated('Use getUserById instead')
+  @ApiEndpoint('/user')
+  User? getUser(int id) {
+    // Old implementation
+    return null;
+  }
+  
+  @ApiEndpoint('/user/:id')
+  User? getUserById(int id) {
+    // New implementation
+    return null;
+  }
+}
+```
+
+### Records (Dart 3.0+)
+```dart
+// Simple record
+var person = ('Alice', 30);
+print(person.$1); // 'Alice'
+print(person.$2); // 30
+
+// Named record
+var namedPerson = (name: 'Bob', age: 25);
+print(namedPerson.name); // 'Bob'
+print(namedPerson.age); // 25
+
+// Function returning record
+(String, int) getPersonInfo() {
+  return ('Charlie', 35);
+}
+
+// Class using records
+class PersonManager {
+  List<(String name, int age)> people = [];
+  
+  void addPerson(String name, int age) {
+    people.add((name, age));
+  }
+  
+  (String, int)? findOldest() {
+    if (people.isEmpty) return null;
+    
+    return people.reduce((a, b) => a.$2 > b.$2 ? a : b);
+  }
+}
+```
+
+### Patterns (Dart 3.0+)
+```dart
+class Shape {}
+class Circle extends Shape {
+  double radius;
+  Circle(this.radius);
+}
+class Rectangle extends Shape {
+  double width, height;
+  Rectangle(this.width, this.height);
+}
+
+double calculateArea(Shape shape) {
+  return switch (shape) {
+    Circle(radius: var r) => 3.14 * r * r,
+    Rectangle(width: var w, height: var h) => w * h,
+    _ => 0.0,
+  };
+}
+
+// Pattern matching with records
+String processData(Object data) {
+  return switch (data) {
+    (String name, int age) when age >= 18 => 'Adult: $name',
+    (String name, int age) => 'Minor: $name',
+    {'type': 'user', 'name': String name} => 'User: $name',
+    _ => 'Unknown data type',
+  };
+}
+```
+
+### Sealed Classes (Dart 3.0+)
+```dart
+sealed class Result<T> {}
+
+class Success<T> extends Result<T> {
+  final T data;
+  Success(this.data);
+}
+
+class Error<T> extends Result<T> {
+  final String message;
+  Error(this.message);
+}
+
+// Exhaustive pattern matching
+String handleResult<T>(Result<T> result) {
+  return switch (result) {
+    Success(data: var data) => 'Success: $data',
+    Error(message: var msg) => 'Error: $msg',
+    // No default case needed - compiler ensures exhaustiveness
+  };
+}
+```
+
+## Best Practices
+
+### 1. Use Meaningful Names
+```dart
+// Good
+class UserRepository {
+  Future<User?> findByEmail(String email) async { ... }
+}
+
+// Avoid
+class UR {
+  Future<User?> fbe(String e) async { ... }
+}
+```
+
+### 2. Follow Single Responsibility Principle
+```dart
+// Good - Single responsibility
+class EmailValidator {
+  bool isValid(String email) { ... }
+}
+
+class UserService {
+  final EmailValidator _validator;
+  
+  UserService(this._validator);
+  
+  bool registerUser(String email) {
+    if (!_validator.isValid(email)) return false;
+    // Registration logic
+    return true;
+  }
+}
+```
+
+### 3. Use Composition Over Inheritance
+```dart
+// Good - Composition
+class Car {
+  final Engine _engine;
+  final Transmission _transmission;
+  
+  Car(this._engine, this._transmission);
+  
+  void start() {
+    _engine.start();
+  }
+}
+
+class Engine {
+  void start() { ... }
+}
+```
+
+### 4. Make Classes Immutable When Possible
+```dart
+class Point {
+  final double x;
+  final double y;
+  
+  const Point(this.x, this.y);
+  
+  Point copyWith({double? x, double? y}) {
+    return Point(x ?? this.x, y ?? this.y);
+  }
+}
+```
+
+### 5. Use Factory Constructors for Complex Logic
+```dart
+class Logger {
+  final String _name;
+  static final Map<String, Logger> _cache = {};
+  
+  Logger._internal(this._name);
+  
+  factory Logger.getLogger(String name) {
+    return _cache.putIfAbsent(name, () => Logger._internal(name));
+  }
+}
+```
+
+This reference covers all the essential and advanced features of Dart classes. Each section includes practical examples that you can use as templates for your own code.

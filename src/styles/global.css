@@ -2,7 +2,7 @@
 @plugin '@tailwindcss/typography';
 
 .family {
-  font-family: "Arimo", sans-serif;
+  font-family: "Inter", sans-serif;
   font-optical-sizing: auto;
   font-weight: <weight>;
   font-style: normal;
@@ -24,6 +24,10 @@ p code {
   font-family: "JetBrains Mono";
 }
 
-h1, h2 {
-  word-break: break-word
+h1 {
+  @apply text-slate-700 font-light;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  word-break: break-word;
 }
