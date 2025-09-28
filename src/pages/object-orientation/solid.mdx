@@ -3,487 +3,701 @@ layout: ../../layout/main-layout.astro
 ---
 <a href="/object-orientation">← Object Orientation</a> <br /> <br />
 
-# SOLID Principles
+# SOLID
 
-## Overview
+The SOLID principles are five design principles that help create maintainable, flexible, and scalable object-oriented software. This guide demonstrates each principle using a **Library Management System** context in Dart.
 
-SOLID is an acronym that represents five fundamental design principles in object-oriented programming, introduced by Robert C. Martin (Uncle Bob). These principles help create maintainable, flexible, and robust software systems by promoting good design practices.
-
-**SOLID stands for:**
-- **S** - Single Responsibility Principle (SRP)
-- **O** - Open/Closed Principle (OCP)
-- **L** - Liskov Substitution Principle (LSP)
-- **I** - Interface Segregation Principle (ISP)
-- **D** - Dependency Inversion Principle (DIP)
+## Table of Contents
+1. [Single Responsibility Principle (SRP)](#1-single-responsibility-principle-srp)
+2. [Open/Closed Principle (OCP)](#2-openclosed-principle-ocp)
+3. [Liskov Substitution Principle (LSP)](#3-liskov-substitution-principle-lsp)
+4. [Interface Segregation Principle (ISP)](#4-interface-segregation-principle-isp)
+5. [Dependency Inversion Principle (DIP)](#5-dependency-inversion-principle-dip)
 
 ---
 
 ## 1. Single Responsibility Principle (SRP)
 
-### Definition
-"A class should have only one reason to change" or "A class should have only one responsibility."
+**Definition:** A class should have only one reason to change, meaning it should have only one job or responsibility.
 
-### Key Concepts
-- Each class should focus on a single functionality
-- Separation of concerns
-- High cohesion within classes
-- Easier testing and maintenance
+### ❌ Violation Example
 
-### Example - Violation of SRP
-```java
-// BAD: Multiple responsibilities
-class User {
-    private String name;
-    private String email;
-    
-    // User data management
-    public void setName(String name) { this.name = name; }
-    public String getName() { return name; }
-    
-    // Email functionality
-    public void sendEmail(String message) {
-        // Email sending logic
-    }
-    
-    // Database operations
-    public void saveToDatabase() {
-        // Database saving logic
-    }
+```dart
+// BAD: This class has multiple responsibilities
+class Book {
+  String title;
+  String author;
+  String isbn;
+  bool isAvailable;
+
+  Book(this.title, this.author, this.isbn) : isAvailable = true;
+
+  // Responsibility 1: Book data management
+  void updateTitle(String newTitle) {
+    title = newTitle;
+  }
+
+  // Responsibility 2: Persistence logic
+  void saveToDatabase() {
+    print('Saving book to database: $title');
+    // Database saving logic
+  }
+
+  // Responsibility 3: Notification logic
+  void notifyLibrarian(String message) {
+    print('Email sent to librarian: $message');
+    // Email sending logic
+  }
+
+  // Responsibility 4: Validation logic
+  bool validateISBN() {
+    return isbn.length == 13;
+  }
 }
 ```
 
-### Example - Following SRP
-```java
-// GOOD: Single responsibility per class
-class User {
-    private String name;
-    private String email;
-    
-    public void setName(String name) { this.name = name; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
+### ✅ Correct Implementation
+
+```dart
+// GOOD: Each class has a single responsibility
+
+// Responsibility 1: Book data representation
+class Book {
+  String title;
+  String author;
+  String isbn;
+  bool isAvailable;
+
+  Book(this.title, this.author, this.isbn) : isAvailable = true;
+
+  void updateTitle(String newTitle) {
+    title = newTitle;
+  }
 }
 
-class EmailService {
-    public void sendEmail(User user, String message) {
-        // Email sending logic
-    }
+// Responsibility 2: Book persistence
+class BookRepository {
+  void save(Book book) {
+    print('Saving book to database: ${book.title}');
+    // Database saving logic
+  }
+
+  Book? findByISBN(String isbn) {
+    // Database query logic
+    return null;
+  }
 }
 
-class UserRepository {
-    public void save(User user) {
-        // Database saving logic
-    }
+// Responsibility 3: Notification service
+class NotificationService {
+  void notifyLibrarian(String message) {
+    print('Email sent to librarian: $message');
+    // Email sending logic
+  }
+}
+
+// Responsibility 4: Book validation
+class BookValidator {
+  bool validateISBN(String isbn) {
+    return isbn.length == 13;
+  }
+
+  bool validateTitle(String title) {
+    return title.isNotEmpty;
+  }
 }
 ```
-
-### Benefits
-- Easier to understand and maintain
-- Reduced coupling between functionalities
-- Better testability
-- Clearer code organization
 
 ---
 
 ## 2. Open/Closed Principle (OCP)
 
-### Definition
-"Software entities should be open for extension but closed for modification."
+**Definition:** Software entities should be open for extension but closed for modification.
 
-### Key Concepts
-- Extend behavior without modifying existing code
-- Use abstraction and polymorphism
-- Protect existing functionality from bugs
-- Follow the "Don't touch working code" principle
+### ❌ Violation Example
 
-### Example - Violation of OCP
-```java
-// BAD: Must modify existing code for new shapes
-class AreaCalculator {
-    public double calculateArea(Object shape) {
-        if (shape instanceof Rectangle) {
-            Rectangle rectangle = (Rectangle) shape;
-            return rectangle.width * rectangle.height;
-        } else if (shape instanceof Circle) {
-            Circle circle = (Circle) shape;
-            return Math.PI * circle.radius * circle.radius;
-        }
-        // Need to modify this method for each new shape
-        return 0;
+```dart
+// BAD: Adding new book types requires modifying existing code
+class BookPriceCalculator {
+  double calculatePrice(Book book, String bookType) {
+    double basePrice = 20.0;
+    
+    if (bookType == 'fiction') {
+      return basePrice * 1.1;
+    } else if (bookType == 'academic') {
+      return basePrice * 1.5;
+    } else if (bookType == 'children') {
+      return basePrice * 0.8;
     }
+    // Adding new types requires modifying this method
+    return basePrice;
+  }
 }
 ```
 
-### Example - Following OCP
-```java
-// GOOD: Open for extension, closed for modification
-interface Shape {
-    double calculateArea();
+### ✅ Correct Implementation
+
+```dart
+// GOOD: Using abstraction to allow extension without modification
+
+// Base class that's closed for modification
+abstract class Book {
+  String title;
+  String author;
+  String isbn;
+
+  Book(this.title, this.author, this.isbn);
+
+  // Abstract method that subclasses must implement
+  double calculatePrice();
 }
 
-class Rectangle implements Shape {
-    private double width, height;
-    
-    public double calculateArea() {
-        return width * height;
-    }
+// Extensions - open for extension
+class FictionBook extends Book {
+  FictionBook(String title, String author, String isbn) 
+      : super(title, author, isbn);
+
+  @override
+  double calculatePrice() {
+    return 20.0 * 1.1; // 10% markup for fiction
+  }
 }
 
-class Circle implements Shape {
-    private double radius;
-    
-    public double calculateArea() {
-        return Math.PI * radius * radius;
-    }
+class AcademicBook extends Book {
+  FictionBook(String title, String author, String isbn) 
+      : super(title, author, isbn);
+
+  @override
+  double calculatePrice() {
+    return 20.0 * 1.5; // 50% markup for academic books
+  }
 }
 
-class AreaCalculator {
-    public double calculateArea(Shape shape) {
-        return shape.calculateArea(); // No modification needed for new shapes
-    }
+class ChildrenBook extends Book {
+  ChildrenBook(String title, String author, String isbn) 
+      : super(title, author, isbn);
+
+  @override
+  double calculatePrice() {
+    return 20.0 * 0.8; // 20% discount for children books
+  }
 }
 
-// New shape can be added without modifying existing code
-class Triangle implements Shape {
-    private double base, height;
-    
-    public double calculateArea() {
-        return 0.5 * base * height;
-    }
+// Price calculator doesn't need modification for new book types
+class BookPriceCalculator {
+  double calculatePrice(Book book) {
+    return book.calculatePrice();
+  }
+}
+
+// Adding new book types without modifying existing code
+class SciFiBook extends Book {
+  SciFiBook(String title, String author, String isbn) 
+      : super(title, author, isbn);
+
+  @override
+  double calculatePrice() {
+    return 20.0 * 1.2; // 20% markup for sci-fi
+  }
 }
 ```
-
-### Benefits
-- Reduced risk of introducing bugs
-- Easier to add new features
-- Better code maintainability
-- Follows the principle of not breaking existing functionality
 
 ---
 
 ## 3. Liskov Substitution Principle (LSP)
 
-### Definition
-"Objects of a superclass should be replaceable with objects of a subclass without breaking the application."
+**Definition:** Objects of a superclass should be replaceable with objects of its subclasses without breaking the application.
 
-### Key Concepts
-- Subtypes must be substitutable for their base types
-- Behavioral subtyping
-- Contract compliance
-- Inheritance should strengthen, not weaken, preconditions and postconditions
+### ❌ Violation Example
 
-### Example - Violation of LSP
-```java
-// BAD: Penguin violates LSP as it can't fly
-class Bird {
-    public void fly() {
-        // Flying logic
+```dart
+// BAD: Digital books violate LSP because they can't be physically borrowed
+class Book {
+  String title;
+  String author;
+  bool isPhysicallyAvailable;
+
+  Book(this.title, this.author) : isPhysicallyAvailable = true;
+
+  void borrowPhysically() {
+    if (isPhysicallyAvailable) {
+      isPhysicallyAvailable = false;
+      print('$title borrowed physically');
     }
+  }
+
+  void returnPhysically() {
+    isPhysicallyAvailable = true;
+    print('$title returned physically');
+  }
 }
 
-class Penguin extends Bird {
-    @Override
-    public void fly() {
-        throw new UnsupportedOperationException("Penguins can't fly!");
-    }
-}
+class DigitalBook extends Book {
+  DigitalBook(String title, String author) : super(title, author);
 
-// This will break when Penguin is used
-void makeBirdFly(Bird bird) {
-    bird.fly(); // Throws exception for Penguin
+  @override
+  void borrowPhysically() {
+    // This violates LSP - digital books can't be borrowed physically
+    throw Exception('Cannot borrow digital book physically');
+  }
+
+  @override
+  void returnPhysically() {
+    // This violates LSP - digital books can't be returned physically
+    throw Exception('Cannot return digital book physically');
+  }
 }
 ```
 
-### Example - Following LSP
-```java
-// GOOD: Proper abstraction hierarchy
-abstract class Bird {
-    public abstract void move();
+### ✅ Correct Implementation
+
+```dart
+// GOOD: Proper abstraction that all subclasses can implement
+
+abstract class LibraryItem {
+  String title;
+  String author;
+  bool isAvailable;
+
+  LibraryItem(this.title, this.author) : isAvailable = true;
+
+  // All subclasses can implement these methods properly
+  void borrow();
+  void returnItem();
+  String getAccessMethod();
 }
 
-class FlyingBird extends Bird {
-    public void fly() {
-        // Flying logic
+class PhysicalBook extends LibraryItem {
+  String shelfLocation;
+
+  PhysicalBook(String title, String author, this.shelfLocation) 
+      : super(title, author);
+
+  @override
+  void borrow() {
+    if (isAvailable) {
+      isAvailable = false;
+      print('Physical book "$title" borrowed from shelf $shelfLocation');
     }
-    
-    @Override
-    public void move() {
-        fly();
-    }
+  }
+
+  @override
+  void returnItem() {
+    isAvailable = true;
+    print('Physical book "$title" returned to shelf $shelfLocation');
+  }
+
+  @override
+  String getAccessMethod() {
+    return 'Physical access from shelf $shelfLocation';
+  }
 }
 
-class FlightlessBird extends Bird {
-    @Override
-    public void move() {
-        walk();
-    }
-    
-    public void walk() {
-        // Walking logic
-    }
+class DigitalBook extends LibraryItem {
+  String downloadUrl;
+
+  DigitalBook(String title, String author, this.downloadUrl) 
+      : super(title, author);
+
+  @override
+  void borrow() {
+    // Digital books are always "available" for download
+    print('Digital book "$title" access granted. Download: $downloadUrl');
+  }
+
+  @override
+  void returnItem() {
+    // Digital books don't need to be "returned"
+    print('Digital book "$title" access logged');
+  }
+
+  @override
+  String getAccessMethod() {
+    return 'Digital access via $downloadUrl';
+  }
 }
 
-class Eagle extends FlyingBird {
-    // Can substitute FlyingBird without issues
-}
-
-class Penguin extends FlightlessBird {
-    // Can substitute FlightlessBird without issues
+// This service works with any LibraryItem without knowing the specific type
+class LibraryService {
+  void processItemBorrow(LibraryItem item) {
+    print('Processing borrow for: ${item.title}');
+    item.borrow(); // Works correctly for both physical and digital books
+    print('Access method: ${item.getAccessMethod()}');
+  }
 }
 ```
-
-### Rules for LSP Compliance
-1. Preconditions cannot be strengthened in subtypes
-2. Postconditions cannot be weakened in subtypes
-3. Invariants must be preserved
-4. History constraint (new methods shouldn't allow state changes that the base class doesn't allow)
-
-### Benefits
-- Predictable inheritance behavior
-- Reliable polymorphism
-- Better code reusability
-- Reduced unexpected behavior
 
 ---
 
 ## 4. Interface Segregation Principle (ISP)
 
-### Definition
-"Clients should not be forced to depend on interfaces they do not use."
+**Definition:** No client should be forced to depend on methods it does not use. Create specific interfaces rather than one general-purpose interface.
 
-### Key Concepts
-- Create specific, focused interfaces
-- Avoid "fat" interfaces
-- High cohesion in interfaces
-- Reduce unnecessary dependencies
+### ❌ Violation Example
 
-### Example - Violation of ISP
-```java
-// BAD: Fat interface forces unnecessary dependencies
-interface Worker {
-    void work();
-    void eat();
-    void sleep();
+```dart
+// BAD: Fat interface that forces classes to implement unused methods
+abstract class LibraryOperations {
+  // Book operations
+  void borrowBook(String isbn);
+  void returnBook(String isbn);
+  void renewBook(String isbn);
+  
+  // Member operations
+  void registerMember(String memberId);
+  void updateMemberInfo(String memberId);
+  void deleteMember(String memberId);
+  
+  // Inventory operations
+  void addBookToInventory(Book book);
+  void removeBookFromInventory(String isbn);
+  void updateBookInfo(String isbn);
+  
+  // Reporting operations
+  void generateBorrowingReport();
+  void generateInventoryReport();
+  void generateMembershipReport();
 }
 
-class HumanWorker implements Worker {
-    public void work() { /* work implementation */ }
-    public void eat() { /* eat implementation */ }
-    public void sleep() { /* sleep implementation */ }
-}
+// This class only handles book operations but must implement all methods
+class BookService implements LibraryOperations {
+  @override
+  void borrowBook(String isbn) {
+    print('Book borrowed: $isbn');
+  }
 
-class RobotWorker implements Worker {
-    public void work() { /* work implementation */ }
-    public void eat() { /* Robots don't eat! */ }
-    public void sleep() { /* Robots don't sleep! */ }
+  @override
+  void returnBook(String isbn) {
+    print('Book returned: $isbn');
+  }
+
+  @override
+  void renewBook(String isbn) {
+    print('Book renewed: $isbn');
+  }
+
+  // Forced to implement unused methods
+  @override
+  void registerMember(String memberId) {
+    throw UnimplementedError('Not needed in BookService');
+  }
+
+  @override
+  void updateMemberInfo(String memberId) {
+    throw UnimplementedError('Not needed in BookService');
+  }
+
+  // ... all other unused methods
 }
 ```
 
-### Example - Following ISP
-```java
-// GOOD: Segregated interfaces
-interface Workable {
-    void work();
+### ✅ Correct Implementation
+
+```dart
+// GOOD: Segregated interfaces for specific responsibilities
+
+// Book-specific operations
+abstract class BookOperations {
+  void borrowBook(String isbn);
+  void returnBook(String isbn);
+  void renewBook(String isbn);
 }
 
-interface Eatable {
-    void eat();
+// Member-specific operations  
+abstract class MemberOperations {
+  void registerMember(String memberId);
+  void updateMemberInfo(String memberId);
+  void deleteMember(String memberId);
 }
 
-interface Sleepable {
-    void sleep();
+// Inventory-specific operations
+abstract class InventoryOperations {
+  void addBookToInventory(Book book);
+  void removeBookFromInventory(String isbn);
+  void updateBookInfo(String isbn);
 }
 
-class HumanWorker implements Workable, Eatable, Sleepable {
-    public void work() { /* work implementation */ }
-    public void eat() { /* eat implementation */ }
-    public void sleep() { /* sleep implementation */ }
+// Reporting-specific operations
+abstract class ReportingOperations {
+  void generateBorrowingReport();
+  void generateInventoryReport();
+  void generateMembershipReport();
 }
 
-class RobotWorker implements Workable {
-    public void work() { /* work implementation */ }
-    // Only implements what it needs
+// Classes implement only the interfaces they need
+class BookService implements BookOperations {
+  @override
+  void borrowBook(String isbn) {
+    print('Book borrowed: $isbn');
+  }
+
+  @override
+  void returnBook(String isbn) {
+    print('Book returned: $isbn');
+  }
+
+  @override
+  void renewBook(String isbn) {
+    print('Book renewed: $isbn');
+  }
+}
+
+class MemberService implements MemberOperations {
+  @override
+  void registerMember(String memberId) {
+    print('Member registered: $memberId');
+  }
+
+  @override
+  void updateMemberInfo(String memberId) {
+    print('Member info updated: $memberId');
+  }
+
+  @override
+  void deleteMember(String memberId) {
+    print('Member deleted: $memberId');
+  }
+}
+
+class InventoryService implements InventoryOperations {
+  @override
+  void addBookToInventory(Book book) {
+    print('Book added to inventory: ${book.title}');
+  }
+
+  @override
+  void removeBookFromInventory(String isbn) {
+    print('Book removed from inventory: $isbn');
+  }
+
+  @override
+  void updateBookInfo(String isbn) {
+    print('Book info updated: $isbn');
+  }
+}
+
+// A comprehensive service can implement multiple specific interfaces
+class LibraryManager implements BookOperations, MemberOperations, ReportingOperations {
+  final BookService _bookService = BookService();
+  final MemberService _memberService = MemberService();
+
+  // Delegate to appropriate services
+  @override
+  void borrowBook(String isbn) => _bookService.borrowBook(isbn);
+  
+  @override
+  void returnBook(String isbn) => _bookService.returnBook(isbn);
+  
+  @override
+  void renewBook(String isbn) => _bookService.renewBook(isbn);
+
+  @override
+  void registerMember(String memberId) => _memberService.registerMember(memberId);
+  
+  @override
+  void updateMemberInfo(String memberId) => _memberService.updateMemberInfo(memberId);
+  
+  @override
+  void deleteMember(String memberId) => _memberService.deleteMember(memberId);
+
+  @override
+  void generateBorrowingReport() {
+    print('Generating borrowing report...');
+  }
+
+  @override
+  void generateInventoryReport() {
+    print('Generating inventory report...');
+  }
+
+  @override
+  void generateMembershipReport() {
+    print('Generating membership report...');
+  }
 }
 ```
-
-### Benefits
-- Reduced coupling
-- Better code organization
-- Easier testing and mocking
-- More flexible design
-- Clearer dependencies
 
 ---
 
 ## 5. Dependency Inversion Principle (DIP)
 
-### Definition
-"High-level modules should not depend on low-level modules. Both should depend on abstractions. Abstractions should not depend on details. Details should depend on abstractions."
+**Definition:** High-level modules should not depend on low-level modules. Both should depend on abstractions. Abstractions should not depend on details; details should depend on abstractions.
 
-### Key Concepts
-- Depend on abstractions, not concretions
-- Invert the dependency direction
-- Use dependency injection
-- Decouple high-level and low-level modules
+### ❌ Violation Example
 
-### Example - Violation of DIP
-```java
-// BAD: High-level class depends on low-level class
-class MySQLDatabase {
-    public void save(String data) {
-        // MySQL specific implementation
-    }
+```dart
+// BAD: High-level module depends directly on low-level modules
+
+// Low-level modules (concrete implementations)
+class DatabaseBookRepository {
+  void save(Book book) {
+    print('Saving book to MySQL database: ${book.title}');
+    // MySQL-specific code
+  }
+
+  Book? findByISBN(String isbn) {
+    print('Querying MySQL database for ISBN: $isbn');
+    // MySQL-specific query
+    return null;
+  }
 }
 
-class UserService {
-    private MySQLDatabase database; // Direct dependency on concrete class
-    
-    public UserService() {
-        this.database = new MySQLDatabase(); // Tight coupling
+class EmailNotificationService {
+  void sendNotification(String message) {
+    print('Sending email notification: $message');
+    // SMTP email sending code
+  }
+}
+
+// High-level module that depends on concrete low-level modules
+class LibraryService {
+  // Direct dependencies on concrete classes - BAD!
+  final DatabaseBookRepository _repository = DatabaseBookRepository();
+  final EmailNotificationService _notificationService = EmailNotificationService();
+
+  void borrowBook(String isbn, String memberId) {
+    Book? book = _repository.findByISBN(isbn);
+    if (book != null && book.isAvailable) {
+      book.isAvailable = false;
+      _repository.save(book);
+      _notificationService.sendNotification('Book $isbn borrowed by $memberId');
     }
-    
-    public void saveUser(String userData) {
-        database.save(userData);
-    }
+  }
 }
 ```
 
-### Example - Following DIP
-```java
-// GOOD: Depend on abstraction
-interface Database {
-    void save(String data);
+### ✅ Correct Implementation
+
+```dart
+// GOOD: Both high-level and low-level modules depend on abstractions
+
+// Abstractions (interfaces)
+abstract class BookRepository {
+  void save(Book book);
+  Book? findByISBN(String isbn);
+  List<Book> findAvailableBooks();
 }
 
-class MySQLDatabase implements Database {
-    public void save(String data) {
-        // MySQL specific implementation
+abstract class NotificationService {
+  void sendNotification(String message);
+}
+
+// Low-level modules depend on abstractions
+class DatabaseBookRepository implements BookRepository {
+  @override
+  void save(Book book) {
+    print('Saving book to MySQL database: ${book.title}');
+    // MySQL-specific implementation
+  }
+
+  @override
+  Book? findByISBN(String isbn) {
+    print('Querying MySQL database for ISBN: $isbn');
+    // MySQL-specific query
+    return Book('Sample Title', 'Sample Author', isbn);
+  }
+
+  @override
+  List<Book> findAvailableBooks() {
+    print('Querying available books from MySQL database');
+    return [];
+  }
+}
+
+class FileBookRepository implements BookRepository {
+  @override
+  void save(Book book) {
+    print('Saving book to file system: ${book.title}');
+    // File-specific implementation
+  }
+
+  @override
+  Book? findByISBN(String isbn) {
+    print('Searching file system for ISBN: $isbn');
+    // File-specific search
+    return null;
+  }
+
+  @override
+  List<Book> findAvailableBooks() {
+    print('Reading available books from file system');
+    return [];
+  }
+}
+
+class EmailNotificationService implements NotificationService {
+  @override
+  void sendNotification(String message) {
+    print('Sending email notification: $message');
+    // SMTP email implementation
+  }
+}
+
+class SMSNotificationService implements NotificationService {
+  @override
+  void sendNotification(String message) {
+    print('Sending SMS notification: $message');
+    // SMS API implementation
+  }
+}
+
+// High-level module depends on abstractions
+class LibraryService {
+  final BookRepository _repository;
+  final NotificationService _notificationService;
+
+  // Dependency injection through constructor
+  LibraryService(this._repository, this._notificationService);
+
+  void borrowBook(String isbn, String memberId) {
+    Book? book = _repository.findByISBN(isbn);
+    if (book != null && book.isAvailable) {
+      book.isAvailable = false;
+      _repository.save(book);
+      _notificationService.sendNotification('Book $isbn borrowed by $memberId');
     }
+  }
+
+  void listAvailableBooks() {
+    List<Book> books = _repository.findAvailableBooks();
+    print('Available books: ${books.length}');
+  }
 }
 
-class PostgreSQLDatabase implements Database {
-    public void save(String data) {
-        // PostgreSQL specific implementation
-    }
-}
-
-class UserService {
-    private Database database; // Depends on abstraction
+// Dependency injection configuration
+class LibraryConfiguration {
+  static LibraryService createLibraryService() {
+    // Easy to switch implementations
+    BookRepository repository = DatabaseBookRepository(); // or FileBookRepository()
+    NotificationService notificationService = EmailNotificationService(); // or SMSNotificationService()
     
-    public UserService(Database database) { // Dependency injection
-        this.database = database;
-    }
-    
-    public void saveUser(String userData) {
-        database.save(userData);
-    }
+    return LibraryService(repository, notificationService);
+  }
 }
 
 // Usage
-Database db = new MySQLDatabase(); // or PostgreSQLDatabase
-UserService service = new UserService(db);
+void main() {
+  LibraryService libraryService = LibraryConfiguration.createLibraryService();
+  libraryService.borrowBook('1234567890123', 'member001');
+}
 ```
-
-### Benefits
-- Flexible and extensible code
-- Easier testing (mock dependencies)
-- Reduced coupling
-- Better code reusability
-- Easier to change implementations
-
----
 
 ## Benefits of Following SOLID Principles
 
-### Code Quality Improvements
-- **Maintainability**: Easier to modify and extend code
-- **Readability**: Clearer, more understandable code structure
-- **Testability**: Easier to write unit tests
-- **Reusability**: Components can be reused in different contexts
-- **Flexibility**: Easier to adapt to changing requirements
+1. **Maintainability**: Code is easier to understand and modify
+2. **Flexibility**: Easy to add new features without breaking existing code
+3. **Testability**: Classes with single responsibilities are easier to test
+4. **Reusability**: Well-designed components can be reused in different contexts
+5. **Scalability**: Systems can grow without becoming overly complex
 
-### Development Process Benefits
-- **Reduced Bugs**: Better separation of concerns reduces side effects
-- **Faster Development**: Well-structured code is easier to work with
-- **Team Collaboration**: Clear responsibilities make team work easier
-- **Code Reviews**: Easier to review and understand changes
+## Summary
 
----
+The SOLID principles work together to create robust, maintainable software:
 
-## Common Anti-Patterns and How SOLID Helps
+- **SRP**: One class, one responsibility
+- **OCP**: Extend behavior without modifying existing code
+- **LSP**: Subclasses should be substitutable for their base classes
+- **ISP**: Use specific interfaces instead of general-purpose ones
+- **DIP**: Depend on abstractions, not concretions
 
-### God Class/Object
-- **Problem**: One class doing too many things
-- **SOLID Solution**: SRP helps break down responsibilities
-
-### Fragile Base Class
-- **Problem**: Changes to base class break derived classes
-- **SOLID Solution**: LSP ensures proper inheritance relationships
-
-### Interface Pollution
-- **Problem**: Interfaces with too many methods
-- **SOLID Solution**: ISP promotes focused interfaces
-
-### Tight Coupling
-- **Problem**: Classes directly dependent on concrete implementations
-- **SOLID Solution**: DIP promotes loose coupling through abstractions
-
----
-
-## Best Practices for Implementing SOLID
-
-### 1. Start with SRP
-- Identify single responsibilities for each class
-- Use the "one reason to change" test
-- Extract mixed responsibilities into separate classes
-
-### 2. Design with OCP in Mind
-- Use interfaces and abstract classes
-- Favor composition over inheritance
-- Consider future extensions during design
-
-### 3. Ensure LSP Compliance
-- Test substitutability
-- Maintain behavioral contracts
-- Avoid strengthening preconditions or weakening postconditions
-
-### 4. Apply ISP Gradually
-- Identify interface clients
-- Split large interfaces based on client needs
-- Create role-based interfaces
-
-### 5. Implement DIP Systematically
-- Identify abstractions
-- Use dependency injection frameworks
-- Invert control flow
-
----
-
-## Tools and Techniques
-
-### Design Patterns That Support SOLID
-- **Strategy Pattern**: Supports OCP and DIP
-- **Factory Pattern**: Supports DIP
-- **Observer Pattern**: Supports OCP
-- **Adapter Pattern**: Supports LSP
-- **Command Pattern**: Supports SRP and OCP
-
-### Dependency Injection Frameworks
-- Spring (Java)
-- Unity (.NET)
-- Dagger (Android/Java)
-- Guice (Java)
-
-### Code Analysis Tools
-- SonarQube
-- PMD
-- CheckStyle
-- ESLint (JavaScript/TypeScript)
-
----
-
-## Conclusion
-
-SOLID principles provide a foundation for writing maintainable, flexible, and robust object-oriented code. While following these principles may require more upfront design effort, the long-term benefits in terms of code quality, maintainability, and extensibility make them essential for any serious software development project.
-
-Remember that SOLID principles are guidelines, not rigid rules. The key is to understand the underlying concepts and apply them judiciously based on the specific context and requirements of your project.
+By applying these principles consistently in your Dart applications, you'll create code that is easier to maintain, test, and extend over time.
