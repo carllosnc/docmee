@@ -1,0 +1,759 @@
+# Object Calisthenics: Complete Reference Guide
+
+## Introduction
+
+Object Calisthenics is a set of programming exercises designed by Jeff Bay to improve object-oriented programming skills. These nine rules push developers to write better, more maintainable, and more expressive object-oriented code by imposing constraints that force better design decisions.
+
+The term "calisthenics" refers to exercises that use body weight to develop physical fitness. Similarly, Object Calisthenics uses programming constraints to develop better coding habits and design thinking.
+
+## The Nine Rules of Object Calisthenics
+
+### Rule 1: Only One Level of Indentation Per Method
+
+**Principle**: Keep methods simple by limiting nesting to just one level.
+
+**Why**: Reduces complexity, improves readability, and forces method extraction.
+
+**Bad Example**:
+```java
+public void processOrders(List<Order> orders) {
+    for (Order order : orders) {
+        if (order.isValid()) {
+            for (Item item : order.getItems()) {
+                if (item.isInStock()) {
+                    item.reserve();
+                    if (item.needsSpecialHandling()) {
+                        scheduleSpecialHandling(item);
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+**Good Example**:
+```java
+public void processOrders(List<Order> orders) {
+    for (Order order : orders) {
+        processOrder(order);
+    }
+}
+
+private void processOrder(Order order) {
+    if (!order.isValid()) return;
+    
+    for (Item item : order.getItems()) {
+        processItem(item);
+    }
+}
+
+private void processItem(Item item) {
+    if (!item.isInStock()) return;
+    
+    item.reserve();
+    handleSpecialRequirements(item);
+}
+
+private void handleSpecialRequirements(Item item) {
+    if (item.needsSpecialHandling()) {
+        scheduleSpecialHandling(item);
+    }
+}
+```
+
+### Rule 2: Don't Use the ELSE Keyword
+
+**Principle**: Eliminate else clauses to reduce complexity and improve code flow.
+
+**Why**: Forces early returns, reduces nesting, and makes code more linear and readable.
+
+**Bad Example**:
+```java
+public String getDiscount(Customer customer) {
+    if (customer.isPremium()) {
+        if (customer.getOrderCount() > 10) {
+            return "20%";
+        } else {
+            return "10%";
+        }
+    } else {
+        if (customer.isFirstTime()) {
+            return "5%";
+        } else {
+            return "0%";
+        }
+    }
+}
+```
+
+**Good Example**:
+```java
+public String getDiscount(Customer customer) {
+    if (customer.isPremium() && customer.getOrderCount() > 10) {
+        return "20%";
+    }
+    
+    if (customer.isPremium()) {
+        return "10%";
+    }
+    
+    if (customer.isFirstTime()) {
+        return "5%";
+    }
+    
+    return "0%";
+}
+```
+
+**Alternative with Polymorphism**:
+```java
+// Using Strategy pattern
+public interface DiscountStrategy {
+    String getDiscount();
+}
+
+public class PremiumHighVolumeDiscount implements DiscountStrategy {
+    public String getDiscount() { return "20%"; }
+}
+
+public class Customer {
+    private DiscountStrategy discountStrategy;
+    
+    public String getDiscount() {
+        return discountStrategy.getDiscount();
+    }
+}
+```
+
+### Rule 3: Wrap All Primitives and Strings
+
+**Principle**: Encapsulate primitive values in meaningful objects.
+
+**Why**: Adds type safety, enables validation, and makes the domain model more expressive.
+
+**Bad Example**:
+```java
+public class Order {
+    private String customerId;
+    private double amount;
+    private String currency;
+    private long timestamp;
+    
+    public boolean isValidAmount(double amount) {
+        return amount > 0;
+    }
+}
+```
+
+**Good Example**:
+```java
+public class CustomerId {
+    private final String value;
+    
+    public CustomerId(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer ID cannot be empty");
+        }
+        this.value = value.trim();
+    }
+    
+    public String getValue() { return value; }
+}
+
+public class Money {
+    private final double amount;
+    private final Currency currency;
+    
+    public Money(double amount, Currency currency) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("Amount cannot be negative");
+        }
+        this.amount = amount;
+        this.currency = currency;
+    }
+    
+    public boolean isPositive() { return amount > 0; }
+    public Money add(Money other) { /* implementation */ }
+}
+
+public class Timestamp {
+    private final long value;
+    
+    public Timestamp(long value) {
+        this.value = value;
+    }
+    
+    public boolean isBefore(Timestamp other) {
+        return this.value < other.value;
+    }
+}
+
+public class Order {
+    private final CustomerId customerId;
+    private final Money amount;
+    private final Timestamp createdAt;
+    
+    // Constructor and methods using value objects
+}
+```
+
+### Rule 4: First Class Collections
+
+**Principle**: Wrap collections in dedicated classes rather than exposing them directly.
+
+**Why**: Encapsulates collection behavior, prevents external modification, and creates a more expressive API.
+
+**Bad Example**:
+```java
+public class ShoppingCart {
+    private List<Item> items = new ArrayList<>();
+    
+    public List<Item> getItems() {
+        return items; // Dangerous! Exposes internal collection
+    }
+    
+    public void addItem(Item item) {
+        items.add(item);
+    }
+}
+
+// Usage - problematic
+ShoppingCart cart = new ShoppingCart();
+cart.getItems().clear(); // Oops! External modification
+```
+
+**Good Example**:
+```java
+public class Items {
+    private final List<Item> items;
+    
+    public Items() {
+        this.items = new ArrayList<>();
+    }
+    
+    public Items(List<Item> items) {
+        this.items = new ArrayList<>(items);
+    }
+    
+    public Items add(Item item) {
+        List<Item> newItems = new ArrayList<>(items);
+        newItems.add(item);
+        return new Items(newItems);
+    }
+    
+    public Items remove(Item item) {
+        List<Item> newItems = new ArrayList<>(items);
+        newItems.remove(item);
+        return new Items(newItems);
+    }
+    
+    public int size() {
+        return items.size();
+    }
+    
+    public boolean contains(Item item) {
+        return items.contains(item);
+    }
+    
+    public Money totalValue() {
+        return items.stream()
+                   .map(Item::getPrice)
+                   .reduce(Money.ZERO, Money::add);
+    }
+    
+    public Stream<Item> stream() {
+        return items.stream();
+    }
+}
+
+public class ShoppingCart {
+    private Items items;
+    
+    public ShoppingCart() {
+        this.items = new Items();
+    }
+    
+    public void addItem(Item item) {
+        items = items.add(item);
+    }
+    
+    public Money getTotal() {
+        return items.totalValue();
+    }
+    
+    public int getItemCount() {
+        return items.size();
+    }
+}
+```
+
+### Rule 5: One Dot Per Line
+
+**Principle**: Avoid chaining method calls (Law of Demeter).
+
+**Why**: Reduces coupling, improves encapsulation, and makes code less fragile to changes.
+
+**Bad Example**:
+```java
+public class OrderProcessor {
+    public void processOrder(Order order) {
+        String customerEmail = order.getCustomer().getProfile().getContactInfo().getEmail();
+        order.getCustomer().getAccount().getPaymentMethod().charge(order.getTotal());
+        order.getItems().get(0).getProduct().getCategory().updateInventory();
+    }
+}
+```
+
+**Good Example**:
+```java
+public class Order {
+    private Customer customer;
+    private Items items;
+    
+    public String getCustomerEmail() {
+        return customer.getEmail();
+    }
+    
+    public void chargeCustomer() {
+        customer.chargeAccount(getTotal());
+    }
+    
+    public void updateInventory() {
+        items.updateInventory();
+    }
+}
+
+public class Customer {
+    private Profile profile;
+    private Account account;
+    
+    public String getEmail() {
+        return profile.getEmail();
+    }
+    
+    public void chargeAccount(Money amount) {
+        account.charge(amount);
+    }
+}
+
+public class OrderProcessor {
+    public void processOrder(Order order) {
+        String customerEmail = order.getCustomerEmail();
+        order.chargeCustomer();
+        order.updateInventory();
+    }
+}
+```
+
+### Rule 6: Don't Abbreviate
+
+**Principle**: Use full, descriptive names for variables, methods, and classes.
+
+**Why**: Improves code readability and reduces the need for comments.
+
+**Bad Example**:
+```java
+public class CustMgr {
+    private List<Cust> custs;
+    
+    public void procOrd(Ord ord) {
+        Cust c = findCustById(ord.getCustId());
+        if (c.isVld() && ord.getAmt() > 0) {
+            c.addOrd(ord);
+            updateInv(ord.getItems());
+        }
+    }
+    
+    public void updateInv(List<Itm> itms) {
+        for (Itm itm : itms) {
+            itm.decQty();
+        }
+    }
+}
+```
+
+**Good Example**:
+```java
+public class CustomerManager {
+    private List<Customer> customers;
+    
+    public void processOrder(Order order) {
+        Customer customer = findCustomerById(order.getCustomerId());
+        if (customer.isValid() && order.hasPositiveAmount()) {
+            customer.addOrder(order);
+            updateInventory(order.getItems());
+        }
+    }
+    
+    public void updateInventory(List<Item> items) {
+        for (Item item : items) {
+            item.decreaseQuantity();
+        }
+    }
+}
+```
+
+### Rule 7: Keep All Entities Small
+
+**Principle**: Limit class size (50 lines), package size (10 files), and method parameters.
+
+**Why**: Improves maintainability, testability, and follows Single Responsibility Principle.
+
+**Bad Example**:
+```java
+public class OrderService {
+    // 200+ lines of code
+    
+    public void processOrder(String customerId, String productId, int quantity, 
+                           double price, String currency, String shippingAddress, 
+                           String billingAddress, String paymentMethod, 
+                           boolean expressShipping, String promoCode) {
+        // Massive method with too many responsibilities
+        // Customer validation
+        // Product validation  
+        // Inventory checking
+        // Price calculation
+        // Tax calculation
+        // Shipping calculation
+        // Payment processing
+        // Order creation
+        // Email notification
+        // Audit logging
+    }
+}
+```
+
+**Good Example**:
+```java
+public class OrderRequest {
+    private final CustomerId customerId;
+    private final ProductId productId;
+    private final Quantity quantity;
+    private final Money price;
+    private final ShippingAddress shippingAddress;
+    private final BillingAddress billingAddress;
+    private final PaymentMethod paymentMethod;
+    private final ShippingOption shippingOption;
+    private final PromoCode promoCode;
+    
+    // Constructor and getters
+}
+
+public class OrderProcessor {
+    private final CustomerValidator customerValidator;
+    private final InventoryService inventoryService;
+    private final PricingService pricingService;
+    private final PaymentService paymentService;
+    private final OrderRepository orderRepository;
+    private final NotificationService notificationService;
+    
+    public OrderResult processOrder(OrderRequest request) {
+        validateCustomer(request);
+        validateInventory(request);
+        Money totalPrice = calculateTotal(request);
+        processPayment(request, totalPrice);
+        Order order = createOrder(request, totalPrice);
+        sendNotification(order);
+        return new OrderResult(order);
+    }
+    
+    private void validateCustomer(OrderRequest request) {
+        customerValidator.validate(request.getCustomerId());
+    }
+    
+    // Other small, focused methods
+}
+
+public class CustomerValidator {
+    public void validate(CustomerId customerId) {
+        // Single responsibility: customer validation
+    }
+}
+
+public class PricingService {
+    public Money calculateTotal(OrderRequest request) {
+        // Single responsibility: price calculation
+    }
+}
+```
+
+### Rule 8: No Classes with More Than Two Instance Variables
+
+**Principle**: Limit the number of instance variables to improve cohesion.
+
+**Why**: Forces better decomposition and creates more cohesive classes.
+
+**Bad Example**:
+```java
+public class Customer {
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
+    private String streetAddress;
+    private String city;
+    private String state;
+    private String zipCode;
+    private String country;
+    private String accountNumber;
+    private double balance;
+    private String paymentMethod;
+    private Date createdDate;
+    private boolean isActive;
+    private String preferredLanguage;
+    private List<Order> orders;
+}
+```
+
+**Good Example**:
+```java
+public class Customer {
+    private final PersonalInfo personalInfo;
+    private final CustomerAccount account;
+    
+    public Customer(PersonalInfo personalInfo, CustomerAccount account) {
+        this.personalInfo = personalInfo;
+        this.account = account;
+    }
+    
+    public String getFullName() {
+        return personalInfo.getFullName();
+    }
+    
+    public void chargeAccount(Money amount) {
+        account.charge(amount);
+    }
+}
+
+public class PersonalInfo {
+    private final Name name;
+    private final ContactInfo contactInfo;
+    
+    public PersonalInfo(Name name, ContactInfo contactInfo) {
+        this.name = name;
+        this.contactInfo = contactInfo;
+    }
+    
+    public String getFullName() {
+        return name.getFullName();
+    }
+}
+
+public class Name {
+    private final String firstName;
+    private final String lastName;
+    
+    public Name(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+    
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+}
+
+public class ContactInfo {
+    private final EmailAddress email;
+    private final Address address;
+    
+    // Implementation
+}
+
+public class CustomerAccount {
+    private final AccountNumber accountNumber;
+    private final AccountBalance balance;
+    
+    public void charge(Money amount) {
+        balance.deduct(amount);
+    }
+}
+```
+
+### Rule 9: No Getters/Setters/Properties
+
+**Principle**: Don't expose internal state; instead, provide behavior-focused methods.
+
+**Why**: Promotes encapsulation, reduces coupling, and creates more expressive APIs.
+
+**Bad Example**:
+```java
+public class BankAccount {
+    private double balance;
+    
+    public double getBalance() {
+        return balance;
+    }
+    
+    public void setBalance(double balance) {
+        this.balance = balance;
+    }
+}
+
+// Usage - procedural style
+BankAccount account = new BankAccount();
+account.setBalance(100.0);
+if (account.getBalance() >= 50.0) {
+    account.setBalance(account.getBalance() - 50.0);
+}
+```
+
+**Good Example**:
+```java
+public class BankAccount {
+    private Money balance;
+    
+    public BankAccount(Money initialBalance) {
+        this.balance = initialBalance;
+    }
+    
+    public void withdraw(Money amount) {
+        if (canWithdraw(amount)) {
+            balance = balance.subtract(amount);
+        } else {
+            throw new InsufficientFundsException();
+        }
+    }
+    
+    public void deposit(Money amount) {
+        balance = balance.add(amount);
+    }
+    
+    public boolean canWithdraw(Money amount) {
+        return balance.isGreaterThanOrEqualTo(amount);
+    }
+    
+    public TransferResult transferTo(BankAccount targetAccount, Money amount) {
+        if (canWithdraw(amount)) {
+            this.withdraw(amount);
+            targetAccount.deposit(amount);
+            return TransferResult.success();
+        }
+        return TransferResult.failure("Insufficient funds");
+    }
+}
+
+// Usage - object-oriented style
+BankAccount account = new BankAccount(Money.dollars(100));
+account.withdraw(Money.dollars(50));
+account.transferTo(otherAccount, Money.dollars(25));
+```
+
+## Benefits of Object Calisthenics
+
+### 1. **Improved Code Readability**
+- Shorter methods are easier to understand
+- Descriptive names eliminate guesswork
+- Reduced nesting improves flow
+
+### 2. **Better Encapsulation**
+- Value objects protect data integrity
+- Behavior-focused methods hide implementation
+- First-class collections control access
+
+### 3. **Reduced Coupling**
+- One dot per line reduces dependencies
+- Small entities have fewer connections
+- Clear interfaces minimize impact of changes
+
+### 4. **Enhanced Testability**
+- Small methods are easier to test
+- Clear responsibilities simplify mocking
+- Immutable objects reduce test complexity
+
+### 5. **Stronger Domain Modeling**
+- Value objects represent domain concepts
+- Behavior-rich objects model real-world entities
+- Expressive APIs communicate intent
+
+## Practical Implementation Strategies
+
+### Starting with Object Calisthenics
+
+1. **Begin Gradually**: Implement one rule at a time
+2. **Focus on New Code**: Apply rules to new features first
+3. **Refactor Iteratively**: Improve existing code in small steps
+4. **Team Adoption**: Establish coding standards and review practices
+
+### Common Challenges and Solutions
+
+#### Challenge: "My classes become too numerous"
+**Solution**: This is often a sign of better design. Many small, focused classes are easier to maintain than few large ones.
+
+#### Challenge: "Performance concerns with many small objects"
+**Solution**: Modern JVMs are optimized for object allocation. Focus on clean design first, optimize only when performance issues are identified.
+
+#### Challenge: "More code to write"
+**Solution**: While line count may increase, code complexity decreases. The time saved in debugging and maintenance outweighs initial development time.
+
+### Tool Support
+
+#### IDE Plugins
+- **Checkstyle**: Configure rules for method length, parameter count
+- **PMD**: Detect complex methods and large classes
+- **SpotBugs**: Identify potential design issues
+
+#### Code Quality Metrics
+- **Cyclomatic Complexity**: Measure method complexity
+- **Coupling Metrics**: Track dependencies between classes
+- **Cohesion Metrics**: Ensure classes have focused responsibilities
+
+## Advanced Patterns Supporting Object Calisthenics
+
+### Value Objects Pattern
+```java
+public class Money {
+    private final BigDecimal amount;
+    private final Currency currency;
+    
+    // Immutable, with operations returning new instances
+    public Money add(Money other) {
+        validateSameCurrency(other);
+        return new Money(amount.add(other.amount), currency);
+    }
+}
+```
+
+### Strategy Pattern (Eliminating conditionals)
+```java
+public interface TaxCalculator {
+    Money calculateTax(Money amount);
+}
+
+public class Order {
+    private final TaxCalculator taxCalculator;
+    
+    public Money getTotalWithTax() {
+        Money subtotal = calculateSubtotal();
+        Money tax = taxCalculator.calculateTax(subtotal);
+        return subtotal.add(tax);
+    }
+}
+```
+
+### Command Pattern (Behavior encapsulation)
+```java
+public interface OrderCommand {
+    void execute();
+}
+
+public class ProcessOrderCommand implements OrderCommand {
+    private final Order order;
+    private final PaymentService paymentService;
+    
+    public void execute() {
+        order.validate();
+        paymentService.processPayment(order);
+        order.confirm();
+    }
+}
+```
+
+## Conclusion
+
+Object Calisthenics is not about following rules blindly, but about developing better design instincts. These constraints force developers to think more deeply about object-oriented design principles like encapsulation, cohesion, and loose coupling.
+
+While some rules may seem extreme, they serve as exercises to push beyond comfortable coding habits. In production code, teams might choose to relax certain rules where pragmatic, but the thinking process and design improvements gained from practicing Object Calisthenics will lead to better software architecture overall.
+
+The ultimate goal is to write code that is more maintainable, testable, and expressive of the business domain it represents.
