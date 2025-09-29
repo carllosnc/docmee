@@ -1,0 +1,589 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+# Local Notifications
+
+## Table of Contents
+1. [Setup and Dependencies](#setup-and-dependencies)
+2. [Permissions](#permissions)
+3. [Basic Notification Implementation](#basic-notification-implementation)
+4. [Notification Channels](#notification-channels)
+5. [Scheduled Notifications](#scheduled-notifications)
+6. [Advanced Features](#advanced-features)
+7. [Best Practices](#best-practices)
+8. [Complete Example](#complete-example)
+
+## Setup and Dependencies
+
+### 1. Add Dependencies (build.gradle.kts - Module level)
+```kotlin
+dependencies {
+    implementation "androidx.core:core:1.12.0"
+    implementation "androidx.work:work-runtime-ktx:2.9.0" // For scheduling
+    implementation "androidx.compose.ui:ui:$compose_version"
+    implementation "androidx.compose.material3:material3:$material3_version"
+}
+```
+
+### 2. Manifest Permissions
+Add to `AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+<!-- For Android 12+ -->
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+```
+
+## Permissions
+
+### Runtime Permission Request (Android 13+)
+```kotlin
+@Composable
+fun RequestNotificationPermission() {
+    val context = LocalContext.current
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else true
+        )
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasNotificationPermission = isGranted
+    }
+
+    LaunchedEffect(key1 = true) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!hasNotificationPermission) {
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+}
+```
+
+## Basic Notification Implementation
+
+### 1. Notification Manager Class
+```kotlin
+class NotificationManager(private val context: Context) {
+    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) 
+        as android.app.NotificationManager
+
+    companion object {
+        const val CHANNEL_ID = "local_notifications"
+        const val CHANNEL_NAME = "Local Notifications"
+        const val NOTIFICATION_ID = 1
+    }
+
+    init {
+        createNotificationChannel()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Channel for local notifications"
+                enableLights(true)
+                lightColor = Color.BLUE
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    fun showNotification(
+        title: String,
+        content: String,
+        icon: Int = R.drawable.ic_notification
+    ) {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSmallIcon(icon)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+}
+```
+
+### 2. Usage in Composable
+```kotlin
+@Composable
+fun NotificationScreen() {
+    val context = LocalContext.current
+    val notificationManager = remember { NotificationManager(context) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(
+            onClick = {
+                notificationManager.showNotification(
+                    title = "Hello!",
+                    content = "This is a local notification"
+                )
+            }
+        ) {
+            Text("Show Notification")
+        }
+    }
+}
+```
+
+## Notification Channels
+
+### Advanced Channel Management
+```kotlin
+class AdvancedNotificationManager(private val context: Context) {
+    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) 
+        as android.app.NotificationManager
+
+    object Channels {
+        const val URGENT = "urgent_channel"
+        const val REMINDERS = "reminders_channel"
+        const val UPDATES = "updates_channel"
+    }
+
+    init {
+        createNotificationChannels()
+    }
+
+    private fun createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channels = listOf(
+                NotificationChannel(
+                    Channels.URGENT,
+                    "Urgent Notifications",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Critical notifications that need immediate attention"
+                    enableLights(true)
+                    lightColor = Color.RED
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 500, 200, 500)
+                },
+                NotificationChannel(
+                    Channels.REMINDERS,
+                    "Reminders",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Reminder notifications"
+                    enableLights(true)
+                    lightColor = Color.BLUE
+                },
+                NotificationChannel(
+                    Channels.UPDATES,
+                    "Updates",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "App updates and information"
+                }
+            )
+            
+            channels.forEach { channel ->
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+    }
+}
+```
+
+## Scheduled Notifications
+
+### 1. AlarmManager Approach
+```kotlin
+class ScheduledNotificationManager(private val context: Context) {
+    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    fun scheduleNotification(
+        title: String,
+        content: String,
+        triggerTimeMillis: Long,
+        notificationId: Int = Random.nextInt()
+    ) {
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("title", title)
+            putExtra("content", content)
+            putExtra("notificationId", notificationId)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                triggerTimeMillis,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                triggerTimeMillis,
+                pendingIntent
+            )
+        }
+    }
+
+    fun cancelScheduledNotification(notificationId: Int) {
+        val intent = Intent(context, NotificationReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+    }
+}
+```
+
+### 2. Broadcast Receiver
+```kotlin
+class NotificationReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val title = intent.getStringExtra("title") ?: "Scheduled Notification"
+        val content = intent.getStringExtra("content") ?: "Time's up!"
+        val notificationId = intent.getIntExtra("notificationId", 1)
+
+        val notificationManager = NotificationManager(context)
+        notificationManager.showNotification(title, content)
+    }
+}
+```
+
+### 3. Register Receiver in Manifest
+```xml
+<receiver android:name=".NotificationReceiver" />
+```
+
+### 4. WorkManager Approach (Recommended for longer delays)
+```kotlin
+class NotificationWorker(
+    context: Context,
+    workerParams: WorkerParameters
+) : Worker(context, workerParams) {
+
+    override fun doWork(): Result {
+        val title = inputData.getString("title") ?: "Scheduled Notification"
+        val content = inputData.getString("content") ?: "Time's up!"
+        
+        val notificationManager = NotificationManager(applicationContext)
+        notificationManager.showNotification(title, content)
+        
+        return Result.success()
+    }
+}
+
+// Usage
+fun scheduleNotificationWithWorkManager(
+    context: Context,
+    title: String,
+    content: String,
+    delayMillis: Long
+) {
+    val workRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
+        .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
+        .setInputData(
+            workDataOf(
+                "title" to title,
+                "content" to content
+            )
+        )
+        .build()
+
+    WorkManager.getInstance(context).enqueue(workRequest)
+}
+```
+
+## Advanced Features
+
+### 1. Rich Notifications with Actions
+```kotlin
+fun showRichNotification(
+    title: String,
+    content: String,
+    bigText: String? = null,
+    actions: List<NotificationAction> = emptyList()
+) {
+    val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setContentTitle(title)
+        .setContentText(content)
+        .setSmallIcon(R.drawable.ic_notification)
+        .setAutoCancel(true)
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+    // Big text style
+    bigText?.let {
+        builder.setStyle(
+            NotificationCompat.BigTextStyle()
+                .bigText(it)
+        )
+    }
+
+    // Add actions
+    actions.forEach { action ->
+        val actionIntent = Intent(context, NotificationActionReceiver::class.java).apply {
+            putExtra("action", action.action)
+        }
+        val actionPendingIntent = PendingIntent.getBroadcast(
+            context,
+            action.requestCode,
+            actionIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        builder.addAction(
+            action.icon,
+            action.title,
+            actionPendingIntent
+        )
+    }
+
+    notificationManager.notify(Random.nextInt(), builder.build())
+}
+
+data class NotificationAction(
+    val icon: Int,
+    val title: String,
+    val action: String,
+    val requestCode: Int = Random.nextInt()
+)
+```
+
+### 2. Progress Notifications
+```kotlin
+fun showProgressNotification(
+    title: String,
+    initialProgress: Int = 0
+): Int {
+    val notificationId = Random.nextInt()
+    
+    val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setContentTitle(title)
+        .setSmallIcon(R.drawable.ic_download)
+        .setProgress(100, initialProgress, false)
+        .setOngoing(true)
+
+    notificationManager.notify(notificationId, builder.build())
+    return notificationId
+}
+
+fun updateProgress(notificationId: Int, progress: Int) {
+    val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setContentTitle("Downloading...")
+        .setSmallIcon(R.drawable.ic_download)
+        .setProgress(100, progress, false)
+
+    notificationManager.notify(notificationId, builder.build())
+}
+
+fun completeProgress(notificationId: Int, title: String = "Download Complete") {
+    val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setContentTitle(title)
+        .setSmallIcon(R.drawable.ic_check)
+        .setProgress(0, 0, false)
+        .setOngoing(false)
+        .setAutoCancel(true)
+
+    notificationManager.notify(notificationId, builder.build())
+}
+```
+
+### 3. Grouped Notifications
+```kotlin
+fun showGroupedNotifications(messages: List<Message>) {
+    val GROUP_KEY = "message_group"
+    val GROUP_ID = 0
+
+    // Create individual notifications
+    messages.forEachIndexed { index, message ->
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle(message.sender)
+            .setContentText(message.content)
+            .setSmallIcon(R.drawable.ic_message)
+            .setGroup(GROUP_KEY)
+            .build()
+
+        notificationManager.notify(index + 1, notification)
+    }
+
+    // Create summary notification
+    val summaryNotification = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setContentTitle("Messages")
+        .setContentText("${messages.size} new messages")
+        .setSmallIcon(R.drawable.ic_message)
+        .setGroup(GROUP_KEY)
+        .setGroupSummary(true)
+        .build()
+
+    notificationManager.notify(GROUP_ID, summaryNotification)
+}
+```
+
+## Best Practices
+
+### 1. Permission Handling
+- Always check for notification permissions before showing notifications
+- Handle permission denial gracefully
+- Explain why your app needs notification permissions
+
+### 2. Channel Management
+- Create specific channels for different types of notifications
+- Use appropriate importance levels
+- Allow users to customize channel settings
+
+### 3. Scheduling Best Practices
+- Use WorkManager for delays longer than 15 minutes
+- Use AlarmManager for exact timing requirements
+- Always handle device restarts for persistent scheduling
+- Respect user's Do Not Disturb settings
+
+### 4. User Experience
+- Make notifications actionable and relevant
+- Use clear, concise text
+- Implement proper deep linking
+- Group related notifications
+- Provide options to disable specific notification types
+
+## Complete Example
+
+Here's a complete implementation combining all features:
+
+```kotlin
+@Composable
+fun NotificationDemoScreen() {
+    val context = LocalContext.current
+    val notificationManager = remember { AdvancedNotificationManager(context) }
+    val scheduledManager = remember { ScheduledNotificationManager(context) }
+    
+    var selectedTime by remember { mutableStateOf<Long?>(null) }
+    
+    RequestNotificationPermission()
+    
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            Text("Notification Demo", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        item {
+            Button(
+                onClick = {
+                    notificationManager.showBasicNotification(
+                        "Simple Notification",
+                        "This is a basic notification"
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Show Basic Notification")
+            }
+        }
+        
+        item {
+            Button(
+                onClick = {
+                    notificationManager.showRichNotification(
+                        title = "Rich Notification",
+                        content = "This notification has actions",
+                        bigText = "This is a longer text that will be displayed when the notification is expanded. It can contain much more detailed information.",
+                        actions = listOf(
+                            NotificationAction(
+                                icon = R.drawable.ic_reply,
+                                title = "Reply",
+                                action = "reply"
+                            ),
+                            NotificationAction(
+                                icon = R.drawable.ic_mark_read,
+                                title = "Mark as Read",
+                                action = "mark_read"
+                            )
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Show Rich Notification")
+            }
+        }
+        
+        item {
+            Button(
+                onClick = {
+                    val futureTime = System.currentTimeMillis() + (10 * 1000) // 10 seconds
+                    scheduledManager.scheduleNotification(
+                        title = "Scheduled Notification",
+                        content = "This notification was scheduled 10 seconds ago",
+                        triggerTimeMillis = futureTime
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Schedule Notification (10s)")
+            }
+        }
+        
+        item {
+            Button(
+                onClick = {
+                    scheduleNotificationWithWorkManager(
+                        context = context,
+                        title = "WorkManager Notification",
+                        content = "This was scheduled with WorkManager",
+                        delayMillis = 30000 // 30 seconds
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Schedule with WorkManager (30s)")
+            }
+        }
+    }
+}
+
+data class Message(val sender: String, val content: String)
+```
+
+This comprehensive guide covers all aspects of local notifications in Jetpack Compose, from basic implementation to advanced scheduling and rich notification features. The examples are production-ready and follow Android development best practices.
