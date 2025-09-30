@@ -1,0 +1,326 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/jetpack-compose">← Jetpack Compose</a> <br /> <br />
+
+```kotlin
+// 1. Add dependencies to build.gradle.kts
+/*
+dependencies {
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+}
+*/
+
+// 2. AndroidManifest.xml - Add permissions
+/*
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+*/
+
+// 3. Create Notification Channel
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.work.*
+import java.util.concurrent.TimeUnit
+
+object NotificationHelper {
+    const val CHANNEL_ID = "daily_notifications"
+    const val CHANNEL_NAME = "Daily Reminders"
+    
+    fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Daily notification reminders"
+            }
+            
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+    
+    fun showNotification(context: Context, title: String, message: String, notificationId: Int) {
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+        
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(notificationId, notification)
+    }
+}
+
+// 4. Worker for displaying notification
+class DailyNotificationWorker(
+    context: Context,
+    params: WorkerParameters
+) : Worker(context, params) {
+    
+    override fun doWork(): Result {
+        val title = inputData.getString("title") ?: "Reminder"
+        val message = inputData.getString("message") ?: "Daily notification"
+        val notificationId = inputData.getInt("notificationId", 0)
+        
+        NotificationHelper.showNotification(
+            applicationContext,
+            title,
+            message,
+            notificationId
+        )
+        
+        return Result.success()
+    }
+}
+
+// 5. Notification Scheduler
+import java.util.*
+
+data class ScheduledNotification(
+    val id: String,
+    val title: String,
+    val message: String,
+    val hour: Int,
+    val minute: Int,
+    val tag: String
+)
+
+class NotificationScheduler(private val context: Context) {
+    private val workManager = WorkManager.getInstance(context)
+    
+    fun scheduleDailyNotification(
+        notificationId: Int,
+        title: String,
+        message: String,
+        hour: Int,
+        minute: Int,
+        tag: String = "daily_notification_$notificationId"
+    ) {
+        val currentTime = Calendar.getInstance()
+        val targetTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+        }
+        
+        // If time has passed today, schedule for tomorrow
+        if (targetTime.before(currentTime)) {
+            targetTime.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        
+        val delay = targetTime.timeInMillis - currentTime.timeInMillis
+        
+        val data = Data.Builder()
+            .putString("title", title)
+            .putString("message", message)
+            .putInt("notificationId", notificationId)
+            .build()
+        
+        val notificationWork = PeriodicWorkRequestBuilder<DailyNotificationWorker>(
+            1, TimeUnit.DAYS
+        )
+            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+            .setInputData(data)
+            .addTag(tag)
+            .build()
+        
+        workManager.enqueueUniquePeriodicWork(
+            tag,
+            ExistingPeriodicWorkPolicy.REPLACE,
+            notificationWork
+        )
+    }
+    
+    fun cancelNotification(tag: String) {
+        workManager.cancelAllWorkByTag(tag)
+    }
+    
+    fun getAllScheduledNotifications(): List<ScheduledNotification> {
+        // Note: WorkManager doesn't provide direct access to work details synchronously
+        // You'll need to store notification details separately (e.g., SharedPreferences, Room DB)
+        // This is a simplified example
+        val workInfos = workManager.getWorkInfosByTag("daily_notification").get()
+        
+        return workInfos.mapNotNull { workInfo ->
+            if (workInfo.state == WorkInfo.State.ENQUEUED || workInfo.state == WorkInfo.State.RUNNING) {
+                val title = workInfo.tags.firstOrNull { it.startsWith("daily_notification_") } ?: ""
+                ScheduledNotification(
+                    id = workInfo.id.toString(),
+                    title = "Scheduled",
+                    message = "Daily notification",
+                    hour = 0,
+                    minute = 0,
+                    tag = title
+                )
+            } else null
+        }
+    }
+}
+
+// 6. Composable UI
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun NotificationSchedulerScreen() {
+    val context = LocalContext.current
+    val scheduler = remember { NotificationScheduler(context) }
+    
+    var title by remember { mutableStateOf("Daily Reminder") }
+    var message by remember { mutableStateOf("Don't forget your task!") }
+    var hour by remember { mutableStateOf(9) }
+    var minute by remember { mutableStateOf(0) }
+    var scheduledNotifications by remember { mutableStateOf<List<ScheduledNotification>>(emptyList()) }
+    
+    // Request notification permission for Android 13+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            NotificationHelper.createNotificationChannel(context)
+        }
+    }
+    
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            NotificationHelper.createNotificationChannel(context)
+        }
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Daily Notification Scheduler",
+            style = MaterialTheme.typography.headlineMedium
+        )
+        
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Title") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        OutlinedTextField(
+            value = message,
+            onValueChange = { message = it },
+            label = { Text("Message") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = hour.toString(),
+                onValueChange = { hour = it.toIntOrNull()?.coerceIn(0, 23) ?: hour },
+                label = { Text("Hour (0-23)") },
+                modifier = Modifier.weight(1f)
+            )
+            
+            OutlinedTextField(
+                value = minute.toString(),
+                onValueChange = { minute = it.toIntOrNull()?.coerceIn(0, 59) ?: minute },
+                label = { Text("Minute (0-59)") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        Button(
+            onClick = {
+                val notificationId = System.currentTimeMillis().toInt()
+                scheduler.scheduleDailyNotification(
+                    notificationId = notificationId,
+                    title = title,
+                    message = message,
+                    hour = hour,
+                    minute = minute
+                )
+                scheduledNotifications = scheduler.getAllScheduledNotifications()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Schedule Daily Notification")
+        }
+        
+        HorizontalDivider()
+        
+        Text(
+            text = "Scheduled Notifications",
+            style = MaterialTheme.typography.titleLarge
+        )
+        
+        Button(
+            onClick = {
+                scheduledNotifications = scheduler.getAllScheduledNotifications()
+            }
+        ) {
+            Text("Refresh List")
+        }
+        
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(scheduledNotifications) { notification ->
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = notification.title,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Time: ${notification.hour}:${notification.minute.toString().padStart(2, '0')}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        
+                        Button(
+                            onClick = {
+                                scheduler.cancelNotification(notification.tag)
+                                scheduledNotifications = scheduler.getAllScheduledNotifications()
+                            }
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
