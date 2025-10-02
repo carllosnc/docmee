@@ -1,0 +1,324 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/ocaml">← React</a> <br /> <br />
+
+# Portals
+
+## Overview
+
+React Portals provide a way to render children into a DOM node that exists outside the hierarchy of the parent component. This is useful for scenarios where you need to break out of the normal DOM structure while maintaining React's component behavior.
+
+## Basic Syntax
+
+```javascript
+ReactDOM.createPortal(child, container)
+```
+
+- **child**: Any renderable React child (element, string, fragment, etc.)
+- **container**: A DOM element where the portal content will be rendered
+
+## Creating a Portal
+
+```javascript
+import { createPortal } from 'react-dom';
+
+function MyPortalComponent() {
+  return createPortal(
+    <div>This content is rendered in a portal</div>,
+    document.getElementById('portal-root')
+  );
+}
+```
+
+## Common Use Cases
+
+### 1. Modals and Dialogs
+
+Modals need to appear above other content and often require rendering outside the main app structure to avoid z-index and overflow issues.
+
+```javascript
+function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
+```
+
+### 2. Tooltips and Popovers
+
+Tooltips often need to escape parent containers with `overflow: hidden` or specific positioning contexts.
+
+```javascript
+function Tooltip({ targetRef, content }) {
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (targetRef.current) {
+      const rect = targetRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX
+      });
+    }
+  }, [targetRef]);
+
+  return createPortal(
+    <div style={{ position: 'absolute', top: position.top, left: position.left }}>
+      {content}
+    </div>,
+    document.body
+  );
+}
+```
+
+### 3. Dropdown Menus
+
+Dropdowns that need to extend beyond their container's boundaries.
+
+### 4. Notifications/Toasts
+
+Global notification systems that appear consistently regardless of component hierarchy.
+
+## Event Bubbling
+
+A crucial feature of portals is that **events bubble through the React tree**, not the DOM tree. Even though a portal's DOM node exists outside the parent component's DOM subtree, events fired from within the portal will propagate to ancestors in the React tree.
+
+```javascript
+function Parent() {
+  return (
+    <div onClick={() => console.log('Parent clicked!')}>
+      <Child />
+    </div>
+  );
+}
+
+function Child() {
+  return createPortal(
+    <button>Click me</button>,
+    document.body
+  );
+}
+// Clicking the button will log "Parent clicked!"
+```
+
+This makes portals behave like regular React children for event handling purposes, which is extremely useful for maintaining component logic.
+
+## Context and Portals
+
+Portals have access to context from their position in the React tree, not their DOM position. This means a portal can consume context provided by ancestors in the React component tree.
+
+```javascript
+const ThemeContext = React.createContext('light');
+
+function App() {
+  return (
+    <ThemeContext.Provider value="dark">
+      <PortalComponent />
+    </ThemeContext.Provider>
+  );
+}
+
+function PortalComponent() {
+  const theme = useContext(ThemeContext); // Will be "dark"
+  
+  return createPortal(
+    <div>Theme: {theme}</div>,
+    document.body
+  );
+}
+```
+
+## Setup Requirements
+
+Before using portals, ensure you have a DOM node to render into. Typically in your `index.html`:
+
+```html
+<body>
+  <div id="root"></div>
+  <div id="portal-root"></div>
+  <div id="modal-root"></div>
+</body>
+```
+
+## Best Practices
+
+### 1. Create Reusable Portal Components
+
+```javascript
+function Portal({ children, containerId = 'portal-root' }) {
+  const [container] = useState(() => {
+    const el = document.getElementById(containerId);
+    if (!el) {
+      console.error(`Portal container #${containerId} not found`);
+      return document.body;
+    }
+    return el;
+  });
+
+  return createPortal(children, container);
+}
+```
+
+### 2. Clean Up Portal Containers
+
+If you're dynamically creating portal containers, remember to clean them up:
+
+```javascript
+function Portal({ children }) {
+  const [container] = useState(() => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    return el;
+  });
+
+  useEffect(() => {
+    return () => {
+      document.body.removeChild(container);
+    };
+  }, [container]);
+
+  return createPortal(children, container);
+}
+```
+
+### 3. Handle Focus Management
+
+When creating modals or dialogs, manage focus properly:
+
+```javascript
+function Modal({ isOpen, children }) {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      const previouslyFocused = document.activeElement;
+      modalRef.current.focus();
+
+      return () => {
+        previouslyFocused?.focus();
+      };
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div ref={modalRef} tabIndex={-1}>
+      {children}
+    </div>,
+    document.body
+  );
+}
+```
+
+### 4. Accessibility Considerations
+
+- Use appropriate ARIA attributes (`role`, `aria-modal`, `aria-labelledby`, etc.)
+- Trap focus within modals
+- Handle Escape key for dismissal
+- Prevent body scroll when modal is open
+- Announce dynamic content to screen readers
+
+## Common Patterns
+
+### Modal with Body Scroll Lock
+
+```javascript
+function Modal({ isOpen, onClose, children }) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
+```
+
+### Conditional Portal
+
+```javascript
+function ConditionalPortal({ usePortal = true, containerId, children }) {
+  const content = <>{children}</>;
+
+  if (!usePortal) {
+    return content;
+  }
+
+  const container = document.getElementById(containerId);
+  return container ? createPortal(content, container) : content;
+}
+```
+
+## Performance Considerations
+
+Portals are very efficient because they:
+- Don't unmount and remount components when the portal target changes
+- Maintain component state across portal boundaries
+- Leverage React's reconciliation algorithm just like regular components
+
+However, be mindful of:
+- Creating too many dynamic portal containers
+- Rendering heavy content in portals that updates frequently
+- Z-index management across multiple portals
+
+## Server-Side Rendering (SSR)
+
+Portals can cause issues with SSR because the portal container might not exist during server rendering. Handle this with conditional rendering:
+
+```javascript
+function Portal({ children, containerId }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const container = document.getElementById(containerId);
+  return container ? createPortal(children, container) : null;
+}
+```
+
+## Limitations
+
+- Portals only change the physical DOM location; component behavior remains the same
+- Cannot portal to nodes in different documents or iframes (without additional setup)
+- Requires a target DOM node to exist before rendering
+- CSS inheritance from parent elements is broken (portal renders elsewhere in DOM)
+
+## Browser Support
+
+Portals are supported in all modern browsers. They're part of React 16+ and work with:
+- Chrome, Edge, Firefox, Safari (all modern versions)
+- IE 11 (with appropriate React version)
+
+## Debugging Tips
+
+1. Use React DevTools - portaled components appear in their logical position in the component tree
+2. Check the actual DOM to see where content is rendered
+3. Use `console.log` inside portal components to verify rendering
+4. Inspect event bubbling with onClick handlers at various levels
+
+React Portals are a powerful feature for handling UI elements that need to escape their parent container's DOM structure while maintaining React's component paradigm and event system.
