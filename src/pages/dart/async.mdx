@@ -1,0 +1,213 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dart">← Dart</a> <br /> <br />
+
+# Asynchronicity in Dart
+
+## Future Basics
+
+A `Future` represents a value that will be available at some point in the future.
+
+```dart
+// Simple future that completes after a delay
+Future<String> fetchData() {
+  return Future.delayed(
+    Duration(seconds: 2),
+    () => 'Data loaded',
+  );
+}
+```
+
+## async/await
+
+The `async` keyword marks a function as asynchronous. `await` pauses execution until a Future completes.
+
+```dart
+void main() async {
+  print('Fetching data...');
+  String result = await fetchData();
+  print(result); // Prints after 2 seconds
+}
+```
+
+## Error Handling
+
+Use try-catch blocks to handle errors in async code.
+
+```dart
+Future<void> fetchUserData() async {
+  try {
+    String data = await fetchData();
+    print(data);
+  } catch (e) {
+    print('Error: $e');
+  }
+}
+```
+
+## Multiple Futures
+
+### Sequential Execution
+
+```dart
+Future<void> sequential() async {
+  var result1 = await fetchData(); // Wait for this
+  var result2 = await fetchData(); // Then wait for this
+  print('$result1, $result2');
+}
+```
+
+### Parallel Execution
+
+```dart
+Future<void> parallel() async {
+  var futures = [fetchData(), fetchData()];
+  var results = await Future.wait(futures); // Wait for all
+  print(results);
+}
+```
+
+## Streams
+
+Streams provide a sequence of asynchronous events over time.
+
+```dart
+Stream<int> countStream(int max) async* {
+  for (int i = 1; i <= max; i++) {
+    await Future.delayed(Duration(seconds: 1));
+    yield i; // Emit value
+  }
+}
+```
+
+### Listening to Streams
+
+```dart
+void listenToStream() async {
+  await for (int value in countStream(5)) {
+    print(value); // Prints 1, 2, 3, 4, 5 (one per second)
+  }
+}
+```
+
+### Stream Transformations
+
+```dart
+void transformStream() async {
+  var stream = countStream(5);
+  
+  await for (int value in stream.where((n) => n.isEven)) {
+    print(value); // Prints only 2, 4
+  }
+}
+```
+
+## Future.then() and .catchError()
+
+Alternative to async/await using callbacks.
+
+```dart
+void withCallbacks() {
+  fetchData()
+    .then((result) => print(result))
+    .catchError((error) => print('Error: $error'));
+}
+```
+
+## Creating Completed Futures
+
+```dart
+Future<int> getImmediate() {
+  return Future.value(42); // Already completed
+}
+
+Future<int> getError() {
+  return Future.error('Something went wrong');
+}
+```
+
+## Completer
+
+For manual control over Future completion.
+
+```dart
+Future<String> manualFuture() {
+  var completer = Completer<String>();
+  
+  // Complete it later
+  Future.delayed(Duration(seconds: 1), () {
+    completer.complete('Done');
+  });
+  
+  return completer.future;
+}
+```
+
+## Timeouts
+
+```dart
+Future<void> withTimeout() async {
+  try {
+    var result = await fetchData().timeout(Duration(seconds: 1));
+    print(result);
+  } on TimeoutException {
+    print('Operation timed out');
+  }
+}
+```
+
+## Stream Controllers
+
+For creating custom streams.
+
+```dart
+Stream<int> customStream() {
+  var controller = StreamController<int>();
+  
+  for (int i = 0; i < 5; i++) {
+    controller.add(i);
+  }
+  
+  controller.close();
+  return controller.stream;
+}
+```
+
+## Best Practices
+
+1. **Always handle errors** in async code with try-catch or .catchError()
+2. **Use async/await** for readability instead of .then() chains
+3. **Avoid blocking** the main thread with synchronous operations
+4. **Use Future.wait()** for parallel operations instead of sequential awaits
+5. **Close streams** and controllers when done to prevent memory leaks
+6. **Mark functions async** only if they use await or return a Future
+
+## Common Patterns
+
+### Loading with Timeout
+
+```dart
+Future<String> loadWithTimeout() async {
+  return await fetchData()
+    .timeout(
+      Duration(seconds: 5),
+      onTimeout: () => 'Default value',
+    );
+}
+```
+
+### Retry Logic
+
+```dart
+Future<T> retry<T>(Future<T> Function() fn, {int retries = 3}) async {
+  for (int i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i == retries - 1) rethrow;
+    }
+  }
+  throw Exception('Failed after $retries attempts');
+}
+```

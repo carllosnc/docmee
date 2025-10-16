@@ -1,0 +1,806 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/python">← Python</a> <br /> <br />
+
+# Functions
+
+## Table of Contents
+1. [Function Basics](#function-basics)
+2. [Function Parameters](#function-parameters)
+3. [Return Values](#return-values)
+4. [Variable Scope](#variable-scope)
+5. [Lambda Functions](#lambda-functions)
+6. [Decorators](#decorators)
+7. [Generators](#generators)
+8. [Recursive Functions](#recursive-functions)
+9. [Built-in Functions](#built-in-functions)
+10. [Best Practices](#best-practices)
+
+---
+
+## Function Basics
+
+### Defining a Function
+
+Functions are defined using the `def` keyword:
+
+```python
+def function_name(parameters):
+    """Docstring describing the function"""
+    # function body
+    return value
+```
+
+### Simple Function Example
+
+```python
+def greet(name):
+    """Returns a greeting message"""
+    return f"Hello, {name}!"
+
+result = greet("Alice")
+print(result)  # Output: Hello, Alice!
+```
+
+### Function Without Return
+
+Functions without an explicit return statement return `None`:
+
+```python
+def print_message(message):
+    print(message)
+    # implicitly returns None
+
+result = print_message("Hi")  # Prints: Hi
+print(result)  # Output: None
+```
+
+---
+
+## Function Parameters
+
+### Positional Parameters
+
+Arguments are passed in order:
+
+```python
+def add(a, b):
+    return a + b
+
+result = add(5, 3)  # a=5, b=3
+```
+
+### Keyword Arguments
+
+Arguments are passed by name:
+
+```python
+def describe_pet(animal, name):
+    print(f"I have a {animal} named {name}")
+
+describe_pet(animal="dog", name="Buddy")
+describe_pet(name="Whiskers", animal="cat")  # Order doesn't matter
+```
+
+### Default Parameters
+
+Parameters can have default values:
+
+```python
+def greet(name, greeting="Hello"):
+    return f"{greeting}, {name}!"
+
+print(greet("Alice"))              # Hello, Alice!
+print(greet("Bob", "Hi"))          # Hi, Bob!
+print(greet("Charlie", greeting="Hey"))  # Hey, Charlie!
+```
+
+### Variable-Length Arguments (*args)
+
+Accepts any number of positional arguments:
+
+```python
+def sum_all(*numbers):
+    """Sums any number of arguments"""
+    return sum(numbers)
+
+print(sum_all(1, 2, 3))        # 6
+print(sum_all(1, 2, 3, 4, 5))  # 15
+```
+
+### Keyword Variable-Length Arguments (**kwargs)
+
+Accepts any number of keyword arguments:
+
+```python
+def print_info(**info):
+    """Prints key-value pairs"""
+    for key, value in info.items():
+        print(f"{key}: {value}")
+
+print_info(name="Alice", age=30, city="NYC")
+# Output:
+# name: Alice
+# age: 30
+# city: NYC
+```
+
+### Combining Parameter Types
+
+Order matters: positional, *args, default, **kwargs
+
+```python
+def complex_function(pos1, pos2, *args, default="value", **kwargs):
+    print(f"Positional: {pos1}, {pos2}")
+    print(f"Args: {args}")
+    print(f"Default: {default}")
+    print(f"Kwargs: {kwargs}")
+
+complex_function(1, 2, 3, 4, default="custom", extra="data")
+```
+
+### Positional-Only Parameters (Python 3.8+)
+
+Parameters before `/` must be positional:
+
+```python
+def func(a, b, /, c, d):
+    return a + b + c + d
+
+func(1, 2, 3, 4)        # Valid
+func(1, 2, c=3, d=4)    # Valid
+# func(a=1, b=2, c=3, d=4)  # Error: a and b must be positional
+```
+
+### Keyword-Only Parameters
+
+Parameters after `*` must be keyword arguments:
+
+```python
+def func(a, b, *, c, d):
+    return a + b + c + d
+
+func(1, 2, c=3, d=4)    # Valid
+# func(1, 2, 3, 4)      # Error: c and d must be keyword arguments
+```
+
+---
+
+## Return Values
+
+### Single Return Value
+
+```python
+def square(x):
+    return x ** 2
+```
+
+### Multiple Return Values
+
+Returns a tuple:
+
+```python
+def get_coordinates():
+    return 10, 20  # Returns tuple (10, 20)
+
+x, y = get_coordinates()  # Unpacking
+```
+
+### Early Return
+
+```python
+def is_even(number):
+    if number % 2 == 0:
+        return True
+    return False
+```
+
+### Returning None
+
+```python
+def process_data(data):
+    if not data:
+        return None  # Explicit return
+    return data.upper()
+```
+
+---
+
+## Variable Scope
+
+### Local Scope
+
+Variables defined inside a function:
+
+```python
+def my_function():
+    local_var = 10  # Only accessible within function
+    print(local_var)
+
+my_function()
+# print(local_var)  # Error: not defined
+```
+
+### Global Scope
+
+Variables defined outside functions:
+
+```python
+global_var = 100
+
+def access_global():
+    print(global_var)  # Can read global variable
+
+access_global()  # 100
+```
+
+### Modifying Global Variables
+
+Use `global` keyword:
+
+```python
+counter = 0
+
+def increment():
+    global counter
+    counter += 1
+
+increment()
+print(counter)  # 1
+```
+
+### Nonlocal Variables
+
+For nested functions, modify enclosing scope:
+
+```python
+def outer():
+    count = 0
+    
+    def inner():
+        nonlocal count
+        count += 1
+        return count
+    
+    return inner
+
+counter = outer()
+print(counter())  # 1
+print(counter())  # 2
+```
+
+### LEGB Rule
+
+Python searches for variables in this order:
+- **L**ocal: Inside current function
+- **E**nclosing: In enclosing functions
+- **G**lobal: At module level
+- **B**uilt-in: Python's built-in names
+
+---
+
+## Lambda Functions
+
+### Basic Syntax
+
+Anonymous functions defined with `lambda`:
+
+```python
+# Regular function
+def add(x, y):
+    return x + y
+
+# Lambda equivalent
+add_lambda = lambda x, y: x + y
+
+print(add_lambda(3, 5))  # 8
+```
+
+### Common Use Cases
+
+**With map():**
+```python
+numbers = [1, 2, 3, 4, 5]
+squared = list(map(lambda x: x**2, numbers))
+print(squared)  # [1, 4, 9, 16, 25]
+```
+
+**With filter():**
+```python
+numbers = [1, 2, 3, 4, 5, 6]
+evens = list(filter(lambda x: x % 2 == 0, numbers))
+print(evens)  # [2, 4, 6]
+```
+
+**With sorted():**
+```python
+pairs = [(1, 'one'), (3, 'three'), (2, 'two')]
+sorted_pairs = sorted(pairs, key=lambda x: x[1])
+print(sorted_pairs)  # [(1, 'one'), (3, 'three'), (2, 'two')]
+```
+
+### Lambda Limitations
+
+- Single expression only
+- No statements (no if/else statements, loops)
+- Less readable for complex logic
+- Use regular functions for better documentation
+
+---
+
+## Decorators
+
+### Basic Decorator
+
+Functions that modify other functions:
+
+```python
+def my_decorator(func):
+    def wrapper():
+        print("Before function call")
+        func()
+        print("After function call")
+    return wrapper
+
+@my_decorator
+def say_hello():
+    print("Hello!")
+
+say_hello()
+# Output:
+# Before function call
+# Hello!
+# After function call
+```
+
+### Decorator with Arguments
+
+```python
+def my_decorator(func):
+    def wrapper(*args, **kwargs):
+        print(f"Calling {func.__name__}")
+        result = func(*args, **kwargs)
+        print(f"Finished {func.__name__}")
+        return result
+    return wrapper
+
+@my_decorator
+def add(a, b):
+    return a + b
+
+result = add(3, 5)
+```
+
+### Preserving Function Metadata
+
+Use `functools.wraps`:
+
+```python
+from functools import wraps
+
+def my_decorator(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        """Wrapper docstring"""
+        return func(*args, **kwargs)
+    return wrapper
+
+@my_decorator
+def example():
+    """Original docstring"""
+    pass
+
+print(example.__name__)  # example (not wrapper)
+print(example.__doc__)   # Original docstring
+```
+
+### Decorator with Parameters
+
+```python
+def repeat(times):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for _ in range(times):
+                result = func(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator
+
+@repeat(3)
+def greet(name):
+    print(f"Hello {name}")
+
+greet("Alice")
+# Output:
+# Hello Alice
+# Hello Alice
+# Hello Alice
+```
+
+### Common Built-in Decorators
+
+**@staticmethod:**
+```python
+class MyClass:
+    @staticmethod
+    def static_method():
+        print("No self parameter needed")
+```
+
+**@classmethod:**
+```python
+class MyClass:
+    @classmethod
+    def class_method(cls):
+        print(f"Called from {cls}")
+```
+
+**@property:**
+```python
+class Circle:
+    def __init__(self, radius):
+        self._radius = radius
+    
+    @property
+    def area(self):
+        return 3.14159 * self._radius ** 2
+```
+
+---
+
+## Generators
+
+### Generator Functions
+
+Use `yield` instead of `return`:
+
+```python
+def countdown(n):
+    while n > 0:
+        yield n
+        n -= 1
+
+for number in countdown(5):
+    print(number)  # 5, 4, 3, 2, 1
+```
+
+### Generator vs Regular Function
+
+```python
+# Regular function - returns all at once
+def get_numbers():
+    return [1, 2, 3, 4, 5]
+
+# Generator - yields one at a time
+def generate_numbers():
+    for i in range(1, 6):
+        yield i
+```
+
+### Generator Expressions
+
+Like list comprehensions but with parentheses:
+
+```python
+# List comprehension
+squares_list = [x**2 for x in range(10)]
+
+# Generator expression
+squares_gen = (x**2 for x in range(10))
+
+print(next(squares_gen))  # 0
+print(next(squares_gen))  # 1
+```
+
+### Benefits of Generators
+
+- Memory efficient for large datasets
+- Can represent infinite sequences
+- Lazy evaluation
+
+```python
+def infinite_sequence():
+    num = 0
+    while True:
+        yield num
+        num += 1
+
+gen = infinite_sequence()
+print(next(gen))  # 0
+print(next(gen))  # 1
+```
+
+### Generator Methods
+
+**send():**
+```python
+def echo():
+    while True:
+        received = yield
+        print(f"Received: {received}")
+
+gen = echo()
+next(gen)  # Prime the generator
+gen.send("Hello")
+```
+
+**close():**
+```python
+gen = countdown(5)
+print(next(gen))  # 5
+gen.close()  # Stop generator
+# next(gen)  # Raises StopIteration
+```
+
+---
+
+## Recursive Functions
+
+### Basic Recursion
+
+A function that calls itself:
+
+```python
+def factorial(n):
+    # Base case
+    if n == 0 or n == 1:
+        return 1
+    # Recursive case
+    return n * factorial(n - 1)
+
+print(factorial(5))  # 120
+```
+
+### Fibonacci Sequence
+
+```python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+print(fibonacci(7))  # 13
+```
+
+### Recursion with Lists
+
+```python
+def sum_list(numbers):
+    if not numbers:
+        return 0
+    return numbers[0] + sum_list(numbers[1:])
+
+print(sum_list([1, 2, 3, 4, 5]))  # 15
+```
+
+### Tail Recursion
+
+Last operation is the recursive call:
+
+```python
+def factorial_tail(n, accumulator=1):
+    if n == 0:
+        return accumulator
+    return factorial_tail(n - 1, n * accumulator)
+
+print(factorial_tail(5))  # 120
+```
+
+### Recursion Limits
+
+Python has a recursion depth limit:
+
+```python
+import sys
+
+print(sys.getrecursionlimit())  # Default: 1000
+
+# Increase limit (use cautiously)
+sys.setrecursionlimit(2000)
+```
+
+---
+
+## Built-in Functions
+
+### Common Built-in Functions
+
+**map()** - Apply function to all items:
+```python
+numbers = [1, 2, 3, 4]
+doubled = list(map(lambda x: x * 2, numbers))
+print(doubled)  # [2, 4, 6, 8]
+```
+
+**filter()** - Filter items based on condition:
+```python
+numbers = [1, 2, 3, 4, 5, 6]
+evens = list(filter(lambda x: x % 2 == 0, numbers))
+print(evens)  # [2, 4, 6]
+```
+
+**reduce()** - Reduce sequence to single value:
+```python
+from functools import reduce
+
+numbers = [1, 2, 3, 4]
+product = reduce(lambda x, y: x * y, numbers)
+print(product)  # 24
+```
+
+**zip()** - Combine iterables:
+```python
+names = ['Alice', 'Bob', 'Charlie']
+ages = [25, 30, 35]
+combined = list(zip(names, ages))
+print(combined)  # [('Alice', 25), ('Bob', 30), ('Charlie', 35)]
+```
+
+**enumerate()** - Add counter to iterable:
+```python
+fruits = ['apple', 'banana', 'cherry']
+for index, fruit in enumerate(fruits):
+    print(f"{index}: {fruit}")
+```
+
+**sorted()** - Return sorted list:
+```python
+numbers = [3, 1, 4, 1, 5, 9, 2]
+sorted_nums = sorted(numbers)
+print(sorted_nums)  # [1, 1, 2, 3, 4, 5, 9]
+```
+
+**any() and all()** - Boolean operations:
+```python
+numbers = [0, 1, 2, 3]
+print(any(numbers))   # True (at least one is truthy)
+print(all(numbers))   # False (not all are truthy)
+```
+
+---
+
+## Best Practices
+
+### Function Naming
+
+- Use lowercase with underscores: `calculate_total()`
+- Use verb phrases: `get_user()`, `save_data()`
+- Be descriptive: `validate_email()` not `check()`
+
+### Docstrings
+
+Document your functions:
+
+```python
+def calculate_area(length, width):
+    """
+    Calculate the area of a rectangle.
+    
+    Args:
+        length (float): The length of the rectangle
+        width (float): The width of the rectangle
+    
+    Returns:
+        float: The area of the rectangle
+    
+    Raises:
+        ValueError: If length or width is negative
+    """
+    if length < 0 or width < 0:
+        raise ValueError("Dimensions must be positive")
+    return length * width
+```
+
+### Single Responsibility
+
+Each function should do one thing:
+
+```python
+# Bad - does too much
+def process_and_save_data(data):
+    cleaned = clean_data(data)
+    validated = validate_data(cleaned)
+    save_to_database(validated)
+    send_email_notification()
+
+# Good - separate concerns
+def process_data(data):
+    cleaned = clean_data(data)
+    return validate_data(cleaned)
+
+def save_and_notify(data):
+    save_to_database(data)
+    send_email_notification()
+```
+
+### Keep Functions Short
+
+Aim for functions that fit on one screen (20-30 lines).
+
+### Avoid Side Effects
+
+Functions should be predictable:
+
+```python
+# Bad - modifies global state
+total = 0
+def add_to_total(value):
+    global total
+    total += value
+
+# Good - pure function
+def add(a, b):
+    return a + b
+```
+
+### Type Hints (Python 3.5+)
+
+Add type annotations for clarity:
+
+```python
+def greet(name: str, age: int) -> str:
+    return f"Hello {name}, you are {age} years old"
+
+from typing import List, Dict, Optional
+
+def process_items(items: List[str]) -> Dict[str, int]:
+    return {item: len(item) for item in items}
+
+def find_user(user_id: int) -> Optional[str]:
+    # Returns string or None
+    pass
+```
+
+### Error Handling
+
+Use try-except blocks:
+
+```python
+def divide(a, b):
+    try:
+        return a / b
+    except ZeroDivisionError:
+        print("Cannot divide by zero")
+        return None
+    except TypeError:
+        print("Arguments must be numbers")
+        return None
+```
+
+### Default Mutable Arguments Warning
+
+Never use mutable defaults:
+
+```python
+# Bad - list is shared across calls
+def append_to(element, target=[]):
+    target.append(element)
+    return target
+
+# Good - use None as default
+def append_to(element, target=None):
+    if target is None:
+        target = []
+    target.append(element)
+    return target
+```
+
+---
+
+## Summary
+
+Functions are fundamental building blocks in Python. Key takeaways:
+
+- Use `def` to define functions
+- Understand different parameter types: positional, keyword, *args, **kwargs
+- Master scope: local, global, nonlocal
+- Use lambda for simple, one-line functions
+- Apply decorators to enhance function behavior
+- Use generators for memory-efficient iteration
+- Understand recursion and its limitations
+- Follow best practices for clean, maintainable code
+- Document with docstrings and type hints
+
+Practice these concepts to become proficient in writing effective Python functions!
