@@ -1,0 +1,394 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/javascript">← Javascript</a> <br /> <br />
+
+# Call, Apply, and Bind
+
+## Overview
+
+`call()`, `apply()`, and `bind()` are methods that allow you to explicitly set the `this` context when invoking functions. They're essential for understanding JavaScript's execution context and functional programming patterns.
+
+---
+
+## The `this` Context Problem
+
+Before understanding these methods, it's important to know why we need them:
+
+```javascript
+const person = {
+  name: 'Alice',
+  greet: function() {
+    console.log(`Hello, I'm ${this.name}`);
+  }
+};
+
+person.greet(); // "Hello, I'm Alice"
+
+const greetFunction = person.greet;
+greetFunction(); // "Hello, I'm undefined" - this is lost!
+```
+
+---
+
+## 1. call()
+
+### Syntax
+```javascript
+function.call(thisArg, arg1, arg2, ...)
+```
+
+### Description
+- Invokes the function **immediately**
+- Sets `this` to the first argument
+- Passes additional arguments **individually** (comma-separated)
+
+### Examples
+
+#### Basic Usage
+```javascript
+function introduce(greeting, punctuation) {
+  console.log(`${greeting}, I'm ${this.name}${punctuation}`);
+}
+
+const person1 = { name: 'Bob' };
+const person2 = { name: 'Carol' };
+
+introduce.call(person1, 'Hello', '!'); // "Hello, I'm Bob!"
+introduce.call(person2, 'Hi', '.'); // "Hi, I'm Carol."
+```
+
+#### Borrowing Methods
+```javascript
+const obj1 = {
+  num: 2,
+  multiplyBy: function(x) {
+    return this.num * x;
+  }
+};
+
+const obj2 = { num: 5 };
+
+// Borrow obj1's method for obj2
+console.log(obj1.multiplyBy.call(obj2, 3)); // 15
+```
+
+#### Array-Like Objects
+```javascript
+function printArgs() {
+  // arguments is array-like but not an array
+  const args = Array.prototype.slice.call(arguments);
+  console.log(args);
+}
+
+printArgs(1, 2, 3); // [1, 2, 3]
+```
+
+---
+
+## 2. apply()
+
+### Syntax
+```javascript
+function.apply(thisArg, [argsArray])
+```
+
+### Description
+- Invokes the function **immediately**
+- Sets `this` to the first argument
+- Passes additional arguments as an **array**
+
+### Examples
+
+#### Basic Usage
+```javascript
+function introduce(greeting, punctuation) {
+  console.log(`${greeting}, I'm ${this.name}${punctuation}`);
+}
+
+const person = { name: 'Dave' };
+introduce.apply(person, ['Hey', '!']); // "Hey, I'm Dave!"
+```
+
+#### Finding Max/Min in Arrays
+```javascript
+const numbers = [5, 6, 2, 3, 7];
+
+const max = Math.max.apply(null, numbers);
+console.log(max); // 7
+
+// Modern alternative: spread operator
+const maxModern = Math.max(...numbers);
+```
+
+#### Function Argument Forwarding
+```javascript
+function wrapper() {
+  // Forward all arguments to another function
+  return originalFunction.apply(this, arguments);
+}
+```
+
+#### Concatenating Arrays
+```javascript
+const array1 = [1, 2, 3];
+const array2 = [4, 5, 6];
+
+Array.prototype.push.apply(array1, array2);
+console.log(array1); // [1, 2, 3, 4, 5, 6]
+```
+
+---
+
+## 3. bind()
+
+### Syntax
+```javascript
+function.bind(thisArg, arg1, arg2, ...)
+```
+
+### Description
+- **Returns a new function** (doesn't invoke immediately)
+- The new function has `this` permanently bound
+- Can pre-set arguments (partial application)
+
+### Examples
+
+#### Basic Usage
+```javascript
+const person = {
+  name: 'Eve',
+  greet: function() {
+    console.log(`Hello, I'm ${this.name}`);
+  }
+};
+
+const greetFunction = person.greet.bind(person);
+greetFunction(); // "Hello, I'm Eve" - this is preserved!
+
+setTimeout(greetFunction, 1000); // Still works after 1 second
+```
+
+#### Event Handlers
+```javascript
+class Button {
+  constructor(label) {
+    this.label = label;
+    this.clickCount = 0;
+  }
+  
+  handleClick() {
+    this.clickCount++;
+    console.log(`${this.label} clicked ${this.clickCount} times`);
+  }
+  
+  render() {
+    const button = document.createElement('button');
+    button.textContent = this.label;
+    // Bind ensures 'this' refers to the Button instance
+    button.addEventListener('click', this.handleClick.bind(this));
+    return button;
+  }
+}
+```
+
+#### Partial Application
+```javascript
+function multiply(a, b) {
+  return a * b;
+}
+
+// Create a function that always multiplies by 2
+const double = multiply.bind(null, 2);
+console.log(double(5)); // 10
+console.log(double(10)); // 20
+
+// Create a function that always multiplies by 3
+const triple = multiply.bind(null, 3);
+console.log(triple(5)); // 15
+```
+
+#### Creating Preset Functions
+```javascript
+function greet(greeting, name) {
+  return `${greeting}, ${name}!`;
+}
+
+const sayHello = greet.bind(null, 'Hello');
+console.log(sayHello('Alice')); // "Hello, Alice!"
+
+const sayGoodbye = greet.bind(null, 'Goodbye');
+console.log(sayGoodbye('Bob')); // "Goodbye, Bob!"
+```
+
+---
+
+## Key Differences
+
+| Feature | call() | apply() | bind() |
+|---------|--------|---------|--------|
+| **Execution** | Immediate | Immediate | Returns new function |
+| **Arguments** | Individual (comma-separated) | Array | Individual (pre-set) |
+| **Use Case** | One-time invocation | Arguments in array form | Reusable with fixed `this` |
+| **Returns** | Function result | Function result | New bound function |
+
+---
+
+## Common Use Cases
+
+### 1. Method Borrowing
+```javascript
+const person1 = {
+  fullName: function() {
+    return `${this.firstName} ${this.lastName}`;
+  }
+};
+
+const person2 = {
+  firstName: 'John',
+  lastName: 'Doe'
+};
+
+console.log(person1.fullName.call(person2)); // "John Doe"
+```
+
+### 2. Function Chaining
+```javascript
+function add(x) {
+  return this + x;
+}
+
+console.log(add.call(5, 3)); // 8
+```
+
+### 3. Constructor Chaining (Inheritance)
+```javascript
+function Animal(name) {
+  this.name = name;
+}
+
+function Dog(name, breed) {
+  Animal.call(this, name); // Call parent constructor
+  this.breed = breed;
+}
+
+const myDog = new Dog('Rex', 'Labrador');
+console.log(myDog.name); // "Rex"
+```
+
+### 4. Converting Array-Like Objects
+```javascript
+const arrayLike = {
+  0: 'a',
+  1: 'b',
+  2: 'c',
+  length: 3
+};
+
+const realArray = Array.prototype.slice.call(arrayLike);
+console.log(realArray); // ['a', 'b', 'c']
+
+// Modern alternative
+const modernArray = Array.from(arrayLike);
+```
+
+### 5. Event Handler Binding in React (Class Components)
+```javascript
+class Component {
+  constructor() {
+    this.state = { count: 0 };
+    // Bind in constructor for better performance
+    this.handleClick = this.handleClick.bind(this);
+  }
+  
+  handleClick() {
+    this.setState({ count: this.state.count + 1 });
+  }
+  
+  render() {
+    return <button onClick={this.handleClick}>Click me</button>;
+  }
+}
+```
+
+---
+
+## Modern Alternatives
+
+### Arrow Functions
+Arrow functions don't have their own `this` - they inherit it from the enclosing scope:
+
+```javascript
+const person = {
+  name: 'Frank',
+  greet: function() {
+    setTimeout(() => {
+      // Arrow function inherits 'this' from greet()
+      console.log(`Hello, I'm ${this.name}`);
+    }, 1000);
+  }
+};
+
+person.greet(); // "Hello, I'm Frank" (after 1 second)
+```
+
+### Spread Operator (replaces apply)
+```javascript
+const numbers = [5, 6, 2, 3, 7];
+
+// Old way
+const max = Math.max.apply(null, numbers);
+
+// Modern way
+const maxModern = Math.max(...numbers);
+```
+
+---
+
+## Performance Considerations
+
+1. **bind()** creates a new function each time, which can impact memory if done repeatedly
+2. **call()** and **apply()** are generally faster than **bind()** for one-time invocations
+3. Pre-binding in constructors is more efficient than binding in render methods
+
+### Good Practice
+```javascript
+// Good - bind once in constructor
+class MyClass {
+  constructor() {
+    this.method = this.method.bind(this);
+  }
+}
+
+// Bad - creates new function on every render
+class MyClass {
+  render() {
+    return <button onClick={this.method.bind(this)} />;
+  }
+}
+```
+
+---
+
+## Important Notes
+
+1. **Arrow functions cannot be bound** - they always use lexical `this`
+2. **Bound functions cannot be re-bound** - the first binding is permanent
+3. **null or undefined as thisArg** - In strict mode, remains null/undefined; in non-strict mode, becomes global object
+4. **Primitive values as thisArg** - Will be boxed (converted to object wrapper)
+
+---
+
+## Quick Reference
+
+```javascript
+// call: invoke immediately with individual arguments
+func.call(thisArg, arg1, arg2, arg3);
+
+// apply: invoke immediately with arguments array
+func.apply(thisArg, [arg1, arg2, arg3]);
+
+// bind: create new function with bound this
+const boundFunc = func.bind(thisArg, arg1, arg2);
+boundFunc(arg3);
+```
