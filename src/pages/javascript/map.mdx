@@ -1,0 +1,340 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/javascript">← Javascript</a> <br /> <br />
+
+# Map
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Creating Maps](#creating-maps)
+- [Basic Operations](#basic-operations)
+- [Keys of Any Type](#keys-of-any-type)
+- [Iteration Methods](#iteration-methods)
+- [Map vs Object](#map-vs-object)
+- [Common Use Cases](#common-use-cases)
+- [Advanced Techniques](#advanced-techniques)
+- [WeakMap](#weakmap)
+- [Performance Considerations](#performance-considerations)
+
+## Introduction
+
+A **Map** is a built-in JavaScript data structure that stores key-value pairs where keys can be of any type (unlike objects where keys are converted to strings). Maps maintain insertion order and provide better performance for frequent additions and deletions.
+
+## Creating Maps
+
+### Empty Map
+```javascript
+const map = new Map();
+```
+
+### Map with Initial Values
+```javascript
+const map = new Map([
+  ['key1', 'value1'],
+  ['key2', 'value2'],
+  [3, 'number key']
+]);
+```
+
+### From an Object
+```javascript
+const obj = { a: 1, b: 2 };
+const map = new Map(Object.entries(obj));
+```
+
+## Basic Operations
+
+### Adding/Setting Values
+```javascript
+const map = new Map();
+
+map.set('name', 'John');
+map.set('age', 30);
+map.set(true, 'boolean key');
+
+// Chaining (set returns the map)
+map.set('a', 1).set('b', 2).set('c', 3);
+```
+
+### Getting Values
+```javascript
+const value = map.get('name'); // 'John'
+const missing = map.get('nonexistent'); // undefined
+```
+
+### Checking Existence
+```javascript
+map.has('name'); // true
+map.has('missing'); // false
+```
+
+### Deleting Entries
+```javascript
+map.delete('name'); // true (if deleted)
+map.delete('missing'); // false (if key doesn't exist)
+```
+
+### Clearing All Entries
+```javascript
+map.clear(); // Removes all entries
+```
+
+### Getting Size
+```javascript
+const size = map.size; // Number of key-value pairs
+```
+
+## Keys of Any Type
+
+Unlike objects, Maps can use **any value** as a key:
+
+```javascript
+const map = new Map();
+
+// Primitive keys
+map.set('string', 1);
+map.set(42, 2);
+map.set(true, 3);
+map.set(undefined, 4);
+map.set(null, 5);
+
+// Object keys (by reference)
+const obj = {id: 1};
+const arr = [1, 2, 3];
+const func = () => {};
+
+map.set(obj, 'object value');
+map.set(arr, 'array value');
+map.set(func, 'function value');
+
+// Retrieve using the same reference
+map.get(obj); // 'object value'
+map.get([1, 2, 3]); // undefined (different array reference)
+```
+
+## Iteration Methods
+
+Maps are iterable and maintain insertion order:
+
+### for...of Loop
+
+```javascript
+const map = new Map([
+  ['a', 1],
+  ['b', 2],
+  ['c', 3]
+]);
+
+// Iterate over entries [key, value]
+for (const [key, value] of map) {
+  console.log(key, value);
+}
+
+// Iterate over keys only
+for (const key of map.keys()) {
+  console.log(key);
+}
+
+// Iterate over values only
+for (const value of map.values()) {
+  console.log(value);
+}
+```
+
+### forEach Method
+
+```javascript
+map.forEach((value, key, mapObj) => {
+  console.log(key, value);
+});
+```
+
+### Converting to Arrays
+
+```javascript
+const entries = [...map]; // Array of [key, value] pairs
+const entriesArr = Array.from(map);
+
+const keys = [...map.keys()];
+const values = [...map.values()];
+```
+
+## Map vs Object
+
+| Feature | Map | Object |
+|---------|-----|--------|
+| Key types | Any type | Strings and Symbols only |
+| Key order | Insertion order guaranteed | Mostly insertion order (with exceptions) |
+| Size | `map.size` | `Object.keys(obj).length` |
+| Iteration | Built-in iterators | Need `Object.keys/values/entries` |
+| Performance | Better for frequent add/delete | Better for simple storage |
+| Prototype | No inherited keys | Has prototype chain |
+| Serialization | Not JSON serializable | JSON serializable |
+
+## Common Use Cases
+
+### 1. Caching/Memoization
+
+```javascript
+const cache = new Map();
+
+function expensiveOperation(key) {
+  if (cache.has(key)) {
+    return cache.get(key);
+  }
+  
+  const result = /* expensive calculation */;
+  cache.set(key, result);
+  return result;
+}
+```
+
+### 2. Counting Occurrences
+
+```javascript
+function countWords(text) {
+  const counts = new Map();
+  const words = text.split(' ');
+  
+  for (const word of words) {
+    counts.set(word, (counts.get(word) || 0) + 1);
+  }
+  
+  return counts;
+}
+```
+
+### 3. Grouping Data
+
+```javascript
+const users = [
+  { name: 'Alice', role: 'admin' },
+  { name: 'Bob', role: 'user' },
+  { name: 'Charlie', role: 'admin' }
+];
+
+const byRole = new Map();
+
+for (const user of users) {
+  if (!byRole.has(user.role)) {
+    byRole.set(user.role, []);
+  }
+  byRole.get(user.role).push(user);
+}
+```
+
+### 4. Using Objects as Keys
+
+```javascript
+const metadata = new Map();
+
+const element1 = document.getElementById('div1');
+const element2 = document.getElementById('div2');
+
+metadata.set(element1, { clicks: 5, visible: true });
+metadata.set(element2, { clicks: 3, visible: false });
+
+// Later retrieve metadata for specific element
+const data = metadata.get(element1);
+```
+
+## Advanced Techniques
+
+### Converting Map to Object
+
+```javascript
+const map = new Map([['a', 1], ['b', 2]]);
+const obj = Object.fromEntries(map);
+// { a: 1, b: 2 }
+```
+
+### Converting Object to Map
+
+```javascript
+const obj = { a: 1, b: 2 };
+const map = new Map(Object.entries(obj));
+```
+
+### Merging Maps
+
+```javascript
+const map1 = new Map([['a', 1], ['b', 2]]);
+const map2 = new Map([['c', 3], ['d', 4]]);
+
+const merged = new Map([...map1, ...map2]);
+```
+
+### Filtering Maps
+
+```javascript
+const map = new Map([
+  ['a', 1],
+  ['b', 2],
+  ['c', 3]
+]);
+
+const filtered = new Map(
+  [...map].filter(([key, value]) => value > 1)
+);
+// Map { 'b' => 2, 'c' => 3 }
+```
+
+### Mapping Over Maps
+
+```javascript
+const doubled = new Map(
+  [...map].map(([key, value]) => [key, value * 2])
+);
+```
+
+## WeakMap
+
+A **WeakMap** is similar to Map but with key differences:
+
+- Keys **must be objects** (not primitives)
+- Keys are held **weakly** (can be garbage collected)
+- **Not iterable** (no `keys()`, `values()`, `entries()`, `forEach()`)
+- No `size` property or `clear()` method
+
+### Basic Usage
+
+```javascript
+const weakMap = new WeakMap();
+
+let obj = { id: 1 };
+weakMap.set(obj, 'some data');
+
+weakMap.get(obj); // 'some data'
+weakMap.has(obj); // true
+weakMap.delete(obj); // true
+
+// When obj is no longer referenced elsewhere,
+// it can be garbage collected along with its WeakMap entry
+obj = null;
+```
+
+### WeakMap Use Cases
+
+- Private data storage for objects
+- DOM node metadata without memory leaks
+- Caching tied to object lifetime
+
+## Performance Considerations
+
+- **Maps** are optimized for frequent additions and deletions
+- Key lookup is generally O(1) average case
+- Maps perform better than objects when:
+  - You need non-string keys
+  - You frequently add/remove properties
+  - You need to iterate in insertion order
+  - You need to know the exact size
+
+## Browser Support
+
+Maps are supported in all modern browsers and Node.js environments (ES6+). For legacy support, use polyfills or transpilers like Babel.
+
+---
+
+**Last Updated:** October 2025  
+**Version:** ES2025
