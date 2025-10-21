@@ -1,4 +1,9 @@
-# Swift Programming Language - Complete Guide
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/swift">← Swift</a> <br /> <br />
+
+# Introduction
 
 Swift is a powerful, modern programming language developed by Apple for iOS, macOS, watchOS, and tvOS development. It's designed to be safe, fast, and expressive.
 
@@ -286,11 +291,11 @@ incrementByTwo()  // 4
 struct Person {
     var name: String
     var age: Int
-    
+
     func introduce() {
         print("I'm \(name), \(age) years old")
     }
-    
+
     mutating func haveBirthday() {
         age += 1
     }
@@ -306,16 +311,16 @@ person.introduce()
 class BankAccount {
     var balance: Double
     let accountNumber: String
-    
+
     init(accountNumber: String, initialBalance: Double = 0) {
         self.accountNumber = accountNumber
         self.balance = initialBalance
     }
-    
+
     func deposit(amount: Double) {
         balance += amount
     }
-    
+
     func withdraw(amount: Double) -> Bool {
         if balance >= amount {
             balance -= amount
@@ -334,11 +339,11 @@ account.deposit(amount: 500)
 struct Rectangle {
     var width: Double
     var height: Double
-    
+
     var area: Double {
         return width * height
     }
-    
+
     var perimeter: Double {
         return 2 * (width + height)
     }
@@ -349,7 +354,7 @@ struct Rectangle {
 ```swift
 class Vehicle {
     var speed: Double = 0
-    
+
     func describe() -> String {
         return "Traveling at \(speed) mph"
     }
@@ -357,7 +362,7 @@ class Vehicle {
 
 class Car: Vehicle {
     var gear: Int = 1
-    
+
     override func describe() -> String {
         return super.describe() + " in gear \(gear)"
     }
@@ -433,11 +438,11 @@ protocol Drawable {
 
 struct Circle: Drawable {
     var radius: Double
-    
+
     func draw() {
         print("Drawing a circle with radius \(radius)")
     }
-    
+
     var area: Double {
         return .pi * radius * radius
     }
@@ -483,7 +488,7 @@ extension Int {
     func squared() -> Int {
         return self * self
     }
-    
+
     var isEven: Bool {
         return self % 2 == 0
     }
@@ -500,7 +505,7 @@ extension String {
     var isEmail: Bool {
         return self.contains("@") && self.contains(".")
     }
-    
+
     func withPrefix(_ prefix: String) -> String {
         return prefix + self
     }
@@ -531,11 +536,11 @@ func readFile(name: String) throws -> String {
     guard !name.isEmpty else {
         throw FileError.notFound
     }
-    
+
     guard name.hasSuffix(".txt") else {
         throw FileError.invalidFormat
     }
-    
+
     return "File contents"
 }
 ```
@@ -586,15 +591,15 @@ swap(&str1, &str2)
 ```swift
 struct Stack<Element> {
     private var items: [Element] = []
-    
+
     mutating func push(_ item: Element) {
         items.append(item)
     }
-    
+
     mutating func pop() -> Element? {
         return items.isEmpty ? nil : items.removeLast()
     }
-    
+
     func peek() -> Element? {
         return items.last
     }
