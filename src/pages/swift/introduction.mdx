@@ -1,0 +1,682 @@
+# Swift Programming Language - Complete Guide
+
+Swift is a powerful, modern programming language developed by Apple for iOS, macOS, watchOS, and tvOS development. It's designed to be safe, fast, and expressive.
+
+## Table of Contents
+- [Basic Syntax](#basic-syntax)
+- [Data Types](#data-types)
+- [Optionals](#optionals)
+- [Control Flow](#control-flow)
+- [Functions](#functions)
+- [Closures](#closures)
+- [Structures and Classes](#structures-and-classes)
+- [Enumerations](#enumerations)
+- [Protocols](#protocols)
+- [Extensions](#extensions)
+- [Error Handling](#error-handling)
+- [Generics](#generics)
+- [Property Observers](#property-observers)
+
+---
+
+## Basic Syntax
+
+### Hello World
+```swift
+print("Hello, World!")
+// Prints to console - no semicolons needed
+```
+
+### Variables and Constants
+```swift
+var mutableValue = 42        // Can be changed
+let constantValue = 100      // Cannot be changed
+var inferredType = "Swift"   // Type is inferred as String
+var explicitType: Double = 3.14
+```
+
+---
+
+## Data Types
+
+### Common Types
+```swift
+let integer: Int = 42
+let floatingPoint: Double = 3.14159
+let text: String = "Hello"
+let flag: Bool = true
+let character: Character = "A"
+```
+
+### Collections
+
+**Arrays** - ordered collections
+```swift
+var numbers = [1, 2, 3, 4, 5]
+numbers.append(6)
+numbers[0] = 10
+```
+
+**Dictionaries** - key-value pairs
+```swift
+var person = ["name": "Alice", "age": "30"]
+person["city"] = "New York"
+```
+
+**Sets** - unique unordered values
+```swift
+var uniqueNumbers: Set = [1, 2, 3, 3, 4]  // {1, 2, 3, 4}
+uniqueNumbers.insert(5)
+```
+
+---
+
+## Optionals
+
+Swift uses optionals to handle the absence of a value safely.
+
+### Declaring Optionals
+```swift
+var optionalName: String? = "John"
+var noValue: String? = nil
+```
+
+### Optional Binding
+```swift
+if let name = optionalName {
+    print("Hello, \(name)")
+} else {
+    print("No name provided")
+}
+```
+
+### Optional Chaining
+```swift
+let length = optionalName?.count
+```
+
+### Nil Coalescing
+```swift
+let displayName = optionalName ?? "Guest"
+```
+
+### Force Unwrapping
+```swift
+let forced = optionalName!  // Use with caution!
+```
+
+---
+
+## Control Flow
+
+### If-Else Statements
+```swift
+let score = 85
+
+if score >= 90 {
+    print("A")
+} else if score >= 80 {
+    print("B")
+} else {
+    print("C")
+}
+```
+
+### Switch Statements
+```swift
+switch score {
+case 90...100:
+    print("Excellent")
+case 80..<90:
+    print("Good")
+case 70..<80:
+    print("Average")
+default:
+    print("Keep trying")
+}
+```
+
+### For-In Loops
+```swift
+// Range loop
+for i in 1...5 {
+    print(i)  // 1, 2, 3, 4, 5
+}
+
+// Array iteration
+let fruits = ["Apple", "Banana", "Orange"]
+for fruit in fruits {
+    print(fruit)
+}
+
+// Enumerated iteration
+for (index, fruit) in fruits.enumerated() {
+    print("\(index): \(fruit)")
+}
+```
+
+### While Loops
+```swift
+var count = 0
+while count < 3 {
+    print(count)
+    count += 1
+}
+
+// Repeat-while (do-while)
+repeat {
+    print(count)
+    count += 1
+} while count < 5
+```
+
+---
+
+## Functions
+
+### Basic Function
+```swift
+func greet(name: String) -> String {
+    return "Hello, \(name)!"
+}
+
+let message = greet(name: "Alice")
+```
+
+### Multiple Parameters
+```swift
+func add(a: Int, b: Int) -> Int {
+    return a + b
+}
+
+let sum = add(a: 5, b: 3)
+```
+
+### External and Internal Parameter Names
+```swift
+func greet(person name: String, from hometown: String) {
+    print("Hello \(name) from \(hometown)!")
+}
+
+greet(person: "Alice", from: "NYC")
+```
+
+### Default Parameters
+```swift
+func multiply(a: Int, b: Int = 2) -> Int {
+    return a * b
+}
+
+multiply(a: 5)      // Returns 10
+multiply(a: 5, b: 3) // Returns 15
+```
+
+### Variadic Parameters
+```swift
+func sum(_ numbers: Int...) -> Int {
+    return numbers.reduce(0, +)
+}
+
+sum(1, 2, 3, 4, 5)  // Returns 15
+```
+
+### In-Out Parameters
+```swift
+func swapValues(_ a: inout Int, _ b: inout Int) {
+    let temp = a
+    a = b
+    b = temp
+}
+
+var x = 5, y = 10
+swapValues(&x, &y)  // x is now 10, y is now 5
+```
+
+---
+
+## Closures
+
+Closures are self-contained blocks of functionality that can be passed around.
+
+### Basic Closure
+```swift
+let multiply = { (a: Int, b: Int) -> Int in
+    return a * b
+}
+
+let result = multiply(4, 5)
+```
+
+### Trailing Closure Syntax
+```swift
+let numbers = [1, 2, 3, 4, 5]
+
+// Map - transform each element
+let doubled = numbers.map { $0 * 2 }  // [2, 4, 6, 8, 10]
+
+// Filter - select elements
+let evens = numbers.filter { $0 % 2 == 0 }  // [2, 4]
+
+// Reduce - combine elements
+let sum = numbers.reduce(0) { $0 + $1 }  // 15
+```
+
+### Capturing Values
+```swift
+func makeIncrementer(increment: Int) -> () -> Int {
+    var total = 0
+    let incrementer: () -> Int = {
+        total += increment
+        return total
+    }
+    return incrementer
+}
+
+let incrementByTwo = makeIncrementer(increment: 2)
+incrementByTwo()  // 2
+incrementByTwo()  // 4
+```
+
+---
+
+## Structures and Classes
+
+### Structures (Value Types)
+```swift
+struct Person {
+    var name: String
+    var age: Int
+    
+    func introduce() {
+        print("I'm \(name), \(age) years old")
+    }
+    
+    mutating func haveBirthday() {
+        age += 1
+    }
+}
+
+var person = Person(name: "Bob", age: 25)
+person.haveBirthday()
+person.introduce()
+```
+
+### Classes (Reference Types)
+```swift
+class BankAccount {
+    var balance: Double
+    let accountNumber: String
+    
+    init(accountNumber: String, initialBalance: Double = 0) {
+        self.accountNumber = accountNumber
+        self.balance = initialBalance
+    }
+    
+    func deposit(amount: Double) {
+        balance += amount
+    }
+    
+    func withdraw(amount: Double) -> Bool {
+        if balance >= amount {
+            balance -= amount
+            return true
+        }
+        return false
+    }
+}
+
+let account = BankAccount(accountNumber: "123456", initialBalance: 1000)
+account.deposit(amount: 500)
+```
+
+### Computed Properties
+```swift
+struct Rectangle {
+    var width: Double
+    var height: Double
+    
+    var area: Double {
+        return width * height
+    }
+    
+    var perimeter: Double {
+        return 2 * (width + height)
+    }
+}
+```
+
+### Inheritance
+```swift
+class Vehicle {
+    var speed: Double = 0
+    
+    func describe() -> String {
+        return "Traveling at \(speed) mph"
+    }
+}
+
+class Car: Vehicle {
+    var gear: Int = 1
+    
+    override func describe() -> String {
+        return super.describe() + " in gear \(gear)"
+    }
+}
+```
+
+---
+
+## Enumerations
+
+### Basic Enum
+```swift
+enum Direction {
+    case north
+    case south
+    case east
+    case west
+}
+
+var heading = Direction.north
+heading = .south
+```
+
+### Enums with Associated Values
+```swift
+enum Result {
+    case success(String)
+    case failure(Error)
+}
+
+enum Barcode {
+    case upc(Int, Int, Int, Int)
+    case qrCode(String)
+}
+```
+
+### Enums with Raw Values
+```swift
+enum Planet: Int {
+    case mercury = 1
+    case venus
+    case earth
+    case mars
+}
+
+let earthNumber = Planet.earth.rawValue  // 3
+```
+
+### Pattern Matching
+```swift
+let result = Result.success("Data loaded successfully")
+
+switch result {
+case .success(let message):
+    print("Success: \(message)")
+case .failure(let error):
+    print("Error: \(error)")
+}
+```
+
+---
+
+## Protocols
+
+Protocols define a blueprint of methods, properties, and requirements.
+
+### Basic Protocol
+```swift
+protocol Drawable {
+    func draw()
+    var area: Double { get }
+}
+
+struct Circle: Drawable {
+    var radius: Double
+    
+    func draw() {
+        print("Drawing a circle with radius \(radius)")
+    }
+    
+    var area: Double {
+        return .pi * radius * radius
+    }
+}
+```
+
+### Protocol Inheritance
+```swift
+protocol Named {
+    var name: String { get }
+}
+
+protocol Aged {
+    var age: Int { get }
+}
+
+protocol Person: Named, Aged {
+    func introduce()
+}
+```
+
+### Protocol Extensions
+```swift
+extension Collection {
+    func summarize() -> String {
+        return "Collection with \(count) items"
+    }
+}
+
+let numbers = [1, 2, 3]
+print(numbers.summarize())
+```
+
+---
+
+## Extensions
+
+Extensions add new functionality to existing types.
+
+### Extending Built-in Types
+```swift
+extension Int {
+    func squared() -> Int {
+        return self * self
+    }
+    
+    var isEven: Bool {
+        return self % 2 == 0
+    }
+}
+
+let number = 5
+print(number.squared())  // 25
+print(number.isEven)     // false
+```
+
+### Extending String
+```swift
+extension String {
+    var isEmail: Bool {
+        return self.contains("@") && self.contains(".")
+    }
+    
+    func withPrefix(_ prefix: String) -> String {
+        return prefix + self
+    }
+}
+
+let email = "user@example.com"
+print(email.isEmail)  // true
+```
+
+---
+
+## Error Handling
+
+Swift provides first-class support for throwing, catching, and propagating errors.
+
+### Defining Errors
+```swift
+enum FileError: Error {
+    case notFound
+    case noPermission
+    case invalidFormat
+}
+```
+
+### Throwing Functions
+```swift
+func readFile(name: String) throws -> String {
+    guard !name.isEmpty else {
+        throw FileError.notFound
+    }
+    
+    guard name.hasSuffix(".txt") else {
+        throw FileError.invalidFormat
+    }
+    
+    return "File contents"
+}
+```
+
+### Handling Errors
+```swift
+// Do-catch
+do {
+    let contents = try readFile(name: "data.txt")
+    print(contents)
+} catch FileError.notFound {
+    print("File not found")
+} catch FileError.noPermission {
+    print("No permission to read file")
+} catch {
+    print("Unknown error: \(error)")
+}
+
+// Optional try
+let contents = try? readFile(name: "data.txt")
+
+// Force try (use with caution)
+let forcedContents = try! readFile(name: "data.txt")
+```
+
+---
+
+## Generics
+
+Generics enable you to write flexible, reusable functions and types.
+
+### Generic Functions
+```swift
+func swap<T>(_ a: inout T, _ b: inout T) {
+    let temp = a
+    a = b
+    b = temp
+}
+
+var x = 5, y = 10
+swap(&x, &y)
+
+var str1 = "Hello", str2 = "World"
+swap(&str1, &str2)
+```
+
+### Generic Types
+```swift
+struct Stack<Element> {
+    private var items: [Element] = []
+    
+    mutating func push(_ item: Element) {
+        items.append(item)
+    }
+    
+    mutating func pop() -> Element? {
+        return items.isEmpty ? nil : items.removeLast()
+    }
+    
+    func peek() -> Element? {
+        return items.last
+    }
+}
+
+var intStack = Stack<Int>()
+intStack.push(1)
+intStack.push(2)
+intStack.pop()  // Returns 2
+
+var stringStack = Stack<String>()
+stringStack.push("Hello")
+stringStack.push("World")
+```
+
+### Generic Constraints
+```swift
+func findIndex<T: Equatable>(of valueToFind: T, in array: [T]) -> Int? {
+    for (index, value) in array.enumerated() {
+        if value == valueToFind {
+            return index
+        }
+    }
+    return nil
+}
+```
+
+---
+
+## Property Observers
+
+Property observers observe and respond to changes in a property's value.
+
+### willSet and didSet
+```swift
+struct Temperature {
+    var celsius: Double {
+        willSet {
+            print("About to set temperature to \(newValue)°C")
+        }
+        didSet {
+            if celsius < oldValue {
+                print("Temperature decreased by \(oldValue - celsius)°C")
+            } else {
+                print("Temperature increased by \(celsius - oldValue)°C")
+            }
+        }
+    }
+}
+
+var temp = Temperature(celsius: 20)
+temp.celsius = 25  // Triggers both observers
+```
+
+### Practical Example
+```swift
+class StepCounter {
+    var totalSteps: Int = 0 {
+        willSet {
+            print("About to set totalSteps to \(newValue)")
+        }
+        didSet {
+            if totalSteps > oldValue {
+                print("Added \(totalSteps - oldValue) steps")
+            }
+        }
+    }
+}
+
+let counter = StepCounter()
+counter.totalSteps = 100
+counter.totalSteps = 250
+```
+
+---
+
+## Key Takeaways
+
+- **Safety**: Swift's type system and optionals prevent many common programming errors
+- **Modern**: Clean syntax with powerful features like closures, generics, and protocols
+- **Fast**: Optimized for performance with compile-time optimizations
+- **Expressive**: Write less code that does more with features like type inference and shorthand syntax
+- **Interoperable**: Works seamlessly with Objective-C code in Apple ecosystems
+
+Swift combines the best of modern programming languages to create a powerful tool for building robust applications across all Apple platforms.
