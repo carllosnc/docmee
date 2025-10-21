@@ -183,7 +183,7 @@ function expensiveOperation(key) {
   if (cache.has(key)) {
     return cache.get(key);
   }
-  
+
   const result = /* expensive calculation */;
   cache.set(key, result);
   return result;
@@ -196,11 +196,11 @@ function expensiveOperation(key) {
 function countWords(text) {
   const counts = new Map();
   const words = text.split(' ');
-  
+
   for (const word of words) {
     counts.set(word, (counts.get(word) || 0) + 1);
   }
-  
+
   return counts;
 }
 ```
@@ -336,5 +336,5 @@ Maps are supported in all modern browsers and Node.js environments (ES6+). For l
 
 ---
 
-**Last Updated:** October 2025  
+**Last Updated:** October 2025
 **Version:** ES2025
