@@ -1,0 +1,466 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dart">← Dart</a> <br /> <br />
+
+# Extension Types
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Basic Syntax](#basic-syntax)
+- [Key Characteristics](#key-characteristics)
+- [Declaration](#declaration)
+- [Constructors](#constructors)
+- [Members](#members)
+- [Type System](#type-system)
+- [Restrictions](#restrictions)
+- [Use Cases](#use-cases)
+- [Examples](#examples)
+- [Comparison with Extensions](#comparison-with-extensions)
+
+## Introduction
+
+Extension types are a compile-time abstraction feature introduced in Dart 3.0 that allows you to create zero-cost wrappers around existing types. They provide a way to add new interfaces to existing types without runtime overhead.
+
+**Key Feature**: Extension types are entirely static - they exist only at compile time and have no runtime representation.
+
+## Basic Syntax
+
+```dart
+extension type ExtensionTypeName(RepresentationType representationName) {
+  // Members
+}
+```
+
+## Key Characteristics
+
+1. **Zero-cost abstraction**: No runtime wrapper object is created
+2. **Compile-time only**: Completely erased at runtime
+3. **Static discipline**: Provides type safety at compile time
+4. **Transparent at runtime**: The underlying representation type is used directly
+
+## Declaration
+
+### Basic Declaration
+
+```dart
+extension type IdNumber(int id) {
+  // Members go here
+}
+```
+
+### With Type Parameters
+
+```dart
+extension type Wrapper<T>(T value) {
+  T get unwrapped => value;
+}
+```
+
+### With Implements Clause
+
+```dart
+extension type IdNumber(int id) implements int {
+  // Inherits int's interface
+}
+```
+
+### Multiple Implements
+
+```dart
+extension type NumberWrapper(num value) 
+    implements int, double {
+  // Must be compatible with both int and double
+}
+```
+
+## Constructors
+
+### Primary Constructor
+
+Every extension type has an implicit primary constructor defined by the representation declaration:
+
+```dart
+extension type IdNumber(int id) {}
+
+// Usage
+var id = IdNumber(42);
+```
+
+### Named Constructors
+
+```dart
+extension type IdNumber(int id) {
+  IdNumber.fromString(String value) : this(int.parse(value));
+  
+  IdNumber.zero() : this(0);
+}
+
+// Usage
+var id1 = IdNumber.fromString('123');
+var id2 = IdNumber.zero();
+```
+
+### Factory Constructors
+
+```dart
+extension type PositiveInt(int value) {
+  factory PositiveInt.create(int value) {
+    if (value <= 0) {
+      throw ArgumentError('Value must be positive');
+    }
+    return PositiveInt(value);
+  }
+}
+```
+
+## Members
+
+### Getters
+
+```dart
+extension type Temperature(double celsius) {
+  double get fahrenheit => (celsius * 9/5) + 32;
+  double get kelvin => celsius + 273.15;
+}
+```
+
+### Methods
+
+```dart
+extension type EmailAddress(String address) {
+  bool isValid() {
+    return address.contains('@') && address.contains('.');
+  }
+  
+  String getDomain() {
+    return address.split('@').last;
+  }
+}
+```
+
+### Operators
+
+```dart
+extension type Vector2D(List<double> coords) {
+  double get x => coords[0];
+  double get y => coords[1];
+  
+  Vector2D operator +(Vector2D other) {
+    return Vector2D([x + other.x, y + other.y]);
+  }
+  
+  Vector2D operator *(double scalar) {
+    return Vector2D([x * scalar, y * scalar]);
+  }
+}
+```
+
+### Static Members
+
+```dart
+extension type UserId(int id) {
+  static const int minId = 1000;
+  static const int maxId = 9999;
+  
+  static bool isValidRange(int id) {
+    return id >= minId && id <= maxId;
+  }
+}
+```
+
+## Type System
+
+### Subtyping with `implements`
+
+```dart
+extension type MyInt(int value) implements int {
+  // MyInt is a subtype of int
+  // Can be used wherever int is expected
+}
+
+void printInt(int value) {
+  print(value);
+}
+
+var myInt = MyInt(42);
+printInt(myInt); // Works! MyInt implements int
+```
+
+### Multiple Interface Implementation
+
+```dart
+extension type JsonString(String source) implements String {
+  // Inherits all String methods
+  Map<String, dynamic> decode() => json.decode(source);
+}
+```
+
+### Representation Type Access
+
+```dart
+extension type Age(int years) {
+  // Access underlying representation
+  int get raw => years;
+}
+
+var age = Age(25);
+print(age.years); // Access representation directly
+```
+
+## Restrictions
+
+### Cannot Extend Classes
+
+```dart
+// ❌ ERROR: Extension types cannot extend classes
+extension type MyType(int value) extends Object {}
+```
+
+### Cannot Be Extended
+
+```dart
+extension type Base(int value) {}
+
+// ❌ ERROR: Cannot extend an extension type
+class Derived extends Base {}
+```
+
+### Cannot Override Members from Object
+
+```dart
+extension type MyType(int value) {
+  // ❌ ERROR: Cannot override Object members
+  @override
+  String toString() => 'MyType: $value';
+}
+```
+
+### Representation Must Be Accessible
+
+```dart
+extension type Wrapper(int _value) {
+  // ❌ ERROR: Representation name cannot be private
+}
+```
+
+### No Instance Fields
+
+```dart
+extension type Counter(int count) {
+  // ❌ ERROR: Cannot declare instance fields
+  int multiplier = 2;
+}
+```
+
+## Use Cases
+
+### 1. Type Safety Wrappers
+
+```dart
+extension type UserId(int id) {}
+extension type ProductId(int id) {}
+
+void processUser(UserId userId) {
+  // Ensures only UserId is passed, not just any int
+}
+
+var userId = UserId(123);
+var productId = ProductId(456);
+
+processUser(userId); // ✓ OK
+// processUser(productId); // ❌ Compile error
+// processUser(123); // ❌ Compile error
+```
+
+### 2. API Convenience
+
+```dart
+extension type Json(String source) {
+  Map<String, dynamic> decode() => json.decode(source);
+  
+  static Json encode(Object? object) {
+    return Json(json.encode(object));
+  }
+}
+
+var data = Json('{"name": "Alice"}').decode();
+var jsonStr = Json.encode({'age': 30});
+```
+
+### 3. Performance-Critical Wrappers
+
+```dart
+extension type Meters(double value) implements double {
+  Meters operator +(Meters other) => Meters(value + other.value);
+  Meters operator *(double multiplier) => Meters(value * multiplier);
+  
+  double toKilometers() => value / 1000;
+  double toMiles() => value * 0.000621371;
+}
+```
+
+### 4. Domain Modeling
+
+```dart
+extension type EmailAddress(String value) {
+  EmailAddress.parse(String email) : this(email) {
+    if (!email.contains('@')) {
+      throw FormatException('Invalid email');
+    }
+  }
+  
+  String get username => value.split('@').first;
+  String get domain => value.split('@').last;
+}
+```
+
+### 5. Interoperability
+
+```dart
+// Wrapping external library types
+extension type ExternalId(external_lib.Id id) {
+  String toCustomFormat() => 'CUSTOM-${id.value}';
+}
+```
+
+## Examples
+
+### Complete Example: Safe Numeric Type
+
+```dart
+extension type PositiveNumber(num value) implements num {
+  PositiveNumber(num value) : this.value = value {
+    if (value <= 0) {
+      throw ArgumentError('Value must be positive');
+    }
+  }
+  
+  factory PositiveNumber.fromString(String str) {
+    final parsed = num.parse(str);
+    return PositiveNumber(parsed);
+  }
+  
+  PositiveNumber operator +(PositiveNumber other) {
+    return PositiveNumber(value + other.value);
+  }
+  
+  PositiveNumber operator *(PositiveNumber other) {
+    return PositiveNumber(value * other.value);
+  }
+  
+  double get sqrt => math.sqrt(value);
+}
+
+// Usage
+var a = PositiveNumber(5);
+var b = PositiveNumber(3);
+var sum = a + b; // PositiveNumber(8)
+print(sum.sqrt); // 2.8284271247461903
+```
+
+### Complete Example: Type-Safe IDs
+
+```dart
+extension type CustomerId(String id) {
+  factory CustomerId.generate() {
+    return CustomerId('CUST-${DateTime.now().millisecondsSinceEpoch}');
+  }
+  
+  bool get isValid => id.startsWith('CUST-') && id.length > 5;
+}
+
+extension type OrderId(String id) {
+  factory OrderId.generate() {
+    return OrderId('ORD-${DateTime.now().millisecondsSinceEpoch}');
+  }
+  
+  bool get isValid => id.startsWith('ORD-') && id.length > 4;
+}
+
+class Order {
+  final OrderId id;
+  final CustomerId customerId;
+  
+  Order(this.id, this.customerId);
+}
+
+// Usage
+var customer = CustomerId.generate();
+var order = Order(OrderId.generate(), customer);
+// var wrongOrder = Order(customer, customer); // ❌ Compile error!
+```
+
+### Complete Example: Validation Wrapper
+
+```dart
+extension type ValidatedEmail(String email) {
+  ValidatedEmail(String email) : this.email = email {
+    if (!_isValid(email)) {
+      throw FormatException('Invalid email format: $email');
+    }
+  }
+  
+  static bool _isValid(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+  
+  String get username => email.split('@').first;
+  String get domain => email.split('@').last;
+  String get masked => '${username.substring(0, 2)}***@$domain';
+}
+
+// Usage
+try {
+  var email = ValidatedEmail('user@example.com');
+  print(email.masked); // us***@example.com
+  
+  var invalid = ValidatedEmail('not-an-email'); // Throws FormatException
+} catch (e) {
+  print('Error: $e');
+}
+```
+
+## Comparison with Extensions
+
+| Feature | Extension Types | Extensions |
+|---------|----------------|------------|
+| **Runtime** | Zero-cost, compile-time only | No overhead |
+| **Type Safety** | Creates new type | Extends existing type |
+| **Subtyping** | Can implement interfaces | Cannot change type hierarchy |
+| **Usage** | Requires explicit construction | Available on all instances |
+| **Primary Use** | Type-safe wrappers | Adding functionality |
+
+### Extension Example
+
+```dart
+extension StringExtension on String {
+  bool get isEmail => contains('@');
+}
+
+'test@example.com'.isEmail; // Available on all strings
+```
+
+### Extension Type Example
+
+```dart
+extension type Email(String value) {
+  bool get isValid => value.contains('@');
+}
+
+var email = Email('test@example.com'); // Explicit construction
+email.isValid;
+```
+
+## Best Practices
+
+1. **Use for type safety**: Create distinct types from primitives to prevent mixing incompatible values
+2. **Keep them simple**: Extension types work best as lightweight wrappers
+3. **Leverage implements**: Use `implements` to inherit existing interfaces when appropriate
+4. **Name clearly**: Choose names that clearly indicate the wrapped type's purpose
+5. **Validate in constructors**: Perform validation in the primary or factory constructors
+6. **Document behavior**: Clearly document any constraints or special behavior
+
+## Conclusion
+
+Extension types are a powerful feature for creating zero-cost type-safe abstractions in Dart. They allow you to add compile-time type safety without runtime overhead, making them ideal for domain modeling, API design, and preventing common programming errors through the type system.
