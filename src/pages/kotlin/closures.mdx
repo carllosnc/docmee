@@ -1,0 +1,435 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/kotlin">← Kotlin</a> <br /> <br />
+
+# Kotlin Closures: Complete Reference
+
+Closures in Kotlin are functions that can capture and access variables from their surrounding scope, even after that scope has finished executing. Let me provide you with a comprehensive guide.
+
+## What is a Closure?
+
+A closure is a lambda expression or anonymous function that "closes over" variables from its outer scope, maintaining references to them.
+
+```kotlin
+fun main() {
+    var counter = 0
+    
+    val increment = {
+        counter++  // Captures 'counter' from outer scope
+        println("Counter: $counter")
+    }
+    
+    increment()  // Counter: 1
+    increment()  // Counter: 2
+    println(counter)  // 2 - outer variable is modified
+}
+```
+
+## Basic Syntax
+
+### Lambda Expressions (Most Common)
+
+```kotlin
+// Basic lambda
+val square = { x: Int -> x * x }
+
+// Lambda with multiple parameters
+val add = { a: Int, b: Int -> a + b }
+
+// Lambda with no parameters
+val greet = { println("Hello!") }
+
+// Multi-line lambda
+val process = { x: Int ->
+    val doubled = x * 2
+    val squared = doubled * doubled
+    squared  // Last expression is returned
+}
+```
+
+### Anonymous Functions
+
+```kotlin
+val multiply = fun(x: Int, y: Int): Int {
+    return x * y
+}
+
+// Anonymous function with inferred return type
+val divide = fun(x: Int, y: Int) = x / y
+```
+
+## Capturing Variables
+
+### Capturing Immutable Variables
+
+```kotlin
+fun createGreeter(name: String): () -> String {
+    return { "Hello, $name!" }  // Captures 'name'
+}
+
+val greeter = createGreeter("Alice")
+println(greeter())  // Hello, Alice!
+```
+
+### Capturing Mutable Variables
+
+Unlike Java, Kotlin allows you to modify captured variables:
+
+```kotlin
+fun createCounter(): () -> Int {
+    var count = 0
+    return {
+        count++
+        count
+    }
+}
+
+val counter = createCounter()
+println(counter())  // 1
+println(counter())  // 2
+println(counter())  // 3
+```
+
+### Multiple Closures Sharing State
+
+```kotlin
+fun createCounterPair(): Pair<() -> Int, () -> Int> {
+    var count = 0
+    
+    val increment = { ++count }
+    val decrement = { --count }
+    
+    return Pair(increment, decrement)
+}
+
+val (inc, dec) = createCounterPair()
+println(inc())  // 1
+println(inc())  // 2
+println(dec())  // 1
+```
+
+## Function Types
+
+### Basic Function Types
+
+```kotlin
+// Function taking Int and returning String
+val formatter: (Int) -> String = { "Number: $it" }
+
+// Function taking two parameters
+val calculator: (Int, Int) -> Int = { a, b -> a + b }
+
+// Function with no parameters
+val action: () -> Unit = { println("Action!") }
+
+// Nullable return type
+val finder: (List<Int>) -> Int? = { it.firstOrNull() }
+```
+
+### Higher-Order Functions
+
+Functions that take functions as parameters or return functions:
+
+```kotlin
+// Function taking a function parameter
+fun operate(x: Int, y: Int, operation: (Int, Int) -> Int): Int {
+    return operation(x, y)
+}
+
+println(operate(5, 3, { a, b -> a + b }))  // 8
+println(operate(5, 3) { a, b -> a * b })   // 15 (trailing lambda)
+
+// Function returning a function
+fun makeMultiplier(factor: Int): (Int) -> Int {
+    return { x -> x * factor }
+}
+
+val triple = makeMultiplier(3)
+println(triple(5))  // 15
+```
+
+## Lambda with Receivers
+
+Functions with a receiver type allow you to call methods on an object inside the lambda:
+
+```kotlin
+// Type: String.() -> Int
+val lengthCalculator: String.() -> Int = { this.length }
+
+// Usage
+println("Hello".lengthCalculator())  // 5
+println(lengthCalculator("World"))   // 5
+
+// Practical example: building a string
+fun buildString(builderAction: StringBuilder.() -> Unit): String {
+    val sb = StringBuilder()
+    sb.builderAction()
+    return sb.toString()
+}
+
+val result = buildString {
+    append("Hello")
+    append(" ")
+    append("World")
+}
+println(result)  // Hello World
+```
+
+## Common Patterns
+
+### 1. Event Handlers and Callbacks
+
+```kotlin
+class Button {
+    private var clickHandler: (() -> Unit)? = null
+    
+    fun setOnClickListener(handler: () -> Unit) {
+        clickHandler = handler
+    }
+    
+    fun click() {
+        clickHandler?.invoke()
+    }
+}
+
+val button = Button()
+var clicks = 0
+
+button.setOnClickListener {
+    clicks++
+    println("Button clicked $clicks times")
+}
+
+button.click()  // Button clicked 1 times
+button.click()  // Button clicked 2 times
+```
+
+### 2. Lazy Initialization
+
+```kotlin
+class ExpensiveResource {
+    init {
+        println("Creating expensive resource...")
+    }
+}
+
+fun createLazyResource(): () -> ExpensiveResource {
+    var resource: ExpensiveResource? = null
+    
+    return {
+        if (resource == null) {
+            resource = ExpensiveResource()
+        }
+        resource!!
+    }
+}
+
+val lazyGetter = createLazyResource()
+println("Before first access")
+lazyGetter()  // Creates resource
+lazyGetter()  // Reuses existing resource
+```
+
+### 3. Memoization
+
+```kotlin
+fun <T, R> memoize(fn: (T) -> R): (T) -> R {
+    val cache = mutableMapOf<T, R>()
+    
+    return { input ->
+        cache.getOrPut(input) {
+            fn(input)
+        }
+    }
+}
+
+val expensiveOperation = memoize<Int, Int> { x ->
+    println("Computing for $x")
+    x * x
+}
+
+println(expensiveOperation(5))  // Computing for 5, prints 25
+println(expensiveOperation(5))  // Uses cache, prints 25
+println(expensiveOperation(3))  // Computing for 3, prints 9
+```
+
+### 4. Partial Application
+
+```kotlin
+fun <A, B, R> partial(fn: (A, B) -> R, a: A): (B) -> R {
+    return { b -> fn(a, b) }
+}
+
+val add = { x: Int, y: Int -> x + y }
+val add5 = partial(add, 5)
+
+println(add5(3))   // 8
+println(add5(10))  // 15
+```
+
+## Scope Functions with Closures
+
+Kotlin's scope functions (`let`, `run`, `with`, `apply`, `also`) use closures:
+
+```kotlin
+val person = Person("Alice", 30)
+
+// let - passes object as 'it'
+person.let { p ->
+    println("${p.name} is ${p.age} years old")
+}
+
+// run - object becomes 'this'
+person.run {
+    println("$name is $age years old")
+}
+
+// apply - for configuration
+val builder = StringBuilder().apply {
+    append("Hello")
+    append(" World")
+}
+```
+
+## Collections and Closures
+
+```kotlin
+val numbers = listOf(1, 2, 3, 4, 5)
+
+// filter with closure
+val evenNumbers = numbers.filter { it % 2 == 0 }
+
+// map with closure
+val squared = numbers.map { it * it }
+
+// Custom closure capturing external state
+var sum = 0
+numbers.forEach { sum += it }
+println(sum)  // 15
+
+// reduce/fold with closure
+val product = numbers.reduce { acc, n -> acc * n }
+```
+
+## Inline Functions and Closures
+
+Inline functions can improve performance by eliminating closure object creation:
+
+```kotlin
+inline fun measureTime(block: () -> Unit): Long {
+    val start = System.currentTimeMillis()
+    block()
+    return System.currentTimeMillis() - start
+}
+
+val time = measureTime {
+    // Some operation
+    Thread.sleep(100)
+}
+println("Took $time ms")
+```
+
+## Non-local Returns
+
+In inline functions, you can return from the outer function:
+
+```kotlin
+inline fun forEach(list: List<Int>, action: (Int) -> Unit) {
+    for (item in list) {
+        action(item)
+    }
+}
+
+fun findFirst(list: List<Int>, predicate: (Int) -> Boolean): Int? {
+    forEach(list) { item ->
+        if (predicate(item)) {
+            return item  // Returns from findFirst, not the lambda
+        }
+    }
+    return null
+}
+```
+
+## Crossinline and Noinline
+
+```kotlin
+// crossinline - prevents non-local returns
+inline fun runTwice(crossinline block: () -> Unit) {
+    block()
+    block()
+}
+
+// noinline - prevents inlining of specific parameter
+inline fun mixed(
+    inlined: () -> Unit,
+    noinline notInlined: () -> Unit
+) {
+    inlined()
+    notInlined()
+}
+```
+
+## Best Practices
+
+1. **Keep closures simple** - Complex closures are harder to understand
+2. **Be careful with captured mutable state** - Can lead to bugs
+3. **Consider memory leaks** - Long-lived closures holding references
+4. **Use inline for performance-critical code** - Eliminates object creation
+5. **Prefer immutability** - Capture `val` instead of `var` when possible
+6. **Use meaningful parameter names** - Avoid overusing `it`
+
+```kotlin
+// Good
+users.filter { user -> user.age >= 18 }
+
+// Less clear with 'it'
+users.filter { it.age >= 18 }  // OK for simple cases
+```
+
+## Common Pitfalls
+
+### Loop Variable Capture
+
+```kotlin
+// WRONG - all closures capture the same variable
+val functions = mutableListOf<() -> Int>()
+for (i in 1..5) {
+    functions.add { i }  // Captures the loop variable
+}
+// All print 5!
+
+// CORRECT - capture a copy
+val functions2 = (1..5).map { i ->
+    { i }  // Each lambda captures its own copy
+}
+```
+
+### Accidental Modification
+
+```kotlin
+fun createAccumulator(): (Int) -> Int {
+    var sum = 0
+    return { value ->
+        sum += value
+        sum
+    }
+}
+
+val acc1 = createAccumulator()
+val acc2 = createAccumulator()  // Different closure, different state
+
+println(acc1(5))  // 5
+println(acc2(3))  // 3 (independent)
+```
+
+## Summary
+
+Closures are powerful tools in Kotlin that enable:
+- Functional programming patterns
+- Callbacks and event handlers
+- State encapsulation
+- Higher-order functions
+- Clean and expressive code
+
+Master closures to write more idiomatic and elegant Kotlin code!
