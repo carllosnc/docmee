@@ -1,0 +1,880 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dart">← Dart</a> <br /> <br />
+
+# Objects and Primitives
+
+## Table of Contents
+- [Overview](#overview)
+- [Type System Philosophy](#type-system-philosophy)
+- [Core Type Hierarchy](#core-type-hierarchy)
+- [Primitive Types](#primitive-types)
+- [Base Object Types](#base-object-types)
+- [Detailed Type Reference](#detailed-type-reference)
+- [Type Comparison Table](#type-comparison-table)
+- [Boxing and Unboxing](#boxing-and-unboxing)
+- [Performance Considerations](#performance-considerations)
+- [Best Practices](#best-practices)
+
+## Overview
+
+Dart has a unique type system where **everything is an object** - there are no true primitives in the traditional sense (like in Java or C++). However, certain types behave like primitives and are optimized by the VM for performance.
+
+### Key Principle
+> In Dart, everything is an object and every object is an instance of a class. Even numbers, functions, and `null` are objects.
+
+## Type System Philosophy
+
+```dart
+// Everything inherits from Object
+int number = 42;          // Object
+String text = "hello";    // Object
+bool flag = true;         // Object
+Function fn = () {};      // Object
+null;                     // Object (Null type)
+```
+
+### Dart vs Other Languages
+
+| Language | int | String | null |
+|----------|-----|--------|------|
+| **Dart** | Object | Object | Object |
+| **Java** | Primitive (can box to Integer) | Object | Not an object |
+| **C++** | Primitive | Object (std::string) | Not applicable |
+| **JavaScript** | Primitive | Primitive | Primitive |
+| **Python** | Object | Object | Object |
+
+## Core Type Hierarchy
+
+```
+Object (root of all types)
+├── Null
+├── num
+│   ├── int
+│   └── double
+├── String
+├── bool
+├── List<E>
+├── Set<E>
+├── Map<K, V>
+├── Runes
+├── Symbol
+├── Type
+├── Function
+├── Record
+├── Enum (base for all enums)
+├── Future<T>
+├── Stream<T>
+└── ... (all other classes)
+```
+
+## Primitive Types
+
+While Dart doesn't have true primitives, these types are treated specially by the VM and have primitive-like behavior:
+
+### 1. **int** - Integer Numbers
+
+```dart
+// Integer type (64-bit signed in native, arbitrary precision on web)
+int age = 25;
+int hex = 0xFF;
+int binary = 0b1010;
+int negative = -100;
+
+// Properties
+int.parse('42');              // String to int
+42.toString();                // '42'
+42.toRadixString(16);         // '2a' (hexadecimal)
+42.isEven;                    // true
+42.isOdd;                     // false
+42.sign;                      // 1 (-1, 0, or 1)
+42.bitLength;                 // 6
+42.abs();                     // 42
+
+// Range
+print(double.maxFinite.toInt()); // Platform dependent
+// Native: -2^63 to 2^63-1 (64-bit)
+// Web: -2^53 to 2^53 (JavaScript number precision)
+```
+
+**Characteristics:**
+- Arbitrary precision on web (compiles to JavaScript Number)
+- 64-bit signed integer on native platforms
+- Inherits from `num`
+- Immutable
+
+### 2. **double** - Floating Point Numbers
+
+```dart
+// Double-precision 64-bit IEEE 754 floating point
+double pi = 3.14159;
+double scientific = 1.42e5;  // 142000.0
+double precise = 0.1 + 0.2;  // 0.30000000000000004
+
+// Properties
+double.parse('3.14');         // String to double
+3.14.toString();              // '3.14'
+3.14.toStringAsFixed(1);      // '3.1'
+3.14.toStringAsPrecision(2);  // '3.1'
+3.14.ceil();                  // 4
+3.14.floor();                 // 3
+3.14.round();                 // 3
+3.14.truncate();              // 3
+
+// Special values
+double.infinity;              // ∞
+double.negativeInfinity;      // -∞
+double.nan;                   // NaN (Not a Number)
+double.maxFinite;             // 1.7976931348623157e+308
+double.minPositive;           // 5e-324
+
+// Checks
+3.14.isFinite;                // true
+3.14.isInfinite;              // false
+3.14.isNaN;                   // false
+```
+
+**Characteristics:**
+- 64-bit IEEE 754 double-precision
+- Inherits from `num`
+- Immutable
+- Has special values (infinity, NaN)
+
+### 3. **num** - Numeric Base Type
+
+```dart
+// Abstract base class for int and double
+num value = 42;               // Can be int or double
+value = 3.14;                 // Runtime type changes
+
+// Common operations
+value.abs();
+value.ceil();
+value.floor();
+value.round();
+value.toInt();
+value.toDouble();
+value.clamp(0, 100);          // Constrain to range
+value.compareTo(50);          // -1, 0, or 1
+
+// Type checking
+value is int;                 // false (currently double)
+value is double;              // true
+value is num;                 // true
+```
+
+**Characteristics:**
+- Abstract supertype of `int` and `double`
+- Cannot be instantiated directly
+- Useful for polymorphic numeric functions
+
+### 4. **bool** - Boolean Values
+
+```dart
+// Boolean type (true or false)
+bool isActive = true;
+bool isDisabled = false;
+
+// Operations
+!isActive;                    // false (NOT)
+isActive && isDisabled;       // false (AND)
+isActive || isDisabled;       // true (OR)
+
+// Conversion
+bool.parse('true');           // true
+bool.tryParse('yes');         // null (only 'true'/'false' work)
+true.toString();              // 'true'
+
+// No truthy/falsy values like JavaScript
+// if (1) {}  // ❌ ERROR: Must be bool
+if (true) {}  // ✓ OK
+```
+
+**Characteristics:**
+- Only two values: `true` and `false`
+- No implicit type conversion (strict boolean checking)
+- Immutable
+
+### 5. **String** - Text
+
+```dart
+// String type (sequence of UTF-16 code units)
+String name = 'Alice';
+String multiline = '''
+  Multiple
+  lines
+''';
+String interpolation = 'Hello, $name!';
+String expression = 'Result: ${1 + 2}';
+
+// Properties
+name.length;                  // 5
+name.isEmpty;                 // false
+name.isNotEmpty;              // true
+name.codeUnits;               // UTF-16 code units
+name.runes;                   // Unicode code points
+
+// Operations
+name.toUpperCase();           // 'ALICE'
+name.toLowerCase();           // 'alice'
+name.trim();                  // Remove whitespace
+name.substring(0, 3);         // 'Ali'
+name.split('');               // ['A', 'l', 'i', 'c', 'e']
+name.contains('lic');         // true
+name.startsWith('Al');        // true
+name.endsWith('ce');          // true
+name.indexOf('l');            // 1
+name.replaceAll('l', 'L');    // 'ALice'
+name.padLeft(10, '0');        // '00000Alice'
+
+// Concatenation
+'Hello' + ' ' + 'World';      // 'Hello World'
+'Ha' * 3;                     // 'HaHaHa'
+```
+
+**Characteristics:**
+- Immutable sequence of UTF-16 code units
+- Supports Unicode
+- Interpolation with `$` and `${}`
+- Rich API for manipulation
+
+### 6. **Null** - Absence of Value
+
+```dart
+// Null type (only one value: null)
+Null nothing = null;
+int? maybeNumber = null;      // Nullable type
+
+// Checking for null
+maybeNumber == null;          // true
+maybeNumber != null;          // false
+
+// Null-aware operators
+maybeNumber ?? 0;             // 0 (if null, use default)
+maybeNumber ??= 10;           // Assign if null
+maybeNumber?.abs();           // null (safe navigation)
+maybeNumber!;                 // Assert non-null (throws if null)
+
+// Type
+print(null.runtimeType);      // Null
+```
+
+**Characteristics:**
+- Only one value: `null`
+- Represents absence of a value
+- Sound null safety in Dart 2.12+
+- Cannot call methods on null (except with `?.`)
+
+## Base Object Types
+
+### 1. **Object** - Root of All Types
+
+```dart
+// Every type inherits from Object
+Object anything = 42;
+anything = 'text';
+anything = true;
+anything = [];
+
+// Available on all objects
+anything.hashCode;            // int
+anything.runtimeType;         // Type
+anything.toString();          // String
+anything.noSuchMethod(...);   // Dynamic dispatch
+anything == other;            // Equality check
+
+// Object provides these methods to all types:
+class MyClass {
+  @override
+  int get hashCode => ...;
+  
+  @override
+  bool operator ==(Object other) => ...;
+  
+  @override
+  String toString() => ...;
+}
+```
+
+**Key Methods:**
+- `hashCode` → `int` - Hash code for collections
+- `runtimeType` → `Type` - Runtime type information
+- `toString()` → `String` - String representation
+- `operator ==` - Equality comparison
+- `noSuchMethod()` - Method invocation fallback
+
+### 2. **List\<E>** - Ordered Collection
+
+```dart
+// List (dynamic array)
+List<int> numbers = [1, 2, 3];
+List<String> names = ['Alice', 'Bob'];
+var mixed = [1, 'two', 3.0];   // List<Object>
+
+// Fixed-length list
+var fixed = List.filled(5, 0);  // [0, 0, 0, 0, 0]
+
+// Properties
+numbers.length;               // 3
+numbers.first;                // 1
+numbers.last;                 // 3
+numbers.isEmpty;              // false
+numbers.isNotEmpty;           // true
+numbers.reversed;             // Iterable<int>
+
+// Operations
+numbers.add(4);               // [1, 2, 3, 4]
+numbers.addAll([5, 6]);       // [1, 2, 3, 4, 5, 6]
+numbers.insert(0, 0);         // [0, 1, 2, 3, 4, 5, 6]
+numbers.remove(0);            // [1, 2, 3, 4, 5, 6]
+numbers.removeAt(0);          // [2, 3, 4, 5, 6]
+numbers.clear();              // []
+numbers.contains(2);          // true
+numbers.indexOf(3);           // 2
+numbers[0];                   // Access by index
+numbers[0] = 10;              // Modify by index
+
+// Iteration
+numbers.forEach((n) => print(n));
+numbers.map((n) => n * 2);
+numbers.where((n) => n > 2);
+numbers.reduce((a, b) => a + b);
+```
+
+**Characteristics:**
+- Growable by default
+- Can be fixed-length
+- Zero-indexed
+- Generic type `List<E>`
+
+### 3. **Map\<K, V>** - Key-Value Pairs
+
+```dart
+// Map (hash table)
+Map<String, int> ages = {
+  'Alice': 25,
+  'Bob': 30,
+};
+
+// Properties
+ages.length;                  // 2
+ages.isEmpty;                 // false
+ages.keys;                    // Iterable<String>
+ages.values;                  // Iterable<int>
+ages.entries;                 // Iterable<MapEntry>
+
+// Operations
+ages['Alice'];                // 25
+ages['Charlie'];              // null
+ages['Charlie'] = 35;         // Add entry
+ages.putIfAbsent('David', () => 40);
+ages.remove('Alice');
+ages.containsKey('Bob');      // true
+ages.containsValue(30);       // true
+ages.clear();
+
+// Iteration
+ages.forEach((key, value) {
+  print('$key: $value');
+});
+```
+
+**Characteristics:**
+- Unordered (use LinkedHashMap for insertion order)
+- Generic types `Map<K, V>`
+- Keys must be unique
+- Efficient lookup
+
+### 4. **Set\<E>** - Unique Collection
+
+```dart
+// Set (unordered unique elements)
+Set<int> numbers = {1, 2, 3};
+var duplicates = {1, 1, 2, 2}; // {1, 2}
+
+// Properties
+numbers.length;               // 3
+numbers.isEmpty;              // false
+numbers.first;                // 1 (arbitrary)
+numbers.last;                 // 3 (arbitrary)
+
+// Operations
+numbers.add(4);               // {1, 2, 3, 4}
+numbers.add(1);               // {1, 2, 3, 4} (no duplicate)
+numbers.remove(2);            // {1, 3, 4}
+numbers.contains(3);          // true
+numbers.clear();
+
+// Set operations
+var a = {1, 2, 3};
+var b = {2, 3, 4};
+a.union(b);                   // {1, 2, 3, 4}
+a.intersection(b);            // {2, 3}
+a.difference(b);              // {1}
+```
+
+**Characteristics:**
+- Unordered
+- No duplicates
+- Generic type `Set<E>`
+- Efficient contains check
+
+### 5. **Runes** - Unicode Code Points
+
+```dart
+// Runes (Unicode code points)
+Runes hearts = Runes('\u2665 \u{1f600}');
+String.fromCharCodes(hearts); // '♥ 😀'
+
+// From string
+var str = '♥😀';
+str.runes;                    // Runes object
+str.runes.toList();           // [9829, 128512]
+
+// Emoji and special characters
+var emoji = '👨‍👩‍👧‍👦';
+emoji.length;                 // 11 (UTF-16 code units)
+emoji.runes.length;           // 7 (code points)
+```
+
+**Characteristics:**
+- Represents Unicode code points
+- Different from UTF-16 code units
+- Essential for proper Unicode handling
+
+### 6. **Symbol** - Identifiers
+
+```dart
+// Symbol (identifier)
+Symbol sym = #mySymbol;
+Symbol qualified = #myLib.mySymbol;
+
+// Used in reflection and noSuchMethod
+class MyClass {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    print('Called: ${invocation.memberName}');
+    return null;
+  }
+}
+
+// Equality
+#symbol == #symbol;           // true
+```
+
+**Characteristics:**
+- Represents identifier
+- Used for reflection
+- Immutable
+- Rarely used in typical code
+
+### 7. **Type** - Type Information
+
+```dart
+// Type object
+Type intType = int;
+Type stringType = String;
+
+// Runtime type
+var value = 42;
+value.runtimeType;            // int
+value.runtimeType == int;     // true
+
+// Comparison
+int == num;                   // false (different types)
+```
+
+**Characteristics:**
+- Represents type information
+- Available at runtime
+- Used for reflection
+
+### 8. **Function** - Callable Objects
+
+```dart
+// Function type
+Function fn = () => print('Hello');
+fn();
+
+// Typed functions
+int Function(int) doubler = (x) => x * 2;
+void Function(String) logger = print;
+
+// Function as object
+fn.runtimeType;               // () => void
+```
+
+**Characteristics:**
+- First-class objects
+- Can be assigned to variables
+- Can be passed as parameters
+
+### 9. **Record** - Fixed Structure
+
+```dart
+// Record type (Dart 3.0+)
+(int, String) record = (42, 'hello');
+record.$1;                    // 42
+record.$2;                    // 'hello'
+
+// Named fields
+({int x, int y}) point = (x: 10, y: 20);
+point.x;                      // 10
+point.y;                      // 20
+
+// Mixed
+(int, String, {bool flag}) mixed = (1, 'two', flag: true);
+mixed.$1;                     // 1
+mixed.$2;                     // 'two'
+mixed.flag;                   // true
+```
+
+**Characteristics:**
+- Immutable
+- Fixed structure
+- Value equality
+- Lightweight
+
+## Detailed Type Reference
+
+### Number Types Comparison
+
+| Feature | int | double | num |
+|---------|-----|--------|-----|
+| **Type** | Concrete | Concrete | Abstract |
+| **Precision** | Integer | 64-bit float | Either |
+| **Range (native)** | -2^63 to 2^63-1 | ±1.7e308 | Combined |
+| **Range (web)** | -2^53 to 2^53 | ±1.7e308 | Combined |
+| **Special values** | None | infinity, nan | From double |
+| **Default** | 0 | 0.0 | - |
+| **Literal** | `42` | `3.14` | - |
+
+### Collection Types Comparison
+
+| Feature | List | Set | Map |
+|---------|------|-----|-----|
+| **Ordering** | Indexed | Unordered* | Unordered* |
+| **Duplicates** | Allowed | Not allowed | Keys unique |
+| **Access** | By index | No direct access | By key |
+| **Literal** | `[1, 2, 3]` | `{1, 2, 3}` | `{'a': 1}` |
+| **Generic** | `List<E>` | `Set<E>` | `Map<K, V>` |
+| **Growable** | Yes (default) | Yes | Yes |
+
+*LinkedHashSet and LinkedHashMap maintain insertion order
+
+## Type Comparison Table
+
+| Type | Size | Mutable | Nullable | Default | Value Type |
+|------|------|---------|----------|---------|------------|
+| `int` | 64-bit* | No | Via `?` | - | Yes |
+| `double` | 64-bit | No | Via `?` | - | Yes |
+| `num` | Varies | No | Via `?` | - | Yes |
+| `bool` | 1 bit** | No | Via `?` | - | Yes |
+| `String` | Variable | No | Via `?` | - | Yes |
+| `Null` | - | No | Always | `null` | Yes |
+| `List` | Variable | Yes*** | Via `?` | - | No |
+| `Map` | Variable | Yes*** | Via `?` | - | No |
+| `Set` | Variable | Yes*** | Via `?` | - | No |
+| `Symbol` | Variable | No | Via `?` | - | Yes |
+| `Type` | - | No | Via `?` | - | Yes |
+| `Function` | - | No | Via `?` | - | No |
+| `Record` | Fixed | No | Via `?` | - | Yes |
+
+*Platform dependent (arbitrary on web)  
+**Implementation detail  
+***Content mutable, reference immutable
+
+## Boxing and Unboxing
+
+### Dart's Approach
+
+Unlike Java or C#, Dart **does not have boxing/unboxing** in the traditional sense because everything is already an object:
+
+```dart
+// No boxing needed - already an object
+int number = 42;
+Object obj = number;          // No boxing
+
+// No unboxing needed - direct cast
+int back = obj as int;        // No unboxing
+```
+
+### VM Optimization
+
+The Dart VM optimizes primitive-like types internally:
+
+```dart
+// These are optimized by the VM
+int x = 42;                   // Stored efficiently
+double y = 3.14;              // Stored as 64-bit float
+bool flag = true;             // Stored as bit
+
+// But they're still objects
+x.toString();                 // Can call methods
+y.runtimeType;                // Have runtime type
+flag.hashCode;                // Have Object methods
+```
+
+### JavaScript Compilation
+
+When compiled to JavaScript:
+
+```dart
+// Dart                       // JavaScript equivalent
+int x = 42;                   // var x = 42;
+double y = 3.14;              // var y = 3.14;
+String s = "hello";           // var s = "hello";
+bool b = true;                // var b = true;
+```
+
+## Performance Considerations
+
+### 1. Primitive-Like Types (Fast)
+
+```dart
+int a = 1;
+double b = 2.0;
+bool c = true;
+// These are optimized by the VM
+```
+
+### 2. Small Objects (Fast)
+
+```dart
+// Records are efficient
+var point = (x: 10, y: 20);
+// Enums are efficient
+enum Color { red, green, blue }
+```
+
+### 3. Collections (Moderate)
+
+```dart
+List<int> numbers = [1, 2, 3];
+Map<String, int> map = {'a': 1};
+Set<int> set = {1, 2, 3};
+// Have overhead but are optimized
+```
+
+### 4. Complex Objects (Slower)
+
+```dart
+class MyClass {
+  int value;
+  String name;
+  MyClass(this.value, this.name);
+}
+// Full object allocation
+```
+
+### Performance Tips
+
+```dart
+// ✓ Use typed collections
+List<int> numbers = [1, 2, 3];
+
+// ✗ Avoid dynamic when possible
+List<dynamic> mixed = [1, 'two', 3.0];
+
+// ✓ Use const for compile-time constants
+const pi = 3.14159;
+const colors = ['red', 'green', 'blue'];
+
+// ✓ Use final for runtime constants
+final now = DateTime.now();
+
+// ✓ Reuse objects when possible
+final regex = RegExp(r'\d+');
+// Instead of: RegExp(r'\d+') in a loop
+```
+
+## Best Practices
+
+### 1. Type Annotations
+
+```dart
+// ✓ Use specific types
+int count = 0;
+String name = 'Alice';
+List<int> numbers = [1, 2, 3];
+
+// ✗ Avoid unnecessary dynamic
+dynamic value = 42;  // Only when necessary
+```
+
+### 2. Null Safety
+
+```dart
+// ✓ Use nullable types explicitly
+int? maybeNumber = null;
+
+// ✓ Use null-aware operators
+int value = maybeNumber ?? 0;
+maybeNumber?.abs();
+
+// ✗ Avoid null checks everywhere
+if (maybeNumber != null) {
+  maybeNumber.abs();
+}
+// ✓ Better: use !
+maybeNumber!.abs();  // Only if you're certain
+```
+
+### 3. Const and Final
+
+```dart
+// ✓ Use const for compile-time constants
+const maxSize = 100;
+const colors = ['red', 'green'];
+
+// ✓ Use final for runtime constants
+final timestamp = DateTime.now();
+final config = loadConfig();
+
+// ✗ Don't use var for constants
+var immutableValue = 42;  // Can be reassigned
+```
+
+### 4. Collection Literals
+
+```dart
+// ✓ Use collection literals
+var list = [1, 2, 3];
+var set = {1, 2, 3};
+var map = {'a': 1, 'b': 2};
+
+// ✗ Avoid constructors when literals work
+var list2 = List<int>.empty(growable: true);
+// Unless you need specific behavior:
+var fixed = List.filled(5, 0);
+```
+
+### 5. Type Inference
+
+```dart
+// ✓ Let Dart infer obvious types
+var name = 'Alice';           // Inferred as String
+var numbers = [1, 2, 3];      // Inferred as List<int>
+var map = <String, int>{};    // Need type hint for empty
+
+// ✓ Be explicit for clarity
+List<int> primes = [2, 3, 5, 7];
+Map<String, dynamic> json = {};
+```
+
+### 6. Equality
+
+```dart
+// ✓ Use == for value comparison
+'hello' == 'hello';           // true
+42 == 42;                     // true
+[1, 2] == [1, 2];            // false (different instances)
+
+// ✓ Override == and hashCode for custom types
+class Person {
+  final String name;
+  Person(this.name);
+  
+  @override
+  bool operator ==(Object other) =>
+      other is Person && other.name == name;
+  
+  @override
+  int get hashCode => name.hashCode;
+}
+```
+
+## Common Patterns
+
+### 1. Type Checking
+
+```dart
+var value = 42;
+
+// Runtime type check
+if (value is int) {
+  print('Is an integer');
+}
+
+// Type test and cast
+if (value is num) {
+  num number = value;
+}
+
+// Safe cast
+var maybeString = value as String?;
+
+// Force cast (throws if wrong type)
+var definitely = value as int;
+```
+
+### 2. Type Conversion
+
+```dart
+// String conversions
+int.parse('42');              // 42
+double.parse('3.14');         // 3.14
+num.parse('42');              // 42 (int)
+num.parse('3.14');            // 3.14 (double)
+
+// Number conversions
+42.toDouble();                // 42.0
+3.14.toInt();                 // 3 (truncates)
+3.14.round();                 // 3
+3.14.ceil();                  // 4
+3.14.floor();                 // 3
+
+// String from anything
+42.toString();                // '42'
+true.toString();              // 'true'
+[1, 2].toString();            // '[1, 2]'
+```
+
+### 3. Default Values
+
+```dart
+// Nullable with default
+String? getName() => null;
+var name = getName() ?? 'Unknown';
+
+// Late initialization
+late String config;
+void init() {
+  config = loadConfig();
+}
+
+// Lazy initialization
+String? _cache;
+String get value => _cache ??= expensiveComputation();
+```
+
+## Summary
+
+### Key Takeaways
+
+1. **Everything is an Object**: Dart has no true primitives, but optimizes primitive-like types
+2. **Sound Type System**: Strong static typing with inference and null safety
+3. **Value vs Reference**: Primitives act like value types, collections are reference types
+4. **Immutability**: Numbers, strings, booleans, and symbols are immutable
+5. **Performance**: VM optimizes primitive-like types to be as fast as true primitives
+6. **Null Safety**: Explicit nullable types prevent null reference errors
+7. **Generic Collections**: Type-safe collections with excellent performance
+
+### Mental Model
+
+```
+Primitive-like (optimized)
+├── int, double, bool
+└── Small immutable objects
+
+Reference Types
+├── Collections (List, Set, Map)
+├── Custom classes
+└── Functions
+
+Special
+├── null (Null type)
+├── Records (value type)
+└── Symbols (identifiers)
+```

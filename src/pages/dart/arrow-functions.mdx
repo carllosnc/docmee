@@ -1,0 +1,1032 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dart">← Dart</a> <br /> <br />
+
+# Arrow Functions
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Basic Syntax](#basic-syntax)
+- [Syntax Rules](#syntax-rules)
+- [Use Cases](#use-cases)
+- [Arrow Functions in Different Contexts](#arrow-functions-in-different-contexts)
+- [Type Annotations](#type-annotations)
+- [Limitations](#limitations)
+- [Comparison with Block Body Functions](#comparison-with-block-body-functions)
+- [Advanced Patterns](#advanced-patterns)
+- [Best Practices](#best-practices)
+- [Common Pitfalls](#common-pitfalls)
+- [Performance Considerations](#performance-considerations)
+
+## Introduction
+
+Arrow functions (also called arrow notation, fat arrow syntax, or expression body syntax) provide a concise way to write single-expression functions in Dart. They use the `=>` operator (fat arrow) instead of curly braces `{}`.
+
+### Key Characteristics
+- **Single expression only**: Can only contain one expression
+- **Implicit return**: The expression result is automatically returned
+- **Concise syntax**: No need for `return` keyword or braces
+- **Same semantics**: Functionally equivalent to regular functions
+
+## Basic Syntax
+
+### Standard Syntax
+```dart
+returnType functionName(parameters) => expression;
+```
+
+### Examples
+```dart
+// Simple arrow function
+int add(int a, int b) => a + b;
+
+// Equivalent block body function
+int addBlock(int a, int b) {
+  return a + b;
+}
+
+// Using the functions
+print(add(2, 3));        // 5
+print(addBlock(2, 3));   // 5
+```
+
+## Syntax Rules
+
+### 1. Single Expression Only
+
+```dart
+// ✓ Valid: single expression
+int double(int x) => x * 2;
+
+// ✓ Valid: expression can be complex
+String formatName(String first, String last) => 
+    '${first.toUpperCase()} ${last.toUpperCase()}';
+
+// ✗ Invalid: multiple statements
+int invalid(int x) => {
+  var result = x * 2;  // Syntax error
+  return result;
+};
+
+// ✓ Correct: use block body for multiple statements
+int valid(int x) {
+  var result = x * 2;
+  return result;
+}
+```
+
+### 2. Implicit Return
+
+```dart
+// Arrow function implicitly returns the expression result
+int getNumber() => 42;
+
+// Equivalent to:
+int getNumberBlock() {
+  return 42;
+}
+
+// Works with any expression
+List<int> getList() => [1, 2, 3];
+bool isEven(int n) => n % 2 == 0;
+String greet() => 'Hello!';
+```
+
+### 3. Void Return Type
+
+```dart
+// Arrow functions can return void (for side effects)
+void printMessage(String msg) => print(msg);
+
+// Equivalent to:
+void printMessageBlock(String msg) {
+  print(msg);
+}
+
+// The expression is evaluated, but return value is discarded
+void logAndIgnore(int x) => x * 2;  // Valid but unusual
+```
+
+### 4. No Semicolon Before Arrow
+
+```dart
+// ✗ Invalid: semicolon before =>
+int wrong(int x); => x * 2;
+
+// ✓ Correct: no semicolon
+int correct(int x) => x * 2;
+```
+
+### 5. Expression Must Be Complete
+
+```dart
+// ✓ Valid: complete ternary expression
+String status(bool active) => active ? 'Active' : 'Inactive';
+
+// ✓ Valid: method chain
+String formatted(String text) => text.trim().toLowerCase();
+
+// ✓ Valid: function call
+int square(int x) => math.pow(x, 2).toInt();
+
+// ✗ Invalid: incomplete expression
+int broken(int x) => if (x > 0) x else -x;  // Syntax error
+
+// ✓ Correct: use ternary operator
+int fixed(int x) => x > 0 ? x : -x;
+```
+
+## Use Cases
+
+### 1. Simple Getters
+
+```dart
+class Person {
+  final String firstName;
+  final String lastName;
+  
+  Person(this.firstName, this.lastName);
+  
+  // Arrow function for computed property
+  String get fullName => '$firstName $lastName';
+  
+  // Multiple getters
+  int get nameLength => fullName.length;
+  String get initials => '${firstName[0]}${lastName[0]}';
+  bool get hasLongName => fullName.length > 20;
+}
+
+var person = Person('John', 'Doe');
+print(person.fullName);     // John Doe
+print(person.initials);     // JD
+```
+
+### 2. Simple Methods
+
+```dart
+class Calculator {
+  // Basic operations
+  int add(int a, int b) => a + b;
+  int subtract(int a, int b) => a - b;
+  int multiply(int a, int b) => a * b;
+  double divide(int a, int b) => a / b;
+  
+  // More complex single expressions
+  bool isEven(int n) => n % 2 == 0;
+  bool isInRange(int n, int min, int max) => n >= min && n <= max;
+  String formatResult(int result) => 'Result: $result';
+}
+```
+
+### 3. Callbacks
+
+```dart
+// Collection operations
+var numbers = [1, 2, 3, 4, 5];
+
+// Arrow functions as callbacks
+numbers.map((n) => n * 2);              // [2, 4, 6, 8, 10]
+numbers.where((n) => n > 2);            // [3, 4, 5]
+numbers.reduce((a, b) => a + b);        // 15
+numbers.forEach((n) => print(n));
+
+// Sorting
+var names = ['Charlie', 'Alice', 'Bob'];
+names.sort((a, b) => a.compareTo(b));   // Alphabetical sort
+
+// Custom callbacks
+void processData(int data, void Function(int) callback) {
+  callback(data);
+}
+
+processData(42, (n) => print('Processed: $n'));
+```
+
+### 4. Function Variables
+
+```dart
+// Assign arrow functions to variables
+var square = (int x) => x * x;
+var greet = (String name) => 'Hello, $name!';
+var isPositive = (int n) => n > 0;
+
+print(square(5));           // 25
+print(greet('Alice'));      // Hello, Alice!
+print(isPositive(-3));      // false
+
+// Type annotations for clarity
+int Function(int) doubler = (x) => x * 2;
+String Function(String, String) combiner = (a, b) => '$a $b';
+```
+
+### 5. Named Parameters
+
+```dart
+// Arrow functions with named parameters
+String formatPerson({
+  required String name,
+  required int age,
+}) => '$name is $age years old';
+
+// With defaults
+String greet({String name = 'Guest'}) => 'Welcome, $name!';
+
+// Optional parameters
+int sum([int a = 0, int b = 0]) => a + b;
+
+print(formatPerson(name: 'Alice', age: 25));  // Alice is 25 years old
+print(greet(name: 'Bob'));                     // Welcome, Bob!
+print(sum(5, 3));                              // 8
+```
+
+### 6. Operator Overloading
+
+```dart
+class Point {
+  final int x, y;
+  
+  Point(this.x, this.y);
+  
+  // Arrow functions for operators
+  Point operator +(Point other) => Point(x + other.x, y + other.y);
+  Point operator -(Point other) => Point(x - other.x, y - other.y);
+  Point operator *(int scalar) => Point(x * scalar, y * scalar);
+  
+  bool operator ==(Object other) =>
+      other is Point && x == other.x && y == other.y;
+  
+  @override
+  int get hashCode => Object.hash(x, y);
+  
+  @override
+  String toString() => 'Point($x, $y)';
+}
+
+var p1 = Point(1, 2);
+var p2 = Point(3, 4);
+print(p1 + p2);  // Point(4, 6)
+```
+
+## Arrow Functions in Different Contexts
+
+### 1. Top-Level Functions
+
+```dart
+// Global utility functions
+int square(int x) => x * x;
+bool isEven(int n) => n % 2 == 0;
+String capitalize(String text) => 
+    text.isEmpty ? text : '${text[0].toUpperCase()}${text.substring(1)}';
+
+// Top-level getters
+String get timestamp => DateTime.now().toIso8601String();
+int get randomNumber => Random().nextInt(100);
+```
+
+### 2. Class Methods
+
+```dart
+class Rectangle {
+  final double width, height;
+  
+  Rectangle(this.width, this.height);
+  
+  // Instance methods
+  double area() => width * height;
+  double perimeter() => 2 * (width + height);
+  bool isSquare() => width == height;
+  
+  // Static methods
+  static Rectangle square(double side) => Rectangle(side, side);
+  static bool isValid(double w, double h) => w > 0 && h > 0;
+}
+```
+
+### 3. Abstract Methods (Cannot Use Arrow Syntax)
+
+```dart
+abstract class Shape {
+  // ✗ Invalid: abstract methods can't have bodies
+  // double area() => 0;
+  
+  // ✓ Correct: abstract method declaration
+  double area();
+}
+
+class Circle implements Shape {
+  final double radius;
+  Circle(this.radius);
+  
+  // ✓ Implementation can use arrow syntax
+  @override
+  double area() => math.pi * radius * radius;
+}
+```
+
+### 4. Extension Methods
+
+```dart
+extension StringExtension on String {
+  // Arrow functions in extensions
+  bool get isEmail => contains('@') && contains('.');
+  String get reversed => split('').reversed.join('');
+  int get wordCount => split(' ').length;
+  
+  String repeat(int times) => this * times;
+  bool hasLength(int length) => this.length == length;
+}
+
+print('test@example.com'.isEmail);   // true
+print('hello'.reversed);             // olleh
+```
+
+### 5. Mixin Methods
+
+```dart
+mixin TimestampMixin {
+  DateTime? _timestamp;
+  
+  // Arrow functions in mixins
+  DateTime get timestamp => _timestamp ?? DateTime.now();
+  bool get hasTimestamp => _timestamp != null;
+  String get formattedTime => timestamp.toIso8601String();
+  
+  void updateTimestamp() => _timestamp = DateTime.now();
+}
+
+class Document with TimestampMixin {
+  final String content;
+  Document(this.content);
+}
+```
+
+### 6. Anonymous Functions (Lambdas)
+
+```dart
+// Arrow syntax for anonymous functions
+var numbers = [1, 2, 3, 4, 5];
+
+// Anonymous arrow function
+numbers.map((n) => n * 2);
+
+// Multiple parameters
+numbers.fold(0, (sum, n) => sum + n);
+
+// No parameters
+var getTime = () => DateTime.now();
+
+// Type inference works
+var typed = numbers.map((int n) => n.toString());
+```
+
+## Type Annotations
+
+### 1. Return Type Annotations
+
+```dart
+// Explicit return type
+int add(int a, int b) => a + b;
+String greet(String name) => 'Hello, $name';
+bool isPositive(int n) => n > 0;
+void log(String msg) => print(msg);
+
+// Return type inference
+var double = (int x) => x * 2;  // Inferred as int Function(int)
+```
+
+### 2. Parameter Type Annotations
+
+```dart
+// Explicit parameter types
+int multiply(int a, int b) => a * b;
+
+// With type inference in lambda
+[1, 2, 3].map((n) => n * 2);  // n inferred as int
+
+// Explicit types in lambda for clarity
+[1, 2, 3].map((int n) => n * 2);
+```
+
+### 3. Function Type Annotations
+
+```dart
+// Function variable with full type annotation
+int Function(int, int) adder = (a, b) => a + b;
+
+// Typedef for complex function types
+typedef IntOperation = int Function(int, int);
+IntOperation multiplier = (a, b) => a * b;
+
+// Generic function types
+T Function<T>(T) identity = <T>(value) => value;
+```
+
+### 4. Generic Arrow Functions
+
+```dart
+// Generic method with arrow syntax
+T identity<T>(T value) => value;
+
+// Generic with constraint
+T max<T extends Comparable<T>>(T a, T b) => a.compareTo(b) > 0 ? a : b;
+
+// Generic class with arrow methods
+class Box<T> {
+  final T value;
+  Box(this.value);
+  
+  T getValue() => value;
+  Box<T> copy() => Box(value);
+  R map<R>(R Function(T) f) => f(value);
+}
+```
+
+## Limitations
+
+### 1. Cannot Have Multiple Statements
+
+```dart
+// ✗ Invalid: multiple statements
+int calculate(int x) => {
+  var doubled = x * 2;
+  return doubled + 1;
+};
+
+// ✓ Use block body instead
+int calculate(int x) {
+  var doubled = x * 2;
+  return doubled + 1;
+}
+
+// ✓ Or inline the logic
+int calculate(int x) => (x * 2) + 1;
+```
+
+### 2. Cannot Have Local Variables
+
+```dart
+// ✗ Invalid: cannot declare variables
+String format(int n) => {
+  var str = n.toString();
+  return str.padLeft(5, '0');
+};
+
+// ✓ Use block body
+String format(int n) {
+  var str = n.toString();
+  return str.padLeft(5, '0');
+}
+
+// ✓ Or chain operations
+String format(int n) => n.toString().padLeft(5, '0');
+```
+
+### 3. Cannot Have Control Flow Statements
+
+```dart
+// ✗ Invalid: if statement
+int abs(int x) => if (x < 0) -x else x;
+
+// ✓ Use ternary operator
+int abs(int x) => x < 0 ? -x : x;
+
+// ✗ Invalid: for loop
+int sum(List<int> numbers) => for (var n in numbers) sum += n;
+
+// ✓ Use reduce or fold
+int sum(List<int> numbers) => numbers.reduce((a, b) => a + b);
+```
+
+### 4. Cannot Have Try-Catch
+
+```dart
+// ✗ Invalid: try-catch block
+int parse(String s) => try { int.parse(s) } catch (e) { 0 };
+
+// ✓ Use block body
+int parse(String s) {
+  try {
+    return int.parse(s);
+  } catch (e) {
+    return 0;
+  }
+}
+
+// ✓ Or use tryParse
+int parse(String s) => int.tryParse(s) ?? 0;
+```
+
+### 5. Cannot Use Assert
+
+```dart
+// ✗ Invalid: assert statement
+int positiveOnly(int x) => assert(x > 0), x;
+
+// ✓ Use block body
+int positiveOnly(int x) {
+  assert(x > 0);
+  return x;
+}
+```
+
+### 6. Limited Debugging
+
+```dart
+// Arrow functions make debugging harder
+var result = [1, 2, 3]
+    .map((n) => n * 2)
+    .where((n) => n > 2)
+    .reduce((a, b) => a + b);
+
+// Block body allows breakpoints and inspection
+var result2 = [1, 2, 3].map((n) {
+  var doubled = n * 2;  // Can set breakpoint here
+  return doubled;
+}).where((n) {
+  var isGreater = n > 2;  // Can inspect condition
+  return isGreater;
+}).reduce((a, b) {
+  var sum = a + b;  // Can trace accumulation
+  return sum;
+});
+```
+
+## Comparison with Block Body Functions
+
+### Syntax Comparison
+
+```dart
+// Arrow function
+int add(int a, int b) => a + b;
+
+// Block body function
+int addBlock(int a, int b) {
+  return a + b;
+}
+
+// They are functionally identical
+print(add(2, 3));       // 5
+print(addBlock(2, 3));  // 5
+```
+
+### When to Use Each
+
+| Use Arrow Function | Use Block Body |
+|-------------------|----------------|
+| Single expression | Multiple statements |
+| Simple computation | Complex logic |
+| Getters | Need local variables |
+| Simple operators | Need control flow |
+| Callbacks | Need try-catch |
+| One-liners | Better debugging needed |
+
+### Examples Side by Side
+
+```dart
+// 1. Simple getter
+// Arrow (preferred)
+String get fullName => '$firstName $lastName';
+// Block
+String get fullName {
+  return '$firstName $lastName';
+}
+
+// 2. Validation
+// Arrow (preferred for simple case)
+bool isValid(String email) => email.contains('@');
+// Block (needed for complex validation)
+bool isValid(String email) {
+  if (email.isEmpty) return false;
+  if (!email.contains('@')) return false;
+  var parts = email.split('@');
+  return parts.length == 2 && parts[1].contains('.');
+}
+
+// 3. Transformation
+// Arrow (preferred for single operation)
+String toUpper(String text) => text.toUpperCase();
+// Block (needed for multiple steps)
+String sanitize(String text) {
+  var trimmed = text.trim();
+  var lowered = trimmed.toLowerCase();
+  var cleaned = lowered.replaceAll(RegExp(r'\s+'), ' ');
+  return cleaned;
+}
+
+// 4. Conditional
+// Arrow (with ternary)
+int max(int a, int b) => a > b ? a : b;
+// Block (for complex conditions)
+int clamp(int value, int min, int max) {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+```
+
+## Advanced Patterns
+
+### 1. Chaining Arrow Functions
+
+```dart
+// Function composition
+int Function(int) compose(
+  int Function(int) f,
+  int Function(int) g,
+) => (x) => f(g(x));
+
+var double = (int x) => x * 2;
+var addOne = (int x) => x + 1;
+var doubleAndAddOne = compose(addOne, double);
+
+print(doubleAndAddOne(5));  // 11 (5*2 + 1)
+```
+
+### 2. Currying
+
+```dart
+// Curried function using arrow syntax
+int Function(int) add(int a) => (b) => a + b;
+
+var add5 = add(5);
+print(add5(3));  // 8
+print(add5(7));  // 12
+
+// More complex currying
+String Function(String) Function(String) greet(String greeting) =>
+    (name) => (punctuation) => '$greeting, $name$punctuation';
+
+var hello = greet('Hello');
+var helloJohn = hello('John');
+print(helloJohn('!'));  // Hello, John!
+```
+
+### 3. Higher-Order Functions
+
+```dart
+// Function that returns a function
+int Function(int) multiplier(int factor) => (x) => x * factor;
+
+var double = multiplier(2);
+var triple = multiplier(3);
+
+print(double(5));  // 10
+print(triple(5));  // 15
+
+// Function that takes a function
+List<T> twice<T>(List<T> list, T Function(T) f) =>
+    list.map((x) => f(f(x))).toList();
+
+print(twice([1, 2, 3], (x) => x * 2));  // [4, 8, 12]
+```
+
+### 4. Partial Application
+
+```dart
+// Create specialized functions
+int Function(int, int) add = (a, b) => a + b;
+
+int Function(int) partialAdd(int a) => (b) => add(a, b);
+
+var add10 = partialAdd(10);
+print(add10(5));   // 15
+print(add10(20));  // 30
+```
+
+### 5. Method References (Sort of)
+
+```dart
+// Using tear-offs (similar to method references)
+var numbers = ['1', '2', '3'];
+
+// Instead of: numbers.map((s) => int.parse(s))
+var parsed = numbers.map(int.parse);
+
+// Instead of: names.forEach((n) => print(n))
+var names = ['Alice', 'Bob'];
+names.forEach(print);
+
+// Custom example
+int double(int x) => x * 2;
+var doubled = [1, 2, 3].map(double);  // Using function reference
+```
+
+### 6. Conditional Arrow Functions
+
+```dart
+// Using ternary and null-coalescing
+String greet(String? name) => name != null ? 'Hello, $name' : 'Hello, Guest';
+
+// Chained ternary
+String status(int? code) =>
+    code == null ? 'Unknown' :
+    code == 200 ? 'OK' :
+    code == 404 ? 'Not Found' :
+    'Error';
+
+// With null-coalescing
+String getName(String? name) => name ?? 'Anonymous';
+```
+
+### 7. Collection Operations
+
+```dart
+var numbers = [1, 2, 3, 4, 5];
+
+// Map
+var doubled = numbers.map((n) => n * 2).toList();
+
+// Filter
+var evens = numbers.where((n) => n % 2 == 0).toList();
+
+// Reduce
+var sum = numbers.reduce((a, b) => a + b);
+
+// FlatMap
+var nested = [[1, 2], [3, 4]];
+var flattened = nested.expand((list) => list).toList();
+
+// Group by (manual)
+var grouped = <bool, List<int>>{};
+for (var n in numbers) {
+  (grouped[n % 2 == 0] ??= []).add(n);
+}
+```
+
+## Best Practices
+
+### 1. Keep It Simple
+
+```dart
+// ✓ Good: clear and concise
+int square(int x) => x * x;
+
+// ✗ Bad: too complex for arrow function
+String format(Person p) => '${p.firstName.trim().toUpperCase()} ${p.lastName.trim().toUpperCase()}, age ${DateTime.now().year - p.birthYear}';
+
+// ✓ Better: use block body for complex logic
+String format(Person p) {
+  var firstName = p.firstName.trim().toUpperCase();
+  var lastName = p.lastName.trim().toUpperCase();
+  var age = DateTime.now().year - p.birthYear;
+  return '$firstName $lastName, age $age';
+}
+```
+
+### 2. Use for Single Expressions
+
+```dart
+// ✓ Good use cases
+bool isEmpty(String s) => s.isEmpty;
+int max(int a, int b) => a > b ? a : b;
+String get fullName => '$firstName $lastName';
+
+// ✗ Avoid forcing single expression
+int process(int x) => (x * 2) + (x < 0 ? -x : x) * (x % 2 == 0 ? 2 : 3);
+
+// ✓ Better: break into steps with block body
+int process(int x) {
+  var doubled = x * 2;
+  var abs = x < 0 ? -x : x;
+  var multiplier = x % 2 == 0 ? 2 : 3;
+  return doubled + (abs * multiplier);
+}
+```
+
+### 3. Prefer for Callbacks
+
+```dart
+// ✓ Excellent for collection operations
+var numbers = [1, 2, 3, 4, 5];
+numbers.where((n) => n > 2);
+numbers.map((n) => n * 2);
+numbers.forEach((n) => print(n));
+
+// ✓ Good for event handlers (in Flutter)
+// onPressed: () => print('Clicked'),
+// onChanged: (value) => setState(() => text = value),
+```
+
+### 4. Type Annotations When Helpful
+
+```dart
+// ✓ Add types for public APIs
+int multiply(int a, int b) => a * b;
+
+// ✓ Omit obvious types in local contexts
+var numbers = [1, 2, 3];
+numbers.map((n) => n * 2);  // n is obviously int
+
+// ✓ Add types for clarity in complex cases
+List<String> formatAll(List<Person> people) =>
+    people.map((Person p) => '${p.name}: ${p.age}').toList();
+```
+
+### 5. Consider Readability
+
+```dart
+// ✓ Good: readable one-liner
+bool isAdult(int age) => age >= 18;
+
+// ✗ Bad: hard to read
+var result = users.where((u) => u.age > 18).map((u) => u.name).where((n) => n.length > 5).map((n) => n.toUpperCase()).toList();
+
+// ✓ Better: break into steps
+var result = users
+    .where((u) => u.age > 18)
+    .map((u) => u.name)
+    .where((n) => n.length > 5)
+    .map((n) => n.toUpperCase())
+    .toList();
+```
+
+### 6. Consistent Style
+
+```dart
+// ✓ Be consistent in your codebase
+class Calculator {
+  int add(int a, int b) => a + b;
+  int subtract(int a, int b) => a - b;
+  int multiply(int a, int b) => a * b;
+  double divide(int a, int b) => a / b;
+}
+
+// ✗ Inconsistent mixing
+class CalculatorBad {
+  int add(int a, int b) => a + b;
+  int subtract(int a, int b) {
+    return a - b;
+  }
+  int multiply(int a, int b) => a * b;
+  double divide(int a, int b) {
+    return a / b;
+  }
+}
+```
+
+## Common Pitfalls
+
+### 1. Forgetting Return Type Matters
+
+```dart
+// ✗ Returns List<Iterable<int>>, not List<int>
+List<int> wrong(List<int> nums) => nums.map((n) => n * 2);
+
+// ✓ Correctly returns List<int>
+List<int> correct(List<int> nums) => nums.map((n) => n * 2).toList();
+```
+
+### 2. Side Effects in Arrow Functions
+
+```dart
+// ✗ Side effect hidden in expression
+int increment(int x) => counter++;  // Modifies external state!
+
+// ✓ Better: be explicit about side effects
+int increment(int x) {
+  counter++;
+  return counter;
+}
+```
+
+### 3. Complex Ternary Chains
+
+```dart
+// ✗ Hard to read nested ternary
+String grade(int score) =>
+    score >= 90 ? 'A' :
+    score >= 80 ? 'B' :
+    score >= 70 ? 'C' :
+    score >= 60 ? 'D' : 'F';
+
+// ✓ Better: use if-else for many conditions
+String grade(int score) {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+```
+
+### 4. Null Confusion
+
+```dart
+// ✗ Confusing null handling
+String? process(String? input) => input?.toUpperCase() ?? input?.toLowerCase();
+
+// ✓ Clearer
+String? process(String? input) => input?.toUpperCase();
+```
+
+### 5. Async Arrow Functions
+
+```dart
+// ✓ Async arrow functions work
+Future<int> fetchData() async => await api.getData();
+
+// ✓ But be careful with error handling
+Future<int> fetchDataSafe() async {
+  try {
+    return await api.getData();
+  } catch (e) {
+    return 0;
+  }
+}
+```
+
+## Performance Considerations
+
+### 1. No Performance Difference
+
+```dart
+// These are identical in performance
+int arrow(int x) => x * 2;
+
+int block(int x) {
+  return x * 2;
+}
+
+// Both compile to the same bytecode
+```
+
+### 2. Inline Optimization
+
+```dart
+// Arrow functions are typically inlined by the compiler
+var numbers = [1, 2, 3, 4, 5];
+
+// This is very efficient
+var doubled = numbers.map((n) => n * 2);
+
+// Same as if you wrote:
+var doubled2 = <int>[];
+for (var n in numbers) {
+  doubled2.add(n * 2);
+}
+```
+
+### 3. Closure Overhead
+
+```dart
+// Closures have same overhead regardless of syntax
+int outer = 10;
+
+int arrow(int x) => x + outer;  // Captures outer
+
+int block(int x) {
+  return x + outer;  // Same capture
+}
+```
+
+## Summary
+
+### Key Takeaways
+
+1. **Concise Syntax**: Arrow functions provide cleaner code for single expressions
+2. **Implicit Return**: No need for explicit `return` keyword
+3. **Single Expression**: Limited to one expression, no statements
+4. **Same Performance**: No runtime difference from block body functions
+5. **Best for**: Getters, simple methods, callbacks, and operators
+6. **Use Block Body for**: Multiple statements, complex logic, debugging
+
+### Quick Reference
+
+```dart
+// Basic arrow function
+int add(int a, int b) => a + b;
+
+// Getter
+String get name => _name;
+
+// Method
+bool isEven(int n) => n % 2 == 0;
+
+// Lambda
+numbers.map((n) => n * 2);
+
+// With ternary
+int abs(int x) => x < 0 ? -x : x;
+
+// Generic
+T identity<T>(T value) => value;
+
+// Async
+Future<String> fetch() async => await http.get(url);
+```
+
+### Decision Guide
+
+**Use arrow functions when:**
+- Function body is a single expression
+- The logic is simple and clear
+- Writing callbacks or lambdas
+- Creating getters or simple methods
+
+**Use block body when:**
+- Need multiple statements
+- Require local variables
+- Using control flow (if, for, while)
+- Need try-catch blocks
+- Debugging complex logic

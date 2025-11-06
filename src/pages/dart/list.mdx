@@ -1,0 +1,582 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dart">← Dart</a> <br /> <br />
+
+# Lists
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Creating Lists](#creating-lists)
+3. [List Properties](#list-properties)
+4. [Accessing Elements](#accessing-elements)
+5. [Modifying Lists](#modifying-lists)
+6. [Adding Elements](#adding-elements)
+7. [Removing Elements](#removing-elements)
+8. [Searching and Querying](#searching-and-querying)
+9. [Iterating Over Lists](#iterating-over-lists)
+10. [Transforming Lists](#transforming-lists)
+11. [Sorting Lists](#sorting-lists)
+12. [List Operators](#list-operators)
+13. [Advanced Operations](#advanced-operations)
+14. [List Types](#list-types)
+15. [Performance Considerations](#performance-considerations)
+
+## Introduction
+
+Lists are ordered collections of objects in Dart. They are zero-indexed, meaning the first element is at index 0. Lists are one of the most commonly used collection types in Dart.
+
+## Creating Lists
+
+### Empty Lists
+
+```dart
+// Growable list (can add/remove elements)
+var list1 = [];
+var list2 = <int>[];
+List<String> list3 = [];
+
+// Fixed-length list
+var fixedList = List.filled(5, 0); // [0, 0, 0, 0, 0]
+```
+
+### Lists with Initial Values
+
+```dart
+// List literal
+var numbers = [1, 2, 3, 4, 5];
+var names = ['Alice', 'Bob', 'Charlie'];
+
+// Type-annotated list
+List<int> scores = [95, 87, 92];
+
+// Using List.generate()
+var squares = List.generate(5, (i) => i * i); // [0, 1, 4, 9, 16]
+
+// Using List.filled()
+var zeros = List.filled(3, 0); // [0, 0, 0]
+var items = List.filled(3, [], growable: false); // Creates fixed list
+
+// Using List.from()
+var copy = List.from(numbers);
+
+// Using List.of()
+var copy2 = List.of(numbers);
+
+// Using List.unmodifiable() - creates immutable list
+var immutable = List.unmodifiable([1, 2, 3]);
+```
+
+### Spread Operator
+
+```dart
+var list1 = [1, 2, 3];
+var list2 = [0, ...list1]; // [0, 1, 2, 3]
+
+// Null-aware spread
+var list3 = [0, ...?list1]; // Safe if list1 is null
+```
+
+### Collection If and For
+
+```dart
+// Collection if
+var nav = [
+  'Home',
+  'Furniture',
+  if (promoActive) 'Outlet'
+];
+
+// Collection for
+var listOfInts = [1, 2, 3];
+var listOfStrings = [
+  '#0',
+  for (var i in listOfInts) '#$i'
+]; // ['#0', '#1', '#2', '#3']
+```
+
+## List Properties
+
+```dart
+var list = [1, 2, 3, 4, 5];
+
+// Length of the list
+print(list.length); // 5
+
+// Check if empty
+print(list.isEmpty); // false
+print(list.isNotEmpty); // true
+
+// Get first and last elements
+print(list.first); // 1
+print(list.last); // 5
+
+// Get reversed iterable
+print(list.reversed); // (5, 4, 3, 2, 1)
+
+// Get single element (throws if list doesn't have exactly one element)
+var singleItemList = [42];
+print(singleItemList.single); // 42
+```
+
+## Accessing Elements
+
+```dart
+var list = ['a', 'b', 'c', 'd', 'e'];
+
+// Access by index
+print(list[0]); // 'a'
+print(list[2]); // 'c'
+
+// Access from end (negative indices not supported, use length)
+print(list[list.length - 1]); // 'e'
+
+// elementAt method
+print(list.elementAt(1)); // 'b'
+
+// Get sublist
+var sublist = list.sublist(1, 4); // ['b', 'c', 'd']
+var fromIndex = list.sublist(2); // ['c', 'd', 'e']
+```
+
+## Modifying Lists
+
+```dart
+var list = [1, 2, 3, 4, 5];
+
+// Modify element by index
+list[0] = 10; // [10, 2, 3, 4, 5]
+
+// Fill range with value
+list.fillRange(1, 3, 0); // [10, 0, 0, 4, 5]
+
+// Replace range
+list.replaceRange(1, 3, [7, 8, 9]); // [10, 7, 8, 9, 4, 5]
+
+// Set range from another iterable
+list.setRange(0, 2, [100, 200]); // [100, 200, 8, 9, 4, 5]
+
+// Shuffle (requires dart:math)
+list.shuffle(); // Randomizes order
+```
+
+## Adding Elements
+
+```dart
+var list = [1, 2, 3];
+
+// Add single element at end
+list.add(4); // [1, 2, 3, 4]
+
+// Add multiple elements at end
+list.addAll([5, 6, 7]); // [1, 2, 3, 4, 5, 6, 7]
+
+// Insert at specific position
+list.insert(0, 0); // [0, 1, 2, 3, 4, 5, 6, 7]
+
+// Insert multiple at position
+list.insertAll(1, [10, 20]); // [0, 10, 20, 1, 2, 3, 4, 5, 6, 7]
+```
+
+## Removing Elements
+
+```dart
+var list = [1, 2, 3, 4, 5, 3];
+
+// Remove by value (removes first occurrence)
+list.remove(3); // [1, 2, 4, 5, 3]
+
+// Remove at index
+list.removeAt(0); // [2, 4, 5, 3]
+
+// Remove last element
+list.removeLast(); // [2, 4, 5]
+
+// Remove range
+list.removeRange(0, 2); // [5]
+
+// Remove where condition is true
+list = [1, 2, 3, 4, 5];
+list.removeWhere((n) => n % 2 == 0); // [1, 3, 5]
+
+// Retain where condition is true (opposite of removeWhere)
+list = [1, 2, 3, 4, 5];
+list.retainWhere((n) => n % 2 == 0); // [2, 4]
+
+// Clear all elements
+list.clear(); // []
+```
+
+## Searching and Querying
+
+```dart
+var list = [1, 2, 3, 4, 5, 3];
+
+// Check if contains element
+print(list.contains(3)); // true
+
+// Find index of element
+print(list.indexOf(3)); // 2 (first occurrence)
+print(list.lastIndexOf(3)); // 5 (last occurrence)
+print(list.indexOf(10)); // -1 (not found)
+
+// Find index where condition is true
+print(list.indexWhere((n) => n > 3)); // 3
+print(list.lastIndexWhere((n) => n > 3)); // 5
+
+// Check if any element satisfies condition
+print(list.any((n) => n > 4)); // true
+
+// Check if every element satisfies condition
+print(list.every((n) => n > 0)); // true
+
+// Get first element matching condition
+print(list.firstWhere((n) => n > 3)); // 4
+print(list.firstWhere((n) => n > 10, orElse: () => -1)); // -1
+
+// Get last element matching condition
+print(list.lastWhere((n) => n > 3)); // 5
+
+// Get single element matching condition (throws if 0 or >1 matches)
+var single = [1, 2, 3].singleWhere((n) => n == 2); // 2
+```
+
+## Iterating Over Lists
+
+```dart
+var list = [1, 2, 3, 4, 5];
+
+// For loop
+for (var i = 0; i < list.length; i++) {
+  print(list[i]);
+}
+
+// For-in loop
+for (var item in list) {
+  print(item);
+}
+
+// forEach method
+list.forEach((item) => print(item));
+
+// forEach with index (using asMap)
+list.asMap().forEach((index, value) {
+  print('$index: $value');
+});
+
+// Iterator
+var iterator = list.iterator;
+while (iterator.moveNext()) {
+  print(iterator.current);
+}
+```
+
+## Transforming Lists
+
+```dart
+var numbers = [1, 2, 3, 4, 5];
+
+// Map - transform each element
+var doubled = numbers.map((n) => n * 2).toList(); // [2, 4, 6, 8, 10]
+
+// Where - filter elements
+var evens = numbers.where((n) => n % 2 == 0).toList(); // [2, 4]
+
+// Expand - expand each element to multiple elements
+var expanded = numbers.expand((n) => [n, n * 10]).toList(); 
+// [1, 10, 2, 20, 3, 30, 4, 40, 5, 50]
+
+// Take - get first n elements
+var firstThree = numbers.take(3).toList(); // [1, 2, 3]
+
+// TakeWhile - take elements while condition is true
+var taken = numbers.takeWhile((n) => n < 4).toList(); // [1, 2, 3]
+
+// Skip - skip first n elements
+var afterTwo = numbers.skip(2).toList(); // [3, 4, 5]
+
+// SkipWhile - skip elements while condition is true
+var skipped = numbers.skipWhile((n) => n < 3).toList(); // [3, 4, 5]
+
+// Cast - cast to different type
+var dynamicList = [1, 2, 3] as List<dynamic>;
+var intList = dynamicList.cast<int>(); // List<int>
+```
+
+## Sorting Lists
+
+```dart
+var numbers = [3, 1, 4, 1, 5, 9, 2, 6];
+
+// Sort in natural order (modifies original list)
+numbers.sort(); // [1, 1, 2, 3, 4, 5, 6, 9]
+
+// Sort with custom comparator
+numbers.sort((a, b) => b.compareTo(a)); // Descending: [9, 6, 5, 4, 3, 2, 1, 1]
+
+// Sort strings
+var words = ['banana', 'apple', 'cherry'];
+words.sort(); // ['apple', 'banana', 'cherry']
+
+// Case-insensitive sort
+words.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+// Sort objects by property
+class Person {
+  String name;
+  int age;
+  Person(this.name, this.age);
+}
+
+var people = [
+  Person('Alice', 30),
+  Person('Bob', 25),
+  Person('Charlie', 35)
+];
+
+people.sort((a, b) => a.age.compareTo(b.age)); // Sort by age
+```
+
+## List Operators
+
+```dart
+var list1 = [1, 2, 3];
+var list2 = [4, 5, 6];
+
+// Concatenation using spread
+var combined = [...list1, ...list2]; // [1, 2, 3, 4, 5, 6]
+
+// Concatenation using addAll
+var result = List.from(list1)..addAll(list2); // [1, 2, 3, 4, 5, 6]
+
+// Equality (checks if same instance)
+print(list1 == list2); // false
+
+// Deep equality (need to compare elements)
+bool areEqual = list1.length == list2.length && 
+                list1.every((e) => list2.contains(e));
+```
+
+## Advanced Operations
+
+### Reduce and Fold
+
+```dart
+var numbers = [1, 2, 3, 4, 5];
+
+// Reduce - combine elements into single value
+var sum = numbers.reduce((a, b) => a + b); // 15
+
+// Fold - like reduce but with initial value
+var product = numbers.fold(1, (prev, element) => prev * element); // 120
+var sumPlusTen = numbers.fold(10, (prev, element) => prev + element); // 25
+```
+
+### Join
+
+```dart
+var words = ['Hello', 'World', 'Dart'];
+
+// Join with separator
+var sentence = words.join(' '); // 'Hello World Dart'
+var csv = words.join(','); // 'Hello,World,Dart'
+```
+
+### Converting to Other Types
+
+```dart
+var list = [1, 2, 3, 4, 5];
+
+// To Set (removes duplicates)
+var set = list.toSet(); // {1, 2, 3, 4, 5}
+
+// To Map (using asMap)
+var map = list.asMap(); // {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+
+// To String
+var str = list.toString(); // '[1, 2, 3, 4, 5]'
+```
+
+### Grouping and Partitioning
+
+```dart
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+// Partition into chunks (manual implementation)
+List<List<int>> chunk(List<int> list, int size) {
+  List<List<int>> chunks = [];
+  for (var i = 0; i < list.length; i += size) {
+    chunks.add(list.sublist(i, i + size > list.length ? list.length : i + size));
+  }
+  return chunks;
+}
+
+var chunked = chunk(numbers, 3); // [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+// Group by property
+class Person {
+  String name;
+  int age;
+  Person(this.name, this.age);
+}
+
+var people = [
+  Person('Alice', 30),
+  Person('Bob', 25),
+  Person('Charlie', 30)
+];
+
+Map<int, List<Person>> groupBy(List<Person> list) {
+  var map = <int, List<Person>>{};
+  for (var person in list) {
+    map.putIfAbsent(person.age, () => []).add(person);
+  }
+  return map;
+}
+
+var grouped = groupBy(people); // {30: [Alice, Charlie], 25: [Bob]}
+```
+
+## List Types
+
+### Growable vs Fixed-Length Lists
+
+```dart
+// Growable list (default)
+var growable = [1, 2, 3];
+growable.add(4); // OK
+
+// Fixed-length list
+var fixed = List.filled(3, 0); // [0, 0, 0]
+// fixed.add(1); // Error: Unsupported operation
+fixed[0] = 5; // OK - can modify existing elements
+
+// Convert to fixed-length
+var fixedFromGrowable = List.unmodifiable(growable);
+```
+
+### Typed Lists
+
+```dart
+// Explicitly typed
+List<int> integers = [1, 2, 3];
+List<String> strings = ['a', 'b', 'c'];
+List<dynamic> mixed = [1, 'two', 3.0];
+
+// Generic type
+List<T> createList<T>(T value, int count) {
+  return List.filled(count, value);
+}
+
+var numbers = createList(0, 5); // [0, 0, 0, 0, 0]
+```
+
+### Nullable Lists
+
+```dart
+// List of nullable integers
+List<int?> nullableInts = [1, null, 3];
+
+// Nullable list
+List<int>? maybeList = null;
+
+// List of nullable integers that can also be null
+List<int?>? maybeNullableInts = null;
+```
+
+## Performance Considerations
+
+### Time Complexity
+
+- **Access by index**: O(1)
+- **Add at end**: O(1) amortized
+- **Insert at beginning**: O(n)
+- **Remove at end**: O(1)
+- **Remove at beginning**: O(n)
+- **Search**: O(n)
+- **Sort**: O(n log n)
+
+### Best Practices
+
+```dart
+// Use List.filled for large fixed-size lists
+var large = List.filled(1000000, 0);
+
+// Pre-allocate capacity when size is known
+var list = <int>[];
+// Better if you know the size:
+var list2 = List<int>.filled(100, 0, growable: true);
+
+// Avoid repeated insertions at beginning
+// Instead, add at end and reverse if needed
+var list = <int>[];
+for (var i = 0; i < 1000; i++) {
+  list.add(i); // O(1) each
+}
+var reversed = list.reversed.toList(); // O(n) once
+
+// Use where() for filtering, not removeWhere() if you need a new list
+var original = [1, 2, 3, 4, 5];
+var filtered = original.where((n) => n % 2 == 0).toList(); // original unchanged
+```
+
+## Common Patterns
+
+### Copy a List
+
+```dart
+var original = [1, 2, 3];
+
+// Shallow copy methods
+var copy1 = [...original];
+var copy2 = List.from(original);
+var copy3 = List.of(original);
+var copy4 = original.toList();
+```
+
+### Remove Duplicates
+
+```dart
+var list = [1, 2, 2, 3, 3, 3, 4];
+var unique = list.toSet().toList(); // [1, 2, 3, 4]
+```
+
+### Flatten Nested Lists
+
+```dart
+var nested = [[1, 2], [3, 4], [5, 6]];
+var flattened = nested.expand((list) => list).toList(); // [1, 2, 3, 4, 5, 6]
+```
+
+### Find Min/Max
+
+```dart
+var numbers = [3, 1, 4, 1, 5, 9, 2, 6];
+
+var max = numbers.reduce((a, b) => a > b ? a : b); // 9
+var min = numbers.reduce((a, b) => a < b ? a : b); // 1
+
+// Or using fold
+var max2 = numbers.fold(numbers[0], (a, b) => a > b ? a : b);
+```
+
+### Check if Lists are Equal
+
+```dart
+bool listEquals<T>(List<T>? a, List<T>? b) {
+  if (a == null) return b == null;
+  if (b == null || a.length != b.length) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+// Using collection package (requires import)
+// import 'package:collection/collection.dart';
+// bool equal = ListEquality().equals(list1, list2);
+```
+
+## Conclusion
+
+Dart Lists are powerful and flexible data structures with a rich API. They support functional programming patterns through methods like `map`, `where`, `reduce`, and `fold`, while also providing imperative operations like `add`, `remove`, and `sort`. Understanding when to use growable vs fixed-length lists, and being aware of performance characteristics, will help you write efficient Dart code.

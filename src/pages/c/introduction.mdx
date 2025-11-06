@@ -1,0 +1,790 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/c">← C</a> <br /> <br />
+
+# Introduction
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Getting Started](#getting-started)
+3. [Basic Syntax](#basic-syntax)
+4. [Data Types](#data-types)
+5. [Operators](#operators)
+6. [Control Structures](#control-structures)
+7. [Functions](#functions)
+8. [Arrays and Strings](#arrays-and-strings)
+9. [Pointers](#pointers)
+10. [Structures and Unions](#structures-and-unions)
+11. [Dynamic Memory](#dynamic-memory)
+12. [File Handling](#file-handling)
+13. [Preprocessor](#preprocessor)
+
+---
+
+## Introduction
+
+C is a powerful general-purpose programming language created by **Dennis Ritchie** at Bell Labs in **1972**. It has influenced many modern languages and remains widely used for:
+
+- Operating systems development
+- Embedded systems
+- System programming
+- Game engines
+- High-performance applications
+
+### Why Learn C?
+
+✅ **Performance** - Direct hardware access and efficient execution  
+✅ **Portability** - Runs on virtually any platform  
+✅ **Foundation** - Understanding C helps you learn other languages  
+✅ **Control** - Full control over memory and system resources  
+
+---
+
+## Getting Started
+
+### Basic Program Structure
+
+```c
+#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\n");
+    return 0;
+}
+```
+
+**Components:**
+- `#include <stdio.h>` - Header file for input/output
+- `int main()` - Entry point of every C program
+- `printf()` - Function to print output
+- `return 0` - Successful program termination
+
+### Compiling and Running
+
+```bash
+# Compile
+gcc program.c -o program
+
+# Run
+./program
+```
+
+---
+
+## Basic Syntax
+
+### Comments
+
+```c
+// Single-line comment
+
+/*
+ * Multi-line comment
+ * Useful for documentation
+ */
+```
+
+### Variables
+
+```c
+int age = 25;           // Integer
+float price = 19.99;    // Floating-point
+char grade = 'A';       // Character
+double pi = 3.14159;    // Double precision
+```
+
+### Constants
+
+```c
+const int MAX_SIZE = 100;
+#define PI 3.14159
+```
+
+---
+
+## Data Types
+
+### Primitive Types
+
+| Type | Size | Range | Example |
+|------|------|-------|---------|
+| `char` | 1 byte | -128 to 127 | `'A'` |
+| `int` | 4 bytes | -2,147,483,648 to 2,147,483,647 | `42` |
+| `float` | 4 bytes | 3.4E-38 to 3.4E+38 | `3.14f` |
+| `double` | 8 bytes | 1.7E-308 to 1.7E+308 | `3.14159` |
+
+### Type Modifiers
+
+```c
+short int small = 100;
+long int big = 1000000L;
+unsigned int positive = 50;
+long long huge = 9223372036854775807LL;
+```
+
+### Example
+
+```c
+#include <stdio.h>
+
+int main() {
+    int age = 25;
+    float height = 5.9;
+    char initial = 'J';
+    double salary = 50000.50;
+    
+    printf("Age: %d\n", age);
+    printf("Height: %.1f\n", height);
+    printf("Initial: %c\n", initial);
+    printf("Salary: %.2f\n", salary);
+    
+    return 0;
+}
+```
+
+---
+
+## Operators
+
+### Arithmetic Operators
+
+```c
+int a = 10, b = 3;
+
+a + b  // Addition: 13
+a - b  // Subtraction: 7
+a * b  // Multiplication: 30
+a / b  // Division: 3 (integer)
+a % b  // Modulus: 1
+```
+
+### Relational Operators
+
+```c
+==  // Equal to
+!=  // Not equal to
+>   // Greater than
+<   // Less than
+>=  // Greater than or equal
+<=  // Less than or equal
+```
+
+### Logical Operators
+
+```c
+&&  // Logical AND
+||  // Logical OR
+!   // Logical NOT
+```
+
+### Bitwise Operators
+
+```c
+&   // Bitwise AND
+|   // Bitwise OR
+^   // Bitwise XOR
+~   // Bitwise NOT
+<<  // Left shift
+>>  // Right shift
+```
+
+### Increment/Decrement
+
+```c
+int x = 5;
+x++;    // Post-increment: 6
+++x;    // Pre-increment: 7
+x--;    // Post-decrement: 6
+--x;    // Pre-decrement: 5
+```
+
+---
+
+## Control Structures
+
+### If-Else Statement
+
+```c
+int score = 85;
+
+if (score >= 90) {
+    printf("Grade: A\n");
+} else if (score >= 80) {
+    printf("Grade: B\n");
+} else if (score >= 70) {
+    printf("Grade: C\n");
+} else {
+    printf("Grade: F\n");
+}
+```
+
+### Ternary Operator
+
+```c
+int max = (a > b) ? a : b;
+```
+
+### Switch Statement
+
+```c
+char grade = 'B';
+
+switch(grade) {
+    case 'A':
+        printf("Excellent!\n");
+        break;
+    case 'B':
+        printf("Good!\n");
+        break;
+    case 'C':
+        printf("Fair!\n");
+        break;
+    default:
+        printf("Invalid grade\n");
+}
+```
+
+### For Loop
+
+```c
+for (int i = 0; i < 5; i++) {
+    printf("%d ", i);
+}
+// Output: 0 1 2 3 4
+```
+
+### While Loop
+
+```c
+int i = 0;
+while (i < 5) {
+    printf("%d ", i);
+    i++;
+}
+```
+
+### Do-While Loop
+
+```c
+int i = 0;
+do {
+    printf("%d ", i);
+    i++;
+} while (i < 5);
+```
+
+### Break and Continue
+
+```c
+// Break - exits the loop
+for (int i = 0; i < 10; i++) {
+    if (i == 5) break;
+    printf("%d ", i);
+}
+
+// Continue - skips current iteration
+for (int i = 0; i < 10; i++) {
+    if (i % 2 == 0) continue;
+    printf("%d ", i);  // Prints odd numbers
+}
+```
+
+---
+
+## Functions
+
+### Function Declaration and Definition
+
+```c
+// Declaration (prototype)
+int add(int a, int b);
+
+int main() {
+    int result = add(5, 3);
+    printf("Sum: %d\n", result);
+    return 0;
+}
+
+// Definition
+int add(int a, int b) {
+    return a + b;
+}
+```
+
+### Function Types
+
+```c
+// No return, no parameters
+void greet() {
+    printf("Hello!\n");
+}
+
+// With return, with parameters
+int multiply(int a, int b) {
+    return a * b;
+}
+
+// No return, with parameters
+void printSum(int a, int b) {
+    printf("Sum: %d\n", a + b);
+}
+```
+
+### Recursion
+
+```c
+// Factorial
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+// Fibonacci
+int fibonacci(int n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+```
+
+---
+
+## Arrays and Strings
+
+### One-Dimensional Arrays
+
+```c
+int numbers[5] = {10, 20, 30, 40, 50};
+
+// Accessing elements
+printf("%d\n", numbers[0]);  // 10
+
+// Iterating
+for (int i = 0; i < 5; i++) {
+    printf("%d ", numbers[i]);
+}
+```
+
+### Multi-Dimensional Arrays
+
+```c
+int matrix[3][3] = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9}
+};
+
+// Accessing elements
+printf("%d\n", matrix[1][2]);  // 6
+```
+
+### Strings
+
+```c
+#include <string.h>
+
+char name[20] = "John";
+char greeting[] = "Hello";
+
+// String functions
+strlen(name);           // Length
+strcpy(dest, src);      // Copy
+strcat(dest, src);      // Concatenate
+strcmp(str1, str2);     // Compare
+```
+
+### String Example
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char str1[50] = "Hello";
+    char str2[] = " World";
+    
+    strcat(str1, str2);
+    printf("%s\n", str1);  // Hello World
+    
+    printf("Length: %lu\n", strlen(str1));
+    
+    return 0;
+}
+```
+
+---
+
+## Pointers
+
+### Basic Pointers
+
+```c
+int num = 42;
+int *ptr = &num;  // ptr stores address of num
+
+printf("Value: %d\n", num);           // 42
+printf("Address: %p\n", &num);        // Memory address
+printf("Pointer value: %p\n", ptr);   // Same address
+printf("Dereferenced: %d\n", *ptr);   // 42
+```
+
+### Pointer Arithmetic
+
+```c
+int arr[5] = {10, 20, 30, 40, 50};
+int *ptr = arr;
+
+printf("%d\n", *ptr);       // 10
+printf("%d\n", *(ptr + 1)); // 20
+printf("%d\n", *(ptr + 2)); // 30
+```
+
+### Pointers and Functions
+
+```c
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 5, y = 10;
+    swap(&x, &y);
+    printf("x: %d, y: %d\n", x, y);  // x: 10, y: 5
+    return 0;
+}
+```
+
+### Pointer to Pointer
+
+```c
+int num = 42;
+int *ptr = &num;
+int **pptr = &ptr;
+
+printf("%d\n", **pptr);  // 42
+```
+
+---
+
+## Structures and Unions
+
+### Structures
+
+```c
+struct Person {
+    char name[50];
+    int age;
+    float salary;
+};
+
+int main() {
+    struct Person p1;
+    strcpy(p1.name, "John");
+    p1.age = 30;
+    p1.salary = 50000.0;
+    
+    printf("Name: %s\n", p1.name);
+    printf("Age: %d\n", p1.age);
+    
+    return 0;
+}
+```
+
+### Typedef
+
+```c
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+Point p1 = {10, 20};
+printf("(%d, %d)\n", p1.x, p1.y);
+```
+
+### Unions
+
+```c
+union Data {
+    int i;
+    float f;
+    char str[20];
+};
+
+union Data data;
+data.i = 10;
+data.f = 220.5;  // Overwrites i
+```
+
+### Enums
+
+```c
+enum Weekday {
+    SUNDAY,     // 0
+    MONDAY,     // 1
+    TUESDAY,    // 2
+    WEDNESDAY,  // 3
+    THURSDAY,   // 4
+    FRIDAY,     // 5
+    SATURDAY    // 6
+};
+
+enum Weekday today = WEDNESDAY;
+```
+
+---
+
+## Dynamic Memory
+
+### malloc, calloc, realloc, free
+
+```c
+#include <stdlib.h>
+
+int main() {
+    // malloc - allocates memory
+    int *arr = (int *)malloc(5 * sizeof(int));
+    if (arr == NULL) {
+        printf("Memory allocation failed\n");
+        return 1;
+    }
+    
+    // Use the memory
+    for (int i = 0; i < 5; i++) {
+        arr[i] = i * 10;
+    }
+    
+    // realloc - resize memory
+    arr = (int *)realloc(arr, 10 * sizeof(int));
+    
+    // free - deallocate memory
+    free(arr);
+    
+    // calloc - allocates and initializes to zero
+    int *arr2 = (int *)calloc(5, sizeof(int));
+    free(arr2);
+    
+    return 0;
+}
+```
+
+### Memory Leak Prevention
+
+```c
+// Always free allocated memory
+int *ptr = (int *)malloc(sizeof(int));
+if (ptr != NULL) {
+    *ptr = 100;
+    free(ptr);
+    ptr = NULL;  // Good practice
+}
+```
+
+---
+
+## File Handling
+
+### File Operations
+
+```c
+#include <stdio.h>
+
+int main() {
+    FILE *fp;
+    
+    // Writing
+    fp = fopen("data.txt", "w");
+    if (fp == NULL) {
+        printf("Error opening file\n");
+        return 1;
+    }
+    fprintf(fp, "Hello, File!\n");
+    fclose(fp);
+    
+    // Reading
+    fp = fopen("data.txt", "r");
+    char buffer[100];
+    while (fgets(buffer, 100, fp) != NULL) {
+        printf("%s", buffer);
+    }
+    fclose(fp);
+    
+    // Appending
+    fp = fopen("data.txt", "a");
+    fprintf(fp, "Appended text\n");
+    fclose(fp);
+    
+    return 0;
+}
+```
+
+### File Modes
+
+| Mode | Description |
+|------|-------------|
+| `"r"` | Read (file must exist) |
+| `"w"` | Write (creates new or overwrites) |
+| `"a"` | Append (adds to end) |
+| `"r+"` | Read and write |
+| `"w+"` | Write and read |
+| `"a+"` | Append and read |
+
+---
+
+## Preprocessor
+
+### Directives
+
+```c
+#include <stdio.h>      // Include header file
+#define PI 3.14159      // Define constant
+#define MAX(a,b) ((a)>(b)?(a):(b))  // Define macro
+
+#ifdef DEBUG
+    printf("Debug mode\n");
+#endif
+
+#ifndef RELEASE
+    printf("Not release\n");
+#endif
+
+#if VERSION > 2
+    printf("Version 3+\n");
+#endif
+```
+
+### Conditional Compilation
+
+```c
+#define DEBUG 1
+
+int main() {
+    #ifdef DEBUG
+        printf("Debugging...\n");
+    #endif
+    
+    #if DEBUG == 1
+        printf("Debug level 1\n");
+    #elif DEBUG == 2
+        printf("Debug level 2\n");
+    #else
+        printf("No debug\n");
+    #endif
+    
+    return 0;
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Use Meaningful Names
+```c
+// Good
+int studentAge;
+float accountBalance;
+
+// Bad
+int x;
+float a;
+```
+
+### 2. Check Return Values
+```c
+FILE *fp = fopen("file.txt", "r");
+if (fp == NULL) {
+    perror("Error opening file");
+    return 1;
+}
+```
+
+### 3. Always Free Memory
+```c
+int *ptr = malloc(sizeof(int));
+// Use ptr
+free(ptr);
+ptr = NULL;
+```
+
+### 4. Initialize Variables
+```c
+int count = 0;
+float price = 0.0;
+char *name = NULL;
+```
+
+### 5. Use const for Constants
+```c
+const int MAX_USERS = 100;
+const float TAX_RATE = 0.15;
+```
+
+---
+
+## Common Pitfalls
+
+⚠️ **Buffer Overflow**
+```c
+char buffer[10];
+// Dangerous - can overflow
+gets(buffer);  // DON'T USE
+
+// Safe alternative
+fgets(buffer, sizeof(buffer), stdin);
+```
+
+⚠️ **Memory Leaks**
+```c
+// Bad
+int *ptr = malloc(100);
+// ... forgot to free
+
+// Good
+int *ptr = malloc(100);
+// ... use ptr
+free(ptr);
+```
+
+⚠️ **Dangling Pointers**
+```c
+int *ptr = malloc(sizeof(int));
+free(ptr);
+ptr = NULL;  // Prevent dangling pointer
+```
+
+⚠️ **Uninitialized Variables**
+```c
+int x;           // Bad - uninitialized
+int y = 0;       // Good - initialized
+```
+
+---
+
+## Useful Resources
+
+📚 **Books**
+- "The C Programming Language" by Kernighan & Ritchie
+- "C Programming: A Modern Approach" by K.N. King
+- "Expert C Programming" by Peter van der Linden
+
+🌐 **Online Resources**
+- [cppreference.com](https://en.cppreference.com/w/c)
+- [GeeksforGeeks C Programming](https://www.geeksforgeeks.org/c-programming-language/)
+- [Learn-C.org](https://www.learn-c.org/)
+
+---
+
+## Conclusion
+
+C is a powerful language that forms the foundation of modern computing. While it requires careful attention to memory management and low-level details, mastering C gives you:
+
+- Deep understanding of computer architecture
+- Ability to write efficient, high-performance code
+- Foundation for learning other languages
+- Skills for system-level programming
+
+**Happy Coding!** 🚀

@@ -1,0 +1,388 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/react">← React</a> <br /> <br />
+
+# useEffect
+
+## Overview
+`useEffect` is a React Hook that lets you synchronize a component with external systems and perform side effects in functional components.
+
+```javascript
+import { useEffect } from 'react';
+```
+
+## Basic Syntax
+
+```javascript
+useEffect(setup, dependencies?)
+```
+
+- **setup**: Function containing your effect logic. Can optionally return a cleanup function.
+- **dependencies**: Optional array of reactive values that trigger the effect when changed.
+
+## Usage Patterns
+
+### 1. Run on Every Render
+```javascript
+useEffect(() => {
+  // Runs after every render
+  console.log('Component rendered');
+});
+```
+
+### 2. Run Once on Mount
+```javascript
+useEffect(() => {
+  // Runs only once after initial render
+  console.log('Component mounted');
+}, []); // Empty dependency array
+```
+
+### 3. Run When Dependencies Change
+```javascript
+useEffect(() => {
+  // Runs when count changes
+  console.log(`Count is now: ${count}`);
+}, [count]); // Only re-run when count changes
+```
+
+### 4. Cleanup Function
+```javascript
+useEffect(() => {
+  const subscription = someAPI.subscribe();
+  
+  // Cleanup function
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
+```
+
+## Common Use Cases
+
+### Fetching Data
+```javascript
+useEffect(() => {
+  let ignore = false;
+  
+  async function fetchData() {
+    const response = await fetch('/api/data');
+    const data = await response.json();
+    if (!ignore) {
+      setData(data);
+    }
+  }
+  
+  fetchData();
+  
+  return () => {
+    ignore = true; // Prevent state update if unmounted
+  };
+}, []);
+```
+
+### Setting Up Event Listeners
+```javascript
+useEffect(() => {
+  function handleResize() {
+    setWindowWidth(window.innerWidth);
+  }
+  
+  window.addEventListener('resize', handleResize);
+  
+  return () => {
+    window.removeEventListener('resize', handleResize);
+  };
+}, []);
+```
+
+### Timers and Intervals
+```javascript
+useEffect(() => {
+  const timer = setTimeout(() => {
+    console.log('Delayed action');
+  }, 1000);
+  
+  return () => clearTimeout(timer);
+}, []);
+
+// Interval example
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCount(c => c + 1);
+  }, 1000);
+  
+  return () => clearInterval(interval);
+}, []);
+```
+
+### Synchronizing with External Store
+```javascript
+useEffect(() => {
+  const unsubscribe = store.subscribe(() => {
+    setStoreData(store.getState());
+  });
+  
+  return unsubscribe;
+}, []);
+```
+
+### DOM Manipulation
+```javascript
+useEffect(() => {
+  const element = elementRef.current;
+  element.focus();
+  element.scrollIntoView();
+}, []);
+```
+
+## Execution Timing
+
+1. **Component renders** → React updates the DOM
+2. **Browser paints** the screen
+3. **useEffect runs** (after paint, asynchronously)
+4. **Cleanup runs** before next effect or unmount
+
+## Important Rules
+
+### Dependency Array Rules
+- **Omit dependencies**: Effect runs after every render
+- **Empty array `[]`**: Effect runs once on mount only
+- **With dependencies `[a, b]`**: Effect runs when any dependency changes
+
+### Must Include All Dependencies
+```javascript
+// ❌ Bad - missing dependency
+useEffect(() => {
+  console.log(count);
+}, []);
+
+// ✅ Good - all dependencies included
+useEffect(() => {
+  console.log(count);
+}, [count]);
+```
+
+### Dependencies Should Be Primitive or Stable
+```javascript
+// ❌ Bad - object/array created on each render
+useEffect(() => {
+  doSomething(options);
+}, [{ key: 'value' }]); // New object every render
+
+// ✅ Good - use individual values
+useEffect(() => {
+  doSomething({ key: value });
+}, [value]);
+
+// ✅ Good - or useMemo for complex objects
+const options = useMemo(() => ({ key: value }), [value]);
+useEffect(() => {
+  doSomething(options);
+}, [options]);
+```
+
+## Common Patterns
+
+### Conditional Effects
+```javascript
+useEffect(() => {
+  if (condition) {
+    // Only run logic when condition is true
+  }
+}, [condition]);
+```
+
+### Multiple Effects for Separation of Concerns
+```javascript
+// ✅ Good - separate effects for different purposes
+useEffect(() => {
+  // Analytics tracking
+}, [pageView]);
+
+useEffect(() => {
+  // Data fetching
+}, [userId]);
+```
+
+### Effect Dependencies with Functions
+```javascript
+// ❌ Problem - function reference changes every render
+function handleChange() {
+  console.log(value);
+}
+
+useEffect(() => {
+  element.addEventListener('change', handleChange);
+  return () => element.removeEventListener('change', handleChange);
+}, [handleChange]); // Causes effect to run every render
+
+// ✅ Solution 1 - Define function inside effect
+useEffect(() => {
+  function handleChange() {
+    console.log(value);
+  }
+  element.addEventListener('change', handleChange);
+  return () => element.removeEventListener('change', handleChange);
+}, [value]);
+
+// ✅ Solution 2 - Use useCallback
+const handleChange = useCallback(() => {
+  console.log(value);
+}, [value]);
+
+useEffect(() => {
+  element.addEventListener('change', handleChange);
+  return () => element.removeEventListener('change', handleChange);
+}, [handleChange]);
+```
+
+## Common Pitfalls
+
+### Infinite Loops
+```javascript
+// ❌ Infinite loop - updates state which triggers effect
+useEffect(() => {
+  setCount(count + 1);
+}, [count]);
+
+// ✅ Use functional update or remove dependency
+useEffect(() => {
+  setCount(c => c + 1);
+}, []);
+```
+
+### Race Conditions in Data Fetching
+```javascript
+// ❌ Race condition
+useEffect(() => {
+  fetchUser(userId).then(user => setUser(user));
+}, [userId]);
+
+// ✅ Proper cleanup
+useEffect(() => {
+  let ignore = false;
+  
+  fetchUser(userId).then(user => {
+    if (!ignore) setUser(user);
+  });
+  
+  return () => {
+    ignore = true;
+  };
+}, [userId]);
+```
+
+### Missing Cleanup
+```javascript
+// ❌ Memory leak - no cleanup
+useEffect(() => {
+  const ws = new WebSocket(url);
+  ws.onmessage = (e) => setData(e.data);
+}, [url]);
+
+// ✅ Proper cleanup
+useEffect(() => {
+  const ws = new WebSocket(url);
+  ws.onmessage = (e) => setData(e.data);
+  
+  return () => {
+    ws.close();
+  };
+}, [url]);
+```
+
+## Advanced Patterns
+
+### Custom Hooks with useEffect
+```javascript
+function useWindowSize() {
+  const [size, setSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+  
+  useEffect(() => {
+    function handleResize() {
+      setSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    }
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  return size;
+}
+```
+
+### Debounced Effects
+```javascript
+useEffect(() => {
+  const timer = setTimeout(() => {
+    // Perform search after user stops typing
+    searchAPI(searchTerm);
+  }, 500);
+  
+  return () => clearTimeout(timer);
+}, [searchTerm]);
+```
+
+## Strict Mode Behavior
+
+In React Strict Mode (development only), React will:
+1. Run your effect
+2. Run your cleanup
+3. Run your effect again
+
+This helps catch missing cleanup functions. This only happens in development.
+
+## When NOT to Use useEffect
+
+- **Transforming data for rendering**: Use regular variables or useMemo
+- **Handling user events**: Use event handlers instead
+- **Resetting state**: Use keys or store state higher up
+
+```javascript
+// ❌ Don't use effect for derived state
+useEffect(() => {
+  setFullName(firstName + ' ' + lastName);
+}, [firstName, lastName]);
+
+// ✅ Just compute it during render
+const fullName = firstName + ' ' + lastName;
+```
+
+## Quick Reference Table
+
+| Dependency Array | When Effect Runs | Cleanup Runs |
+|-----------------|------------------|--------------|
+| Not provided | After every render | Before every re-run and unmount |
+| `[]` | Once on mount | On unmount only |
+| `[a, b]` | On mount and when a or b changes | Before re-run and unmount |
+
+## Best Practices
+
+1. **Keep effects focused**: Each effect should do one thing
+2. **Always include cleanup**: Prevent memory leaks and stale subscriptions
+3. **List all dependencies**: Use ESLint plugin `react-hooks/exhaustive-deps`
+4. **Avoid objects/arrays as dependencies**: They create new references each render
+5. **Handle race conditions**: Use ignore flags or AbortController for async operations
+6. **Consider custom hooks**: Extract reusable effect logic
+7. **Test cleanup functions**: Ensure they properly tear down side effects
+
+## Related Hooks
+
+- **useLayoutEffect**: Synchronous version, runs before browser paint
+- **useInsertionEffect**: Fires before DOM mutations (CSS-in-JS libraries)
+- **useSyncExternalStore**: Subscribe to external stores safely
+- **useCallback**: Memoize functions to prevent unnecessary effect re-runs
+- **useMemo**: Memoize values to prevent unnecessary effect re-runs
+
+---
+
+*This reference covers React 18+ behavior. Always check the official React documentation for the latest updates.*
