@@ -1,0 +1,612 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/javascript">← Javascript</a> <br /> <br />
+
+# Encoding and Decoding
+
+## 1. **URL Encoding/Decoding**
+
+### `encodeURI()` and `decodeURI()`
+Used for encoding complete URLs while preserving special URL characters.
+
+```javascript
+// encodeURI - Encodes a complete URI
+const url = "https://example.com/path?name=John Doe&city=New York";
+const encoded = encodeURI(url);
+console.log(encoded); 
+// "https://example.com/path?name=John%20Doe&city=New%20York"
+
+const decoded = decodeURI(encoded);
+console.log(decoded); 
+// "https://example.com/path?name=John Doe&city=New York"
+```
+
+**Characters NOT encoded by encodeURI():**
+- Alphanumeric: `A-Z a-z 0-9`
+- Reserved characters: `; , / ? : @ & = + $`
+- Unescaped characters: `- _ . ! ~ * ' ( )`
+- Hash: `#`
+
+### `encodeURIComponent()` and `decodeURIComponent()`
+Used for encoding URI components (query parameters, path segments).
+
+```javascript
+// encodeURIComponent - Encodes URI components
+const param = "name=John Doe&role=admin";
+const encoded = encodeURIComponent(param);
+console.log(encoded); 
+// "name%3DJohn%20Doe%26role%3Dadmin"
+
+const decoded = decodeURIComponent(encoded);
+console.log(decoded); 
+// "name=John Doe&role=admin"
+
+// Practical use in URLs
+const searchTerm = "JavaScript & Node.js";
+const url = `https://example.com/search?q=${encodeURIComponent(searchTerm)}`;
+console.log(url);
+// "https://example.com/search?q=JavaScript%20%26%20Node.js"
+```
+
+**Characters NOT encoded by encodeURIComponent():**
+- Alphanumeric: `A-Z a-z 0-9`
+- Unescaped characters: `- _ . ! ~ * ' ( )`
+
+**Key Difference:** `encodeURIComponent()` encodes more characters than `encodeURI()`, including `/ ? : @ & = + $ #`
+
+---
+
+## 2. **Base64 Encoding/Decoding**
+
+### `btoa()` and `atob()`
+Binary to ASCII and ASCII to Binary conversion.
+
+```javascript
+// btoa - Encode to Base64 (Binary to ASCII)
+const text = "Hello World!";
+const base64 = btoa(text);
+console.log(base64); // "SGVsbG8gV29ybGQh"
+
+// atob - Decode from Base64 (ASCII to Binary)
+const decoded = atob(base64);
+console.log(decoded); // "Hello World!"
+```
+
+**Important Limitations:**
+- Only works with ASCII characters (0-255)
+- Throws error with Unicode characters
+
+### Handling Unicode with Base64
+
+```javascript
+// Encode Unicode strings to Base64
+function encodeBase64Unicode(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+    (match, p1) => String.fromCharCode('0x' + p1)));
+}
+
+// Decode Unicode strings from Base64
+function decodeBase64Unicode(str) {
+  return decodeURIComponent(atob(str).split('').map(c => 
+    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+}
+
+// Usage
+const unicode = "Hello 世界! 🌍";
+const encoded = encodeBase64Unicode(unicode);
+console.log(encoded);
+const decoded = decodeBase64Unicode(encoded);
+console.log(decoded); // "Hello 世界! 🌍"
+```
+
+### Modern Approach with TextEncoder/TextDecoder
+
+```javascript
+// Encode Unicode to Base64 (Modern)
+function base64Encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  const binString = Array.from(bytes, (x) => String.fromCodePoint(x)).join("");
+  return btoa(binString);
+}
+
+// Decode Base64 to Unicode (Modern)
+function base64Decode(str) {
+  const binString = atob(str);
+  const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+const text = "Hello 世界! 🌍";
+const encoded = base64Encode(text);
+const decoded = base64Decode(encoded);
+console.log(decoded); // "Hello 世界! 🌍"
+```
+
+---
+
+## 3. **HTML Entity Encoding/Decoding**
+
+### Encoding HTML Entities (Manual)
+
+```javascript
+function encodeHTML(str) {
+  return str.replace(/[&<>"']/g, (match) => {
+    const entities = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return entities[match];
+  });
+}
+
+const html = '<div class="test">Hello & goodbye</div>';
+console.log(encodeHTML(html));
+// "&lt;div class=&quot;test&quot;&gt;Hello &amp; goodbye&lt;/div&gt;"
+```
+
+### Decoding HTML Entities
+
+```javascript
+function decodeHTML(str) {
+  const txt = document.createElement('textarea');
+  txt.innerHTML = str;
+  return txt.value;
+}
+
+const encoded = "&lt;div&gt;Hello &amp; goodbye&lt;/div&gt;";
+console.log(decodeHTML(encoded));
+// "<div>Hello & goodbye</div>"
+
+// Alternative without DOM
+function decodeHTMLEntities(text) {
+  const entities = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&#x27;': "'"
+  };
+  return text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity);
+}
+```
+
+---
+
+## 4. **Text Encoding (TextEncoder/TextDecoder API)**
+
+### TextEncoder - String to Bytes
+
+```javascript
+// Encode string to UTF-8 bytes
+const encoder = new TextEncoder();
+const text = "Hello 世界!";
+const uint8array = encoder.encode(text);
+
+console.log(uint8array);
+// Uint8Array(13) [72, 101, 108, 108, 111, 32, 228, 184, 150, 231, 149, 140, 33]
+
+// Properties
+console.log(encoder.encoding); // "utf-8"
+```
+
+### TextDecoder - Bytes to String
+
+```javascript
+// Decode UTF-8 bytes to string
+const decoder = new TextDecoder('utf-8');
+const bytes = new Uint8Array([72, 101, 108, 108, 111, 32, 228, 184, 150, 231, 149, 140, 33]);
+const text = decoder.decode(bytes);
+
+console.log(text); // "Hello 世界!"
+
+// Different encodings
+const decoderISO = new TextDecoder('iso-8859-1');
+const decoderUTF16 = new TextDecoder('utf-16');
+
+// With options
+const decoder2 = new TextDecoder('utf-8', {
+  fatal: true, // Throw error on invalid sequences
+  ignoreBOM: false // Don't ignore byte order mark
+});
+```
+
+---
+
+## 5. **JSON Encoding/Decoding**
+
+### JSON.stringify() - Encode to JSON
+
+```javascript
+const obj = {
+  name: "John",
+  age: 30,
+  city: "New York",
+  hobbies: ["reading", "gaming"]
+};
+
+// Basic stringify
+const json = JSON.stringify(obj);
+console.log(json);
+// '{"name":"John","age":30,"city":"New York","hobbies":["reading","gaming"]}'
+
+// With formatting (pretty print)
+const formatted = JSON.stringify(obj, null, 2);
+console.log(formatted);
+/*
+{
+  "name": "John",
+  "age": 30,
+  "city": "New York",
+  "hobbies": [
+    "reading",
+    "gaming"
+  ]
+}
+*/
+
+// With replacer function
+const filtered = JSON.stringify(obj, (key, value) => {
+  if (key === 'age') return undefined; // Exclude age
+  return value;
+}, 2);
+
+// With replacer array (whitelist)
+const selective = JSON.stringify(obj, ['name', 'city']);
+console.log(selective); // '{"name":"John","city":"New York"}'
+```
+
+### JSON.parse() - Decode from JSON
+
+```javascript
+const json = '{"name":"John","age":30,"city":"New York"}';
+const obj = JSON.parse(json);
+console.log(obj.name); // "John"
+
+// With reviver function
+const parsed = JSON.parse(json, (key, value) => {
+  if (key === 'age') return value + 1; // Increment age
+  return value;
+});
+console.log(parsed.age); // 31
+
+// Handling dates
+const jsonWithDate = '{"name":"John","birthdate":"2000-01-01T00:00:00.000Z"}';
+const objWithDate = JSON.parse(jsonWithDate, (key, value) => {
+  if (key === 'birthdate') return new Date(value);
+  return value;
+});
+console.log(objWithDate.birthdate instanceof Date); // true
+
+// Error handling
+try {
+  const invalid = JSON.parse('invalid json');
+} catch (error) {
+  console.error('Parse error:', error.message);
+}
+```
+
+---
+
+## 6. **Escape Sequences**
+
+### String Escape Characters
+
+```javascript
+// Common escape sequences
+const str1 = "Line 1\nLine 2";           // Newline
+const str2 = "Column1\tColumn2";         // Tab
+const str3 = "He said, \"Hello\"";      // Quote
+const str4 = 'It\'s working';           // Apostrophe
+const str5 = "Path: C:\\Users\\John";   // Backslash
+const str6 = "Unicode: \u00A9";         // Unicode (©)
+const str7 = "Emoji: \u{1F600}";        // Unicode code point (😀)
+
+console.log(str1);
+// Line 1
+// Line 2
+```
+
+### `escape()` and `unescape()` (Deprecated)
+
+```javascript
+// ⚠️ DEPRECATED - Don't use in new code
+const escaped = escape("Hello World!");
+console.log(escaped); // "Hello%20World%21"
+
+const unescaped = unescape(escaped);
+console.log(unescaped); // "Hello World!"
+
+// Use encodeURIComponent instead
+const modern = encodeURIComponent("Hello World!");
+```
+
+---
+
+## 7. **Character Code Conversion**
+
+### String to Character Codes
+
+```javascript
+// charCodeAt - Get UTF-16 code unit
+const str = "Hello";
+console.log(str.charCodeAt(0)); // 72 (H)
+console.log(str.charCodeAt(1)); // 101 (e)
+
+// codePointAt - Get Unicode code point (handles emojis)
+const emoji = "😀";
+console.log(emoji.charCodeAt(0));   // 55357 (surrogate pair)
+console.log(emoji.codePointAt(0));  // 128512 (actual code point)
+
+// Convert entire string to array of char codes
+const codes = Array.from(str, char => char.charCodeAt(0));
+console.log(codes); // [72, 101, 108, 108, 111]
+```
+
+### Character Codes to String
+
+```javascript
+// String.fromCharCode - From UTF-16 code units
+const str1 = String.fromCharCode(72, 101, 108, 108, 111);
+console.log(str1); // "Hello"
+
+// String.fromCodePoint - From Unicode code points (handles emojis)
+const emoji = String.fromCodePoint(128512);
+console.log(emoji); // "😀"
+
+const str2 = String.fromCodePoint(72, 101, 108, 108, 111, 32, 128512);
+console.log(str2); // "Hello 😀"
+```
+
+---
+
+## 8. **Binary Data Encoding**
+
+### ArrayBuffer and Typed Arrays
+
+```javascript
+// Create binary data
+const buffer = new ArrayBuffer(8); // 8 bytes
+const view = new DataView(buffer);
+
+// Write data
+view.setInt32(0, 42);        // Write integer at byte 0
+view.setFloat32(4, 3.14);    // Write float at byte 4
+
+// Read data
+console.log(view.getInt32(0));     // 42
+console.log(view.getFloat32(4));   // 3.14
+
+// Typed arrays
+const uint8 = new Uint8Array([72, 101, 108, 108, 111]);
+const text = new TextDecoder().decode(uint8);
+console.log(text); // "Hello"
+```
+
+### Blob and Data URLs
+
+```javascript
+// Create blob from string
+const text = "Hello World!";
+const blob = new Blob([text], { type: 'text/plain' });
+
+// Blob to Data URL
+const reader = new FileReader();
+reader.onload = () => {
+  console.log(reader.result); // data:text/plain;base64,SGVsbG8gV29ybGQh
+};
+reader.readAsDataURL(blob);
+
+// Blob to text
+reader.readAsText(blob);
+reader.onload = () => {
+  console.log(reader.result); // "Hello World!"
+};
+
+// Data URL to string
+const dataURL = "data:text/plain;base64,SGVsbG8gV29ybGQh";
+const base64 = dataURL.split(',')[1];
+const decoded = atob(base64);
+console.log(decoded); // "Hello World!"
+```
+
+---
+
+## 9. **Hex Encoding/Decoding**
+
+### String to Hex
+
+```javascript
+function stringToHex(str) {
+  return Array.from(str)
+    .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
+    .join('');
+}
+
+const text = "Hello";
+const hex = stringToHex(text);
+console.log(hex); // "48656c6c6f"
+```
+
+### Hex to String
+
+```javascript
+function hexToString(hex) {
+  const bytes = hex.match(/.{1,2}/g);
+  return bytes.map(byte => String.fromCharCode(parseInt(byte, 16))).join('');
+}
+
+const hex = "48656c6c6f";
+const text = hexToString(hex);
+console.log(text); // "Hello"
+```
+
+### Bytes to Hex
+
+```javascript
+function bytesToHex(bytes) {
+  return Array.from(bytes, byte => 
+    byte.toString(16).padStart(2, '0')
+  ).join('');
+}
+
+const bytes = new Uint8Array([72, 101, 108, 108, 111]);
+console.log(bytesToHex(bytes)); // "48656c6c6f"
+```
+
+---
+
+## 10. **Practical Examples**
+
+### URL Parameter Handling
+
+```javascript
+// Build query string safely
+function buildQueryString(params) {
+  return Object.entries(params)
+    .map(([key, value]) => 
+      `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    )
+    .join('&');
+}
+
+const params = {
+  name: "John Doe",
+  email: "john@example.com",
+  message: "Hello & goodbye!"
+};
+
+const queryString = buildQueryString(params);
+console.log(queryString);
+// "name=John%20Doe&email=john%40example.com&message=Hello%20%26%20goodbye!"
+
+// Parse query string
+function parseQueryString(query) {
+  return Object.fromEntries(
+    query.split('&').map(pair => {
+      const [key, value] = pair.split('=');
+      return [decodeURIComponent(key), decodeURIComponent(value)];
+    })
+  );
+}
+
+const parsed = parseQueryString(queryString);
+console.log(parsed);
+```
+
+### Safe Data Storage
+
+```javascript
+// Store complex data in localStorage
+function saveData(key, data) {
+  try {
+    const json = JSON.stringify(data);
+    localStorage.setItem(key, json);
+    return true;
+  } catch (error) {
+    console.error('Save error:', error);
+    return false;
+  }
+}
+
+// Retrieve and parse data
+function loadData(key) {
+  try {
+    const json = localStorage.getItem(key);
+    return json ? JSON.parse(json) : null;
+  } catch (error) {
+    console.error('Load error:', error);
+    return null;
+  }
+}
+
+// Usage
+saveData('user', { name: 'John', age: 30 });
+const user = loadData('user');
+```
+
+### File Upload with Base64
+
+```javascript
+// Convert file to Base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Usage (in browser with file input)
+// const file = event.target.files[0];
+// const base64 = await fileToBase64(file);
+```
+
+---
+
+## 11. **Performance Considerations**
+
+```javascript
+// Efficient encoding for large strings
+function encodeStreamText(str) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(str));
+      controller.close();
+    }
+  });
+  return stream;
+}
+
+// Batch processing
+function encodeArray(items) {
+  return items.map(item => encodeURIComponent(item));
+}
+
+// Memoization for repeated encoding
+const encodeCache = new Map();
+function encodeCached(str) {
+  if (encodeCache.has(str)) {
+    return encodeCache.get(str);
+  }
+  const encoded = encodeURIComponent(str);
+  encodeCache.set(str, encoded);
+  return encoded;
+}
+```
+
+---
+
+## Summary Table
+
+| Method | Purpose | Input | Output |
+|--------|---------|-------|--------|
+| `encodeURI()` | Encode full URL | String | Encoded URL |
+| `encodeURIComponent()` | Encode URL part | String | Encoded component |
+| `btoa()` | Base64 encode | ASCII string | Base64 string |
+| `atob()` | Base64 decode | Base64 string | ASCII string |
+| `JSON.stringify()` | Object to JSON | Object | JSON string |
+| `JSON.parse()` | JSON to Object | JSON string | Object |
+| `TextEncoder.encode()` | String to bytes | String | Uint8Array |
+| `TextDecoder.decode()` | Bytes to string | Uint8Array | String |
+| `charCodeAt()` | Char to code | String | Number |
+| `fromCharCode()` | Code to char | Number | String |
+
+---
+
+## Additional Resources
+
+- [MDN Web Docs - Encoding API](https://developer.mozilla.org/en-US/docs/Web/API/Encoding_API)
+- [MDN Web Docs - Base64](https://developer.mozilla.org/en-US/docs/Glossary/Base64)
+- [MDN Web Docs - TextEncoder](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder)
+- [MDN Web Docs - URL Encoding](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent)
+
+---
+
+**Last Updated:** November 2025
