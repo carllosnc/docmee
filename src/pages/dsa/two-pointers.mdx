@@ -1,0 +1,843 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dsa">← Data Structures and Algorithms</a> <br /> <br />
+
+# Two Pointers Technique in Algorithms
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Core Concepts](#core-concepts)
+3. [Common Patterns](#common-patterns)
+4. [Problem Categories](#problem-categories)
+5. [Detailed Examples](#detailed-examples)
+6. [Time & Space Complexity](#time--space-complexity)
+7. [Practice Problems](#practice-problems)
+
+---
+
+## Introduction
+
+The **Two Pointers** technique is an algorithmic pattern that uses two pointers to traverse a data structure (typically an array or string) to solve problems efficiently. This approach often reduces time complexity from O(n²) to O(n).
+
+### When to Use Two Pointers
+- ✅ Working with sorted arrays
+- ✅ Finding pairs or triplets with specific properties
+- ✅ Reversing or rearranging elements
+- ✅ Comparing elements from different positions
+- ✅ Sliding window problems
+
+---
+
+## Core Concepts
+
+### 1. Opposite Direction Pointers
+Two pointers start at opposite ends and move toward each other.
+
+```javascript
+function oppositePointers(arr) {
+  let left = 0;
+  let right = arr.length - 1;
+  
+  while (left < right) {
+    // Process elements at left and right
+    console.log(`Left: ${arr[left]}, Right: ${arr[right]}`);
+    left++;
+    right--;
+  }
+}
+
+oppositePointers([1, 2, 3, 4, 5]);
+// Output: Left: 1, Right: 5
+//         Left: 2, Right: 4
+//         Left: 3, Right: 3
+```
+
+### 2. Same Direction Pointers (Fast & Slow)
+Both pointers start at the same position but move at different speeds.
+
+```javascript
+function fastSlowPointers(arr) {
+  let slow = 0;
+  let fast = 0;
+  
+  while (fast < arr.length) {
+    console.log(`Slow: ${arr[slow]}, Fast: ${arr[fast]}`);
+    slow++;
+    fast += 2; // Fast moves twice as fast
+  }
+}
+
+fastSlowPointers([1, 2, 3, 4, 5, 6]);
+```
+
+### 3. Sliding Window
+Two pointers define a window that slides through the array.
+
+```javascript
+function slidingWindow(arr, k) {
+  let left = 0;
+  let right = k - 1;
+  
+  while (right < arr.length) {
+    console.log(`Window: [${arr.slice(left, right + 1)}]`);
+    left++;
+    right++;
+  }
+}
+
+slidingWindow([1, 2, 3, 4, 5], 3);
+```
+
+---
+
+## Common Patterns
+
+### Pattern 1: Pair with Target Sum (Sorted Array)
+
+**Problem:** Find two numbers that add up to target in a sorted array
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function twoSum(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  
+  while (left < right) {
+    const sum = arr[left] + arr[right];
+    
+    if (sum === target) {
+      return [left, right];
+    } else if (sum < target) {
+      left++; // Need larger sum
+    } else {
+      right--; // Need smaller sum
+    }
+  }
+  
+  return [-1, -1]; // Not found
+}
+
+console.log(twoSum([1, 2, 3, 4, 6], 6)); // [1, 3] (2 + 4 = 6)
+console.log(twoSum([2, 5, 9, 11], 11)); // [0, 2] (2 + 9 = 11)
+```
+
+### Pattern 2: Remove Duplicates
+
+**Problem:** Remove duplicates in-place from sorted array
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function removeDuplicates(arr) {
+  if (arr.length === 0) return 0;
+  
+  let slow = 0; // Points to last unique element
+  
+  for (let fast = 1; fast < arr.length; fast++) {
+    if (arr[fast] !== arr[slow]) {
+      slow++;
+      arr[slow] = arr[fast];
+    }
+  }
+  
+  return slow + 1; // Length of unique elements
+}
+
+const arr1 = [1, 1, 2, 2, 3, 4, 4];
+const length = removeDuplicates(arr1);
+console.log(arr1.slice(0, length)); // [1, 2, 3, 4]
+```
+
+### Pattern 3: Palindrome Check
+
+**Problem:** Check if string is a palindrome
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function isPalindrome(s) {
+  let left = 0;
+  let right = s.length - 1;
+  
+  while (left < right) {
+    if (s[left] !== s[right]) {
+      return false;
+    }
+    left++;
+    right--;
+  }
+  
+  return true;
+}
+
+console.log(isPalindrome("racecar")); // true
+console.log(isPalindrome("hello")); // false
+```
+
+### Pattern 4: Reverse Array
+
+**Problem:** Reverse array in-place
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function reverseArray(arr) {
+  let left = 0;
+  let right = arr.length - 1;
+  
+  while (left < right) {
+    // Swap elements
+    [arr[left], arr[right]] = [arr[right], arr[left]];
+    left++;
+    right--;
+  }
+  
+  return arr;
+}
+
+console.log(reverseArray([1, 2, 3, 4, 5])); // [5, 4, 3, 2, 1]
+```
+
+---
+
+## Problem Categories
+
+### Category 1: Array Manipulation
+
+#### Move Zeros to End
+
+**Problem:** Move all zeros to the end while maintaining order of non-zero elements
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function moveZeros(arr) {
+  let slow = 0; // Position for next non-zero element
+  
+  // Move all non-zero elements to the front
+  for (let fast = 0; fast < arr.length; fast++) {
+    if (arr[fast] !== 0) {
+      arr[slow] = arr[fast];
+      slow++;
+    }
+  }
+  
+  // Fill remaining positions with zeros
+  while (slow < arr.length) {
+    arr[slow] = 0;
+    slow++;
+  }
+  
+  return arr;
+}
+
+console.log(moveZeros([0, 1, 0, 3, 12])); // [1, 3, 12, 0, 0]
+console.log(moveZeros([0, 0, 1])); // [1, 0, 0]
+```
+
+#### Squares of Sorted Array
+
+**Problem:** Return sorted array of squares (input can have negative numbers)
+
+```javascript
+/**
+ * Time: O(n), Space: O(n)
+ */
+function sortedSquares(arr) {
+  const n = arr.length;
+  const result = new Array(n);
+  let left = 0;
+  let right = n - 1;
+  let pos = n - 1; // Fill from end
+  
+  while (left <= right) {
+    const leftSquare = arr[left] * arr[left];
+    const rightSquare = arr[right] * arr[right];
+    
+    if (leftSquare > rightSquare) {
+      result[pos] = leftSquare;
+      left++;
+    } else {
+      result[pos] = rightSquare;
+      right--;
+    }
+    pos--;
+  }
+  
+  return result;
+}
+
+console.log(sortedSquares([-4, -1, 0, 3, 10])); // [0, 1, 9, 16, 100]
+console.log(sortedSquares([-7, -3, 2, 3, 11])); // [4, 9, 9, 49, 121]
+```
+
+---
+
+### Category 2: String Problems
+
+#### Valid Palindrome (Alphanumeric Only)
+
+**Problem:** Check if string is palindrome (ignore non-alphanumeric, case-insensitive)
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function isPalindromeAlphanumeric(s) {
+  let left = 0;
+  let right = s.length - 1;
+  
+  const isAlphanumeric = (char) => /[a-zA-Z0-9]/.test(char);
+  
+  while (left < right) {
+    // Skip non-alphanumeric characters
+    while (left < right && !isAlphanumeric(s[left])) {
+      left++;
+    }
+    while (left < right && !isAlphanumeric(s[right])) {
+      right--;
+    }
+    
+    if (s[left].toLowerCase() !== s[right].toLowerCase()) {
+      return false;
+    }
+    
+    left++;
+    right--;
+  }
+  
+  return true;
+}
+
+console.log(isPalindromeAlphanumeric("A man, a plan, a canal: Panama")); // true
+console.log(isPalindromeAlphanumeric("race a car")); // false
+```
+
+#### Reverse Words in String
+
+**Problem:** Reverse words in a string
+
+```javascript
+/**
+ * Time: O(n), Space: O(n)
+ */
+function reverseWords(s) {
+  const arr = s.split('');
+  
+  // Helper to reverse a portion of array
+  const reverse = (arr, left, right) => {
+    while (left < right) {
+      [arr[left], arr[right]] = [arr[right], arr[left]];
+      left++;
+      right--;
+    }
+  };
+  
+  // Reverse entire string
+  reverse(arr, 0, arr.length - 1);
+  
+  // Reverse each word
+  let start = 0;
+  for (let i = 0; i <= arr.length; i++) {
+    if (i === arr.length || arr[i] === ' ') {
+      reverse(arr, start, i - 1);
+      start = i + 1;
+    }
+  }
+  
+  return arr.join('');
+}
+
+console.log(reverseWords("hello world")); // "world hello"
+console.log(reverseWords("the sky is blue")); // "blue is sky the"
+```
+
+---
+
+### Category 3: Linked List Problems
+
+#### Detect Cycle (Floyd's Cycle Detection)
+
+**Problem:** Detect if linked list has a cycle
+
+```javascript
+/**
+ * Linked List Node
+ */
+class ListNode {
+  constructor(val) {
+    this.val = val;
+    this.next = null;
+  }
+}
+
+/**
+ * Time: O(n), Space: O(1)
+ */
+function hasCycle(head) {
+  if (!head) return false;
+  
+  let slow = head;
+  let fast = head;
+  
+  while (fast && fast.next) {
+    slow = slow.next;        // Move 1 step
+    fast = fast.next.next;   // Move 2 steps
+    
+    if (slow === fast) {
+      return true; // Cycle detected
+    }
+  }
+  
+  return false;
+}
+
+// Create cycle: 1 -> 2 -> 3 -> 4 -> 2
+const node1 = new ListNode(1);
+const node2 = new ListNode(2);
+const node3 = new ListNode(3);
+const node4 = new ListNode(4);
+node1.next = node2;
+node2.next = node3;
+node3.next = node4;
+node4.next = node2; // Creates cycle
+
+console.log(hasCycle(node1)); // true
+```
+
+#### Middle of Linked List
+
+**Problem:** Find middle node of linked list
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function findMiddle(head) {
+  let slow = head;
+  let fast = head;
+  
+  while (fast && fast.next) {
+    slow = slow.next;
+    fast = fast.next.next;
+  }
+  
+  return slow; // Slow is at middle
+}
+
+// Create list: 1 -> 2 -> 3 -> 4 -> 5
+const list = new ListNode(1);
+list.next = new ListNode(2);
+list.next.next = new ListNode(3);
+list.next.next.next = new ListNode(4);
+list.next.next.next.next = new ListNode(5);
+
+console.log(findMiddle(list).val); // 3
+```
+
+---
+
+### Category 4: Triplet Problems
+
+#### Three Sum
+
+**Problem:** Find all unique triplets that sum to zero
+
+```javascript
+/**
+ * Time: O(n²), Space: O(n) for output
+ */
+function threeSum(arr) {
+  arr.sort((a, b) => a - b);
+  const result = [];
+  
+  for (let i = 0; i < arr.length - 2; i++) {
+    // Skip duplicates for first element
+    if (i > 0 && arr[i] === arr[i - 1]) continue;
+    
+    let left = i + 1;
+    let right = arr.length - 1;
+    
+    while (left < right) {
+      const sum = arr[i] + arr[left] + arr[right];
+      
+      if (sum === 0) {
+        result.push([arr[i], arr[left], arr[right]]);
+        
+        // Skip duplicates for second element
+        while (left < right && arr[left] === arr[left + 1]) left++;
+        // Skip duplicates for third element
+        while (left < right && arr[right] === arr[right - 1]) right--;
+        
+        left++;
+        right--;
+      } else if (sum < 0) {
+        left++;
+      } else {
+        right--;
+      }
+    }
+  }
+  
+  return result;
+}
+
+console.log(threeSum([-1, 0, 1, 2, -1, -4]));
+// [[-1, -1, 2], [-1, 0, 1]]
+```
+
+#### Triplet Sum Close to Target
+
+**Problem:** Find triplet whose sum is closest to target
+
+```javascript
+/**
+ * Time: O(n²), Space: O(1)
+ */
+function threeSumClosest(arr, target) {
+  arr.sort((a, b) => a - b);
+  let closestSum = Infinity;
+  
+  for (let i = 0; i < arr.length - 2; i++) {
+    let left = i + 1;
+    let right = arr.length - 1;
+    
+    while (left < right) {
+      const sum = arr[i] + arr[left] + arr[right];
+      
+      if (Math.abs(target - sum) < Math.abs(target - closestSum)) {
+        closestSum = sum;
+      }
+      
+      if (sum < target) {
+        left++;
+      } else if (sum > target) {
+        right--;
+      } else {
+        return sum; // Exact match
+      }
+    }
+  }
+  
+  return closestSum;
+}
+
+console.log(threeSumClosest([-1, 2, 1, -4], 1)); // 2 (-1 + 2 + 1)
+console.log(threeSumClosest([1, 1, 1, 0], 100)); // 3
+```
+
+---
+
+### Category 5: Container Problems
+
+#### Container With Most Water
+
+**Problem:** Find two lines that form container with most water
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function maxArea(heights) {
+  let left = 0;
+  let right = heights.length - 1;
+  let maxWater = 0;
+  
+  while (left < right) {
+    const width = right - left;
+    const height = Math.min(heights[left], heights[right]);
+    const area = width * height;
+    
+    maxWater = Math.max(maxWater, area);
+    
+    // Move pointer with smaller height
+    if (heights[left] < heights[right]) {
+      left++;
+    } else {
+      right--;
+    }
+  }
+  
+  return maxWater;
+}
+
+console.log(maxArea([1, 8, 6, 2, 5, 4, 8, 3, 7])); // 49
+console.log(maxArea([1, 1])); // 1
+```
+
+#### Trapping Rain Water
+
+**Problem:** Calculate how much rain water can be trapped
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function trapRainWater(heights) {
+  if (heights.length === 0) return 0;
+  
+  let left = 0;
+  let right = heights.length - 1;
+  let leftMax = 0;
+  let rightMax = 0;
+  let water = 0;
+  
+  while (left < right) {
+    if (heights[left] < heights[right]) {
+      if (heights[left] >= leftMax) {
+        leftMax = heights[left];
+      } else {
+        water += leftMax - heights[left];
+      }
+      left++;
+    } else {
+      if (heights[right] >= rightMax) {
+        rightMax = heights[right];
+      } else {
+        water += rightMax - heights[right];
+      }
+      right--;
+    }
+  }
+  
+  return water;
+}
+
+console.log(trapRainWater([0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1])); // 6
+console.log(trapRainWater([4, 2, 0, 3, 2, 5])); // 9
+```
+
+---
+
+### Category 6: Subarray Problems
+
+#### Subarray Product Less Than K
+
+**Problem:** Count subarrays with product less than k
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function numSubarrayProductLessThanK(arr, k) {
+  if (k <= 1) return 0;
+  
+  let left = 0;
+  let product = 1;
+  let count = 0;
+  
+  for (let right = 0; right < arr.length; right++) {
+    product *= arr[right];
+    
+    while (product >= k) {
+      product /= arr[left];
+      left++;
+    }
+    
+    // All subarrays ending at right
+    count += right - left + 1;
+  }
+  
+  return count;
+}
+
+console.log(numSubarrayProductLessThanK([10, 5, 2, 6], 100)); // 8
+console.log(numSubarrayProductLessThanK([1, 2, 3], 0)); // 0
+```
+
+#### Minimum Size Subarray Sum
+
+**Problem:** Find minimum length subarray with sum >= target
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function minSubArrayLen(target, arr) {
+  let left = 0;
+  let sum = 0;
+  let minLen = Infinity;
+  
+  for (let right = 0; right < arr.length; right++) {
+    sum += arr[right];
+    
+    while (sum >= target) {
+      minLen = Math.min(minLen, right - left + 1);
+      sum -= arr[left];
+      left++;
+    }
+  }
+  
+  return minLen === Infinity ? 0 : minLen;
+}
+
+console.log(minSubArrayLen(7, [2, 3, 1, 2, 4, 3])); // 2 ([4, 3])
+console.log(minSubArrayLen(11, [1, 1, 1, 1, 1, 1, 1, 1])); // 0
+```
+
+---
+
+### Category 7: Partition Problems
+
+#### Dutch National Flag (Sort Colors)
+
+**Problem:** Sort array of 0s, 1s, and 2s in-place
+
+```javascript
+/**
+ * Time: O(n), Space: O(1)
+ */
+function sortColors(arr) {
+  let low = 0;      // Boundary for 0s
+  let mid = 0;      // Current element
+  let high = arr.length - 1; // Boundary for 2s
+  
+  while (mid <= high) {
+    if (arr[mid] === 0) {
+      [arr[low], arr[mid]] = [arr[mid], arr[low]];
+      low++;
+      mid++;
+    } else if (arr[mid] === 1) {
+      mid++;
+    } else { // arr[mid] === 2
+      [arr[mid], arr[high]] = [arr[high], arr[mid]];
+      high--;
+    }
+  }
+  
+  return arr;
+}
+
+console.log(sortColors([2, 0, 2, 1, 1, 0])); // [0, 0, 1, 1, 2, 2]
+console.log(sortColors([2, 0, 1])); // [0, 1, 2]
+```
+
+---
+
+## Time & Space Complexity
+
+### Complexity Comparison
+
+| Pattern | Time Complexity | Space Complexity | Use Case |
+|---------|----------------|------------------|----------|
+| Opposite Direction | O(n) | O(1) | Sorted arrays, palindromes |
+| Fast & Slow | O(n) | O(1) | Cycle detection, middle element |
+| Sliding Window | O(n) | O(1) | Subarray problems |
+| Three Pointers | O(n²) | O(1) | Triplet problems |
+
+### Why Two Pointers is Efficient
+
+```javascript
+// Brute Force: O(n²)
+function bruteForceSum(arr, target) {
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      if (arr[i] + arr[j] === target) {
+        return [i, j];
+      }
+    }
+  }
+  return [-1, -1];
+}
+
+// Two Pointers: O(n) - Much more efficient!
+function twoPointersSum(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  
+  while (left < right) {
+    const sum = arr[left] + arr[right];
+    if (sum === target) return [left, right];
+    if (sum < target) left++;
+    else right--;
+  }
+  
+  return [-1, -1];
+}
+
+const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+console.time('Brute Force');
+bruteForceSum(arr, 15);
+console.timeEnd('Brute Force');
+
+console.time('Two Pointers');
+twoPointersSum(arr, 15);
+console.timeEnd('Two Pointers');
+```
+
+---
+
+## Practice Problems
+
+### 📗 Easy Level
+
+1. **Remove Element** - Remove all instances of a value in-place
+2. **Valid Palindrome II** - Check if palindrome after removing at most one character
+3. **Intersection of Two Arrays** - Find common elements
+4. **Reverse String** - Reverse characters in-place
+5. **Merge Sorted Array** - Merge two sorted arrays in-place
+
+### 📙 Medium Level
+
+1. **3Sum** - Find all triplets that sum to zero
+2. **4Sum** - Find all quadruplets that sum to target
+3. **Sort Colors** - Sort array of 0s, 1s, 2s
+4. **Longest Substring Without Repeating Characters**
+5. **Container With Most Water**
+6. **3Sum Closest** - Find triplet closest to target
+7. **Remove Duplicates from Sorted Array II** - Allow duplicates at most twice
+
+### 📕 Hard Level
+
+1. **Trapping Rain Water** - Calculate trapped water
+2. **Minimum Window Substring** - Find smallest substring containing all characters
+3. **Longest Duplicate Substring** - Find longest duplicate substring
+4. **Subarrays with K Different Integers**
+5. **Sliding Window Maximum**
+
+---
+
+## Key Takeaways
+
+### ✨ Best Practices
+
+1. **Always consider sorting** if the problem allows it
+2. **Identify the pattern**: opposite direction, same direction, or sliding window
+3. **Think about invariants**: what conditions must remain true?
+4. **Draw diagrams**: visualize pointer movement
+5. **Consider edge cases**: empty arrays, single elements, all same values
+6. **Space optimization**: two pointers often reduces space from O(n) to O(1)
+
+### 🎯 Pro Tips
+
+- Use two pointers when you need to compare or process pairs of elements
+- Consider if sorting the input would help (if order doesn't matter in output)
+- Fast & slow pointers are excellent for linked lists
+- Three or more pointers can solve complex problems like triplet sum
+- Always validate your logic with examples before implementing
+- Test with edge cases: [], [1], [1,1], negative numbers
+
+### 🚀 When to Choose Two Pointers
+
+| ✅ Use Two Pointers | ❌ Don't Use |
+|-------------------|------------|
+| Sorted/sortable arrays | Need to preserve original order |
+| Finding pairs/triplets | Need all subsets |
+| In-place operations | Need auxiliary space anyway |
+| Linear scan sufficient | Need random access |
+| Comparing elements | Independent element processing |
+
+---
+
+## Summary
+
+The Two Pointers technique is a powerful tool that can dramatically improve the efficiency of your algorithms. By understanding the different patterns and when to apply them, you can solve a wide variety of problems with optimal time and space complexity.
+
+**Remember**: The key to mastering two pointers is practice. Start with easy problems, understand the pattern, then gradually move to more complex variations. Happy coding! 🎉
