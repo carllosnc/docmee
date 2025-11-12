@@ -1,0 +1,1154 @@
+# Complete Reference Guide to Streams in Dart
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Stream Basics](#stream-basics)
+3. [Types of Streams](#types-of-streams)
+4. [Creating Streams](#creating-streams)
+5. [Listening to Streams](#listening-to-streams)
+6. [Stream Transformations](#stream-transformations)
+7. [StreamController](#streamcontroller)
+8. [Broadcast Streams](#broadcast-streams)
+9. [Stream Methods](#stream-methods)
+10. [Error Handling](#error-handling)
+11. [Advanced Patterns](#advanced-patterns)
+
+---
+
+## Introduction
+
+A **Stream** in Dart is a sequence of asynchronous events. Streams provide a way to receive a sequence of events over time, making them ideal for handling asynchronous data like user input, file I/O, or network responses.
+
+Think of a stream as a pipe where data flows through over time. You can listen to this pipe and react whenever new data arrives.
+
+### Key Concepts
+- **Asynchronous**: Data arrives over time, not all at once
+- **Sequential**: Events are delivered in order
+- **Single or Multiple Listeners**: Streams can support one or many subscribers
+- **Event-driven**: React to data as it arrives
+
+---
+
+## Stream Basics
+
+### The Stream Class
+
+```dart
+abstract class Stream<T> {
+  // Methods for listening and transforming streams
+}
+```
+
+### Basic Stream Example
+
+```dart
+Stream<int> countStream(int max) async* {
+  for (int i = 1; i <= max; i++) {
+    await Future.delayed(Duration(seconds: 1));
+    yield i;
+  }
+}
+
+void main() async {
+  await for (int value in countStream(5)) {
+    print(value); // Prints 1, 2, 3, 4, 5 (one per second)
+  }
+}
+```
+
+---
+
+## Types of Streams
+
+### 1. Single-Subscription Streams
+
+- Can only be listened to **once**
+- Events are buffered until a listener subscribes
+- Most common type of stream
+- Created by default with `Stream` constructors
+
+```dart
+Stream<int> singleStream() async* {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+
+void main() {
+  final stream = singleStream();
+  
+  // First subscription works
+  stream.listen((data) => print(data));
+  
+  // Second subscription throws an error
+  // stream.listen((data) => print(data)); // ERROR!
+}
+```
+
+### 2. Broadcast Streams
+
+- Can have **multiple listeners**
+- Events are only sent to currently active listeners
+- Events are not buffered for future listeners
+- Created using `Stream.asBroadcastStream()` or `StreamController.broadcast()`
+
+```dart
+void main() {
+  final controller = StreamController<int>.broadcast();
+  
+  // Multiple listeners allowed
+  controller.stream.listen((data) => print('Listener 1: $data'));
+  controller.stream.listen((data) => print('Listener 2: $data'));
+  
+  controller.add(1); // Both listeners receive this
+  controller.add(2);
+  
+  controller.close();
+}
+```
+
+---
+
+## Creating Streams
+
+### 1. Using `async*` Generator Functions
+
+The most straightforward way to create streams:
+
+```dart
+Stream<int> numbersStream() async* {
+  for (int i = 1; i <= 5; i++) {
+    await Future.delayed(Duration(seconds: 1));
+    yield i;
+  }
+}
+```
+
+### 2. Using `Stream.fromIterable()`
+
+Convert a collection to a stream:
+
+```dart
+Stream<String> fromList() {
+  return Stream.fromIterable(['Apple', 'Banana', 'Cherry']);
+}
+```
+
+### 3. Using `Stream.fromFuture()`
+
+Convert a single Future to a stream:
+
+```dart
+Stream<String> fromFuture() {
+  return Stream.fromFuture(
+    Future.delayed(Duration(seconds: 2), () => 'Done!')
+  );
+}
+```
+
+### 4. Using `Stream.fromFutures()`
+
+Convert multiple Futures to a stream:
+
+```dart
+Stream<int> fromFutures() {
+  return Stream.fromFutures([
+    Future.delayed(Duration(seconds: 1), () => 1),
+    Future.delayed(Duration(seconds: 2), () => 2),
+    Future.delayed(Duration(seconds: 3), () => 3),
+  ]);
+}
+```
+
+### 5. Using `Stream.periodic()`
+
+Create a stream that emits events periodically:
+
+```dart
+Stream<int> periodicStream() {
+  return Stream.periodic(
+    Duration(seconds: 1),
+    (count) => count,
+  ).take(5);
+}
+```
+
+### 6. Using `Stream.value()`
+
+Create a stream with a single value:
+
+```dart
+Stream<String> singleValue() {
+  return Stream.value('Hello');
+}
+```
+
+### 7. Using `Stream.empty()`
+
+Create an empty stream:
+
+```dart
+Stream<int> emptyStream() {
+  return Stream.empty();
+}
+```
+
+### 8. Using `Stream.error()`
+
+Create a stream that immediately emits an error:
+
+```dart
+Stream<int> errorStream() {
+  return Stream.error('Something went wrong!');
+}
+```
+
+---
+
+## Listening to Streams
+
+### 1. Using `listen()` Method
+
+The most flexible way to listen to streams:
+
+```dart
+void main() {
+  final stream = Stream.periodic(Duration(seconds: 1), (i) => i).take(3);
+  
+  StreamSubscription<int> subscription = stream.listen(
+    (data) {
+      print('Data: $data');
+    },
+    onError: (error) {
+      print('Error: $error');
+    },
+    onDone: () {
+      print('Stream closed');
+    },
+    cancelOnError: false, // Continue listening after errors
+  );
+  
+  // Can pause, resume, or cancel the subscription
+  // subscription.pause();
+  // subscription.resume();
+  // subscription.cancel();
+}
+```
+
+### 2. Using `await for` Loop
+
+Consume stream events sequentially:
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  await for (int value in stream) {
+    print(value);
+    if (value == 3) break; // Can break out early
+  }
+}
+```
+
+### 3. StreamSubscription Control
+
+```dart
+void main() async {
+  final controller = StreamController<int>();
+  
+  final subscription = controller.stream.listen((data) {
+    print(data);
+  });
+  
+  // Pause subscription
+  subscription.pause();
+  controller.add(1); // Won't be received yet
+  
+  // Resume after delay
+  await Future.delayed(Duration(seconds: 1));
+  subscription.resume(); // Now receives the buffered event
+  
+  controller.add(2);
+  
+  // Cancel subscription
+  await subscription.cancel();
+  controller.close();
+}
+```
+
+---
+
+## Stream Transformations
+
+Streams can be transformed using various methods that return new streams.
+
+### 1. `map()` - Transform Each Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final doubled = stream.map((value) => value * 2);
+  
+  await for (int value in doubled) {
+    print(value); // 2, 4, 6, 8, 10
+  }
+}
+```
+
+### 2. `where()` - Filter Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final evenNumbers = stream.where((value) => value % 2 == 0);
+  
+  await for (int value in evenNumbers) {
+    print(value); // 2, 4
+  }
+}
+```
+
+### 3. `expand()` - Expand Each Event to Multiple Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3]);
+  
+  final expanded = stream.expand((value) => [value, value * 10]);
+  
+  await for (int value in expanded) {
+    print(value); // 1, 10, 2, 20, 3, 30
+  }
+}
+```
+
+### 4. `take()` - Take First N Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final first3 = stream.take(3);
+  
+  await for (int value in first3) {
+    print(value); // 1, 2, 3
+  }
+}
+```
+
+### 5. `skip()` - Skip First N Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final afterFirst2 = stream.skip(2);
+  
+  await for (int value in afterFirst2) {
+    print(value); // 3, 4, 5
+  }
+}
+```
+
+### 6. `takeWhile()` - Take While Condition is True
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final lessThan4 = stream.takeWhile((value) => value < 4);
+  
+  await for (int value in lessThan4) {
+    print(value); // 1, 2, 3
+  }
+}
+```
+
+### 7. `skipWhile()` - Skip While Condition is True
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final afterSmall = stream.skipWhile((value) => value < 3);
+  
+  await for (int value in afterSmall) {
+    print(value); // 3, 4, 5
+  }
+}
+```
+
+### 8. `distinct()` - Remove Duplicates
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 2, 3, 3, 3, 4]);
+  
+  final unique = stream.distinct();
+  
+  await for (int value in unique) {
+    print(value); // 1, 2, 3, 4
+  }
+}
+```
+
+### 9. `asyncMap()` - Transform with Async Function
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3]);
+  
+  final delayed = stream.asyncMap((value) async {
+    await Future.delayed(Duration(seconds: 1));
+    return value * 2;
+  });
+  
+  await for (int value in delayed) {
+    print(value); // 2, 4, 6 (one per second)
+  }
+}
+```
+
+### 10. `asyncExpand()` - Expand with Async Function
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2]);
+  
+  final expanded = stream.asyncExpand((value) async* {
+    yield value;
+    await Future.delayed(Duration(milliseconds: 500));
+    yield value * 10;
+  });
+  
+  await for (int value in expanded) {
+    print(value); // 1, 10, 2, 20
+  }
+}
+```
+
+### 11. `transform()` - Apply StreamTransformer
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  
+  final transformer = StreamTransformer<int, String>.fromHandlers(
+    handleData: (value, sink) {
+      sink.add('Number: $value');
+    },
+  );
+  
+  final transformed = stream.transform(transformer);
+  
+  await for (String value in transformed) {
+    print(value); // Number: 1, Number: 2, etc.
+  }
+}
+```
+
+### 12. `handleError()` - Handle Errors in Stream
+
+```dart
+void main() async {
+  final stream = Stream<int>.periodic(Duration(seconds: 1), (i) {
+    if (i == 2) throw Exception('Error at 2');
+    return i;
+  }).take(5);
+  
+  final handled = stream.handleError((error) {
+    print('Caught error: $error');
+  });
+  
+  await for (int value in handled) {
+    print('Value: $value');
+  }
+}
+```
+
+---
+
+## StreamController
+
+`StreamController` is the most powerful way to create and control streams manually.
+
+### Basic StreamController
+
+```dart
+void main() async {
+  final controller = StreamController<int>();
+  
+  // Listen to the stream
+  controller.stream.listen(
+    (data) => print('Received: $data'),
+    onDone: () => print('Stream closed'),
+  );
+  
+  // Add events
+  controller.add(1);
+  controller.add(2);
+  controller.add(3);
+  
+  // Close the stream
+  await controller.close();
+}
+```
+
+### StreamController with Error Handling
+
+```dart
+void main() async {
+  final controller = StreamController<int>();
+  
+  controller.stream.listen(
+    (data) => print('Data: $data'),
+    onError: (error) => print('Error: $error'),
+    onDone: () => print('Done'),
+  );
+  
+  controller.add(1);
+  controller.addError('Something went wrong!');
+  controller.add(2);
+  
+  await controller.close();
+}
+```
+
+### StreamController with Callbacks
+
+```dart
+void main() async {
+  final controller = StreamController<int>(
+    onListen: () => print('Listener attached'),
+    onPause: () => print('Listener paused'),
+    onResume: () => print('Listener resumed'),
+    onCancel: () => print('Listener cancelled'),
+  );
+  
+  final subscription = controller.stream.listen((data) => print(data));
+  
+  controller.add(1);
+  subscription.pause();
+  controller.add(2); // Buffered
+  subscription.resume();
+  
+  await subscription.cancel();
+  await controller.close();
+}
+```
+
+### StreamController Properties
+
+```dart
+void main() {
+  final controller = StreamController<int>();
+  
+  print(controller.isClosed);     // false
+  print(controller.isPaused);     // false
+  print(controller.hasListener);  // false
+  
+  controller.stream.listen((data) {});
+  print(controller.hasListener);  // true
+  
+  controller.close();
+  print(controller.isClosed);     // true
+}
+```
+
+---
+
+## Broadcast Streams
+
+### Converting to Broadcast Stream
+
+```dart
+void main() {
+  final singleStream = Stream.fromIterable([1, 2, 3]);
+  final broadcastStream = singleStream.asBroadcastStream();
+  
+  broadcastStream.listen((data) => print('Listener 1: $data'));
+  broadcastStream.listen((data) => print('Listener 2: $data'));
+}
+```
+
+### Creating Broadcast StreamController
+
+```dart
+void main() {
+  final controller = StreamController<int>.broadcast();
+  
+  // Add first listener
+  controller.stream.listen((data) => print('L1: $data'));
+  
+  controller.add(1); // L1 receives
+  
+  // Add second listener
+  controller.stream.listen((data) => print('L2: $data'));
+  
+  controller.add(2); // Both L1 and L2 receive
+  controller.add(3); // Both receive
+  
+  controller.close();
+}
+```
+
+### Broadcast Stream Characteristics
+
+```dart
+void main() async {
+  final controller = StreamController<int>.broadcast();
+  
+  // First listener
+  controller.stream.listen((data) => print('Early: $data'));
+  
+  controller.add(1); // Only early listener receives
+  
+  await Future.delayed(Duration(seconds: 1));
+  
+  // Late listener doesn't receive previous events
+  controller.stream.listen((data) => print('Late: $data'));
+  
+  controller.add(2); // Both listeners receive
+  
+  controller.close();
+}
+```
+
+---
+
+## Stream Methods
+
+### Terminal Operations (Consume the Stream)
+
+#### `first` - Get First Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final first = await stream.first;
+  print(first); // 1
+}
+```
+
+#### `last` - Get Last Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final last = await stream.last;
+  print(last); // 5
+}
+```
+
+#### `single` - Get Single Event (Error if More/Less)
+
+```dart
+void main() async {
+  final stream = Stream.value(42);
+  final single = await stream.single;
+  print(single); // 42
+  
+  // Stream.fromIterable([1, 2]).single; // ERROR: More than one element
+}
+```
+
+#### `isEmpty` - Check if Empty
+
+```dart
+void main() async {
+  final empty = Stream.empty();
+  print(await empty.isEmpty); // true
+  
+  final notEmpty = Stream.value(1);
+  print(await notEmpty.isEmpty); // false
+}
+```
+
+#### `length` - Count Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final length = await stream.length;
+  print(length); // 5
+}
+```
+
+#### `toList()` - Collect All Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final list = await stream.toList();
+  print(list); // [1, 2, 3, 4, 5]
+}
+```
+
+#### `toSet()` - Collect Unique Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 2, 3, 3, 4]);
+  final set = await stream.toSet();
+  print(set); // {1, 2, 3, 4}
+}
+```
+
+#### `forEach()` - Execute Function for Each Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3]);
+  await stream.forEach((value) {
+    print('Processing: $value');
+  });
+}
+```
+
+#### `fold()` - Reduce Stream to Single Value
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final sum = await stream.fold<int>(0, (prev, element) => prev + element);
+  print(sum); // 15
+}
+```
+
+#### `reduce()` - Combine Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final product = await stream.reduce((prev, element) => prev * element);
+  print(product); // 120
+}
+```
+
+#### `contains()` - Check if Contains Value
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final hasThree = await stream.contains(3);
+  print(hasThree); // true
+}
+```
+
+#### `any()` - Check if Any Matches Condition
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final hasEven = await stream.any((value) => value % 2 == 0);
+  print(hasEven); // true
+}
+```
+
+#### `every()` - Check if All Match Condition
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([2, 4, 6, 8]);
+  final allEven = await stream.every((value) => value % 2 == 0);
+  print(allEven); // true
+}
+```
+
+#### `firstWhere()` - Find First Matching Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final firstEven = await stream.firstWhere((value) => value % 2 == 0);
+  print(firstEven); // 2
+}
+```
+
+#### `lastWhere()` - Find Last Matching Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final lastEven = await stream.lastWhere((value) => value % 2 == 0);
+  print(lastEven); // 4
+}
+```
+
+#### `singleWhere()` - Find Single Matching Event
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  final three = await stream.singleWhere((value) => value == 3);
+  print(three); // 3
+}
+```
+
+#### `elementAt()` - Get Event at Index
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([10, 20, 30, 40, 50]);
+  final element = await stream.elementAt(2);
+  print(element); // 30
+}
+```
+
+#### `drain()` - Discard All Events
+
+```dart
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5]);
+  await stream.drain(); // Consumes stream but ignores values
+  print('Stream drained');
+}
+```
+
+#### `pipe()` - Forward Events to StreamConsumer
+
+```dart
+void main() async {
+  final source = Stream.fromIterable([1, 2, 3]);
+  final sink = StreamController<int>();
+  
+  sink.stream.listen((data) => print('Piped: $data'));
+  
+  await source.pipe(sink);
+}
+```
+
+---
+
+## Error Handling
+
+### Handling Errors in listen()
+
+```dart
+void main() {
+  final stream = Stream<int>.periodic(Duration(seconds: 1), (i) {
+    if (i == 2) throw Exception('Error at 2');
+    return i;
+  }).take(5);
+  
+  stream.listen(
+    (data) => print('Data: $data'),
+    onError: (error) => print('Error: $error'),
+    cancelOnError: false, // Continue after error
+  );
+}
+```
+
+### Using handleError()
+
+```dart
+void main() async {
+  final stream = Stream<int>.fromIterable([1, 2, 3])
+      .map((i) {
+        if (i == 2) throw Exception('Error at 2');
+        return i;
+      })
+      .handleError((error) {
+        print('Handled: $error');
+        return 0; // Can provide default value
+      });
+  
+  await for (var value in stream) {
+    print('Value: $value');
+  }
+}
+```
+
+### Try-Catch with await for
+
+```dart
+void main() async {
+  final stream = Stream<int>.periodic(Duration(seconds: 1), (i) {
+    if (i == 2) throw Exception('Error');
+    return i;
+  }).take(5);
+  
+  try {
+    await for (var value in stream) {
+      print('Value: $value');
+    }
+  } catch (e) {
+    print('Caught: $e');
+  }
+}
+```
+
+### Custom Error Types
+
+```dart
+class DataException implements Exception {
+  final String message;
+  DataException(this.message);
+  
+  @override
+  String toString() => 'DataException: $message';
+}
+
+void main() {
+  final controller = StreamController<int>();
+  
+  controller.stream.listen(
+    (data) => print('Data: $data'),
+    onError: (error) {
+      if (error is DataException) {
+        print('Data error: ${error.message}');
+      } else {
+        print('Unknown error: $error');
+      }
+    },
+  );
+  
+  controller.add(1);
+  controller.addError(DataException('Invalid data'));
+  controller.add(2);
+  controller.close();
+}
+```
+
+---
+
+## Advanced Patterns
+
+### 1. Debouncing Stream Events
+
+Emit only after a pause in events:
+
+```dart
+extension StreamDebounce<T> on Stream<T> {
+  Stream<T> debounce(Duration duration) {
+    return transform(StreamTransformer.fromHandlers(
+      handleData: (data, sink) {
+        Timer? timer;
+        timer?.cancel();
+        timer = Timer(duration, () => sink.add(data));
+      },
+    ));
+  }
+}
+
+void main() async {
+  final controller = StreamController<String>();
+  
+  controller.stream.debounce(Duration(seconds: 1)).listen(
+    (data) => print('Debounced: $data'),
+  );
+  
+  controller.add('a');
+  await Future.delayed(Duration(milliseconds: 500));
+  controller.add('b');
+  await Future.delayed(Duration(milliseconds: 500));
+  controller.add('c'); // Only 'c' will be emitted
+  
+  await Future.delayed(Duration(seconds: 2));
+  controller.close();
+}
+```
+
+### 2. Throttling Stream Events
+
+Emit at most one event per time period:
+
+```dart
+extension StreamThrottle<T> on Stream<T> {
+  Stream<T> throttle(Duration duration) {
+    return transform(StreamTransformer.fromHandlers(
+      handleData: (data, sink) {
+        bool canEmit = true;
+        if (canEmit) {
+          sink.add(data);
+          canEmit = false;
+          Timer(duration, () => canEmit = true);
+        }
+      },
+    ));
+  }
+}
+```
+
+### 3. Combining Multiple Streams
+
+```dart
+Stream<T> mergeStreams<T>(List<Stream<T>> streams) {
+  final controller = StreamController<T>();
+  
+  for (var stream in streams) {
+    stream.listen(
+      controller.add,
+      onError: controller.addError,
+    );
+  }
+  
+  return controller.stream;
+}
+
+void main() async {
+  final stream1 = Stream.fromIterable([1, 2, 3]);
+  final stream2 = Stream.fromIterable([4, 5, 6]);
+  
+  final merged = mergeStreams([stream1, stream2]);
+  
+  await for (var value in merged) {
+    print(value); // 1, 2, 3, 4, 5, 6 (order may vary)
+  }
+}
+```
+
+### 4. Zip Streams (Combine Corresponding Events)
+
+```dart
+Stream<List<T>> zipStreams<T>(List<Stream<T>> streams) async* {
+  final iterators = streams.map((s) => StreamIterator(s)).toList();
+  
+  try {
+    while (true) {
+      final moves = await Future.wait(iterators.map((i) => i.moveNext()));
+      if (moves.any((m) => !m)) break;
+      
+      yield iterators.map((i) => i.current).toList();
+    }
+  } finally {
+    for (var iterator in iterators) {
+      await iterator.cancel();
+    }
+  }
+}
+
+void main() async {
+  final stream1 = Stream.fromIterable([1, 2, 3]);
+  final stream2 = Stream.fromIterable(['a', 'b', 'c']);
+  
+  final zipped = zipStreams([stream1, stream2]);
+  
+  await for (var pair in zipped) {
+    print(pair); // [1, 'a'], [2, 'b'], [3, 'c']
+  }
+}
+```
+
+### 5. Stream with Retry Logic
+
+```dart
+Stream<T> retryStream<T>(
+  Stream<T> Function() streamFactory,
+  int maxRetries,
+) async* {
+  int attempts = 0;
+  
+  while (attempts <= maxRetries) {
+    try {
+      await for (var value in streamFactory()) {
+        yield value;
+      }
+      break; // Success, exit loop
+    } catch (e) {
+      attempts++;
+      if (attempts > maxRetries) {
+        rethrow;
+      }
+      await Future.delayed(Duration(seconds: attempts));
+    }
+  }
+}
+```
+
+### 6. Buffering Stream Events
+
+```dart
+extension StreamBuffer<T> on Stream<T> {
+  Stream<List<T>> buffer(int size) async* {
+    List<T> buffer = [];
+    
+    await for (var value in this) {
+      buffer.add(value);
+      if (buffer.length == size) {
+        yield List.from(buffer);
+        buffer.clear();
+      }
+    }
+    
+    if (buffer.isNotEmpty) {
+      yield buffer;
+    }
+  }
+}
+
+void main() async {
+  final stream = Stream.fromIterable([1, 2, 3, 4, 5, 6, 7]);
+  
+  await for (var batch in stream.buffer(3)) {
+    print(batch); // [1, 2, 3], [4, 5, 6], [7]
+  }
+}
+```
+
+### 7. Stream with Timeout
+
+```dart
+void main() async {
+  final stream = Stream.periodic(Duration(seconds: 2), (i) => i).take(5);
+  
+  final withTimeout = stream.timeout(
+    Duration(seconds: 1),
+    onTimeout: (sink) {
+      sink.add(-1); // Default value on timeout
+    },
+  );
+  
+  await for (var value in withTimeout) {
+    print(value); // -1, -1, -1, -1, -1
+  }
+}
+```
+
+### 8. Distinct Until Changed
+
+```dart
+extension StreamDistinctUntilChanged<T> on Stream<T> {
+  Stream<T> distinctUntilChanged() async* {
+    T? previous;
+    bool isFirst = true;
+    
+    await for (var value in this) {
+      if (isFirst || value != previous) {
+        yield value;
+        previous = value;
+        isFirst = false;
+      }
+    }
+  }
+}
+
+void main() async {
+  final stream = Stream.fromIterable([1, 1, 2, 2, 2, 3, 2, 2]);
+  
+  await for (var value in stream.distinctUntilChanged()) {
+    print(value); // 1, 2, 3, 2
+  }
+}
+```
+
+### 9. Switch Map (Cancel Previous Stream)
+
+```dart
+extension StreamSwitchMap<T> on Stream<T> {
+  Stream<S> switchMap<S>(Stream<S> Function(T) mapper) async* {
+    StreamSubscription<S>? subscription;
+    final controller = StreamController<S>();
+    
+    await for (var value in this) {
+      await subscription?.cancel();
+      subscription = mapper(value).listen(controller.add);
+    }
+    
+    yield* controller.stream;
+    await subscription?.cancel();
+  }
+}
+```
