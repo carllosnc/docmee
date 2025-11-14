@@ -1,0 +1,111 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/dart">← Dart</a> <br /> <br />
+
+# Extensions vs Extension Types
+
+In Dart, there are two main ways to add functionality to existing types: **extension types** and **extensions**. They serve different purposes and have distinct characteristics.
+
+## Extensions
+
+Extensions add new methods to existing types without modifying them:
+
+```dart
+extension StringExtension on String {
+  String get reversed => split('').reversed.join('');
+  bool get isEmail => contains('@');
+}
+
+void main() {
+  print('hello'.reversed); // 'olleh'
+  print('test@example.com'.isEmail); // true
+}
+```
+
+### Key Characteristics
+
+- **No runtime overhead** - resolved at compile time
+- **Cannot add instance variables** - only methods, getters, setters
+- **No type identity** - `String` with extension is still just `String`
+- **Can extend any type** - including sealed classes, enums, built-in types
+- **Used for convenience methods** on existing types
+
+## Extension Types
+
+Extension types create a new compile-time wrapper around an existing type with zero runtime cost:
+
+```dart
+extension type UserId(int id) {
+  bool isValid() => id > 0;
+}
+
+extension type Email(String value) {
+  bool get isValid => value.contains('@') && value.contains('.');
+  String get domain => value.split('@').last;
+}
+
+void main() {
+  UserId user = UserId(123);
+  print(user.isValid()); // true
+  
+  Email email = Email('test@example.com');
+  print(email.domain); // 'example.com'
+}
+```
+
+### Key Characteristics
+
+- **Creates a new static type** - `UserId` is distinct from `int` at compile time
+- **Zero runtime cost** - erased to underlying type at runtime
+- **Type safety** - prevents mixing up semantically different values
+- **Can have members** - methods, getters, setters, constructors
+- **Compile-time only distinction** - `UserId(5)` is literally `5` at runtime
+
+## Key Differences
+
+| Feature | Extensions | Extension Types |
+|---------|-----------|----------------|
+| **Purpose** | Add methods to existing types | Create type-safe wrappers |
+| **New type?** | No | Yes (compile-time only) |
+| **Type checking** | Uses original type | Uses wrapper type |
+| **Conversion** | Automatic | Explicit wrapping/unwrapping |
+| **Runtime cost** | None | None |
+| **Use case** | Convenience methods | Type safety, domain modeling |
+
+## When to Use Each
+
+### Use Extensions When:
+
+- Adding utility methods to existing types
+- You want the original type identity preserved
+- You need to extend types you don't own
+
+### Use Extension Types When:
+
+- You need type safety for primitive values (IDs, emails, etc.)
+- Modeling domain concepts with zero runtime cost
+- Preventing accidental mixing of semantically different values
+- You want compile-time guarantees without wrapper objects
+
+## Practical Example
+
+```dart
+// Extension: just convenience
+extension on int {
+  String toHex() => toRadixString(16);
+}
+
+// Extension type: type safety
+extension type Temperature(double celsius) {
+  double get fahrenheit => celsius * 9 / 5 + 32;
+}
+
+void setTemperature(Temperature temp) { } // Only accepts Temperature
+setTemperature(Temperature(20.0)); // OK
+// setTemperature(20.0); // ERROR - won't compile
+```
+
+## Conclusion
+
+Extension types are particularly powerful for creating **zero-cost abstractions** - you get type safety without performance penalties. They're ideal for domain modeling where you want to distinguish between different uses of the same underlying type (like `UserId` vs `ProductId`, both wrapping `int`) without any runtime overhead.
