@@ -1,0 +1,310 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Do keyword
+
+The `do` keyword in Haskell provides syntactic sugar for working with monadic operations, making sequential computations more readable and imperative-looking while maintaining functional purity.
+
+## Basic Concept
+
+`do` notation is **desugared** into nested bind (`>>=`) and then (`>>`) operations. It's purely syntactic - there's no special runtime behavior.
+
+## Syntax Rules
+
+### Basic Structure
+```haskell
+do
+  pattern1 <- action1
+  pattern2 <- action2
+  action3
+  let binding = expression
+  return finalValue
+```
+
+### Desugaring Rules
+
+1. **Bind operation (`<-`)**:
+   ```haskell
+   do { x <- action; rest }
+   -- desugars to:
+   action >>= \x -> do { rest }
+   ```
+
+2. **Statement without binding**:
+   ```haskell
+   do { action; rest }
+   -- desugars to:
+   action >> do { rest }
+   ```
+
+3. **Let bindings**:
+   ```haskell
+   do { let x = expr; rest }
+   -- desugars to:
+   let x = expr in do { rest }
+   ```
+
+4. **Final expression**:
+   ```haskell
+   do { expr }
+   -- is just:
+   expr
+   ```
+
+## Common Monads Using `do`
+
+### IO Monad
+```haskell
+main :: IO ()
+main = do
+  putStrLn "What's your name?"
+  name <- getLine
+  putStrLn $ "Hello, " ++ name ++ "!"
+```
+
+### Maybe Monad
+```haskell
+lookupUser :: String -> IO (Maybe User)
+lookupUser username = do
+  userId <- lookup username userMap  -- fails if not found
+  user <- fetchUser userId            -- fails if user doesn't exist
+  return user                          -- only succeeds if both steps succeed
+```
+
+### List Monad (List Comprehension Alternative)
+```haskell
+-- Traditional list comprehension
+pairs = [(x, y) | x <- [1,2,3], y <- [4,5,6]]
+
+-- Equivalent using do notation
+pairs = do
+  x <- [1,2,3]
+  y <- [4,5,6]
+  return (x, y)
+```
+
+### Either Monad
+```haskell
+divide :: Double -> Double -> Either String Double
+divide _ 0 = Left "Division by zero"
+divide x y = Right (x / y)
+
+calculate :: Either String Double
+calculate = do
+  a <- divide 10 2      -- Right 5.0
+  b <- divide a 0       -- Left "Division by zero" - computation stops here
+  c <- divide b 3       -- never executed
+  return c
+```
+
+## Pattern Matching in `do`
+
+### Simple Pattern
+```haskell
+do
+  (x, y) <- someAction
+  return (x + y)
+```
+
+### Irrefutable Pattern (Lazy)
+```haskell
+do
+  ~(x, y) <- someAction  -- won't fail even if pattern doesn't match
+  return x
+```
+
+### Refutable Pattern
+```haskell
+-- If pattern fails in IO, throws exception
+do
+  Just x <- maybeAction  -- dangerous! will error on Nothing
+  return x
+
+-- Better approach
+do
+  result <- maybeAction
+  case result of
+    Just x -> return x
+    Nothing -> handleError
+```
+
+## Layout and Indentation
+
+Haskell uses significant whitespace with `do`:
+
+```haskell
+-- Correct
+example1 = do
+  x <- action1
+  y <- action2
+  return (x + y)
+
+-- Also correct (explicit braces and semicolons)
+example2 = do { x <- action1; y <- action2; return (x + y) }
+
+-- Incorrect - indentation matters
+example3 = do
+  x <- action1
+   y <- action2  -- ERROR: indented too far
+  return (x + y)
+```
+
+## `let` vs `<-` in `do` Blocks
+
+```haskell
+example = do
+  x <- getLine           -- x bound to result of IO action
+  let y = length x       -- y bound to pure value
+  let z = x ++ "!"       -- z bound to pure expression
+  putStrLn z
+  return y
+```
+
+**Key difference**: 
+- `<-` extracts values from monadic actions
+- `let` binds pure values (no monadic extraction)
+
+## The `return` Function
+
+`return` is **not** like return in imperative languages - it doesn't exit the function!
+
+```haskell
+confusing = do
+  return 5        -- wraps 5 in the monad
+  return 10       -- this executes! Result is 10
+  
+-- Equivalent to:
+confusing = return 5 >> return 10 >> return 15
+-- Result: wrapped 15
+```
+
+## Advanced Patterns
+
+### Sequencing with `_`
+```haskell
+do
+  _ <- action1  -- run action, ignore result
+  result <- action2
+  return result
+```
+
+### Using `when` and `unless`
+```haskell
+import Control.Monad (when, unless)
+
+example condition = do
+  when condition $ do
+    putStrLn "Condition is true"
+    performAction
+  
+  unless condition $ do
+    putStrLn "Condition is false"
+```
+
+### Recursion in `do`
+```haskell
+readUntilEmpty :: IO [String]
+readUntilEmpty = do
+  line <- getLine
+  if null line
+    then return []
+    else do
+      rest <- readUntilEmpty
+      return (line : rest)
+```
+
+### MonadFail and Pattern Matching
+Since GHC 8.0, failed pattern matches in `do` notation use `MonadFail`:
+
+```haskell
+class Monad m => MonadFail m where
+  fail :: String -> m a
+
+example = do
+  Just x <- someMaybe  -- uses 'fail' if pattern doesn't match
+  return x
+```
+
+## Common Idioms
+
+### Ignoring results
+```haskell
+do
+  _ <- action  -- explicit ignore
+  action       -- implicit ignore (same effect)
+```
+
+### Multiple bindings
+```haskell
+do
+  (x, y, z) <- action
+  return (x + y + z)
+```
+
+### Guard-like behavior with `guard`
+```haskell
+import Control.Monad (guard)
+
+example = do
+  x <- [1..10]
+  guard (even x)  -- filters out odd numbers
+  return (x * 2)
+-- Result: [4,8,12,16,20]
+```
+
+## Comparison: With and Without `do`
+
+```haskell
+-- With do notation
+withDo = do
+  x <- action1
+  y <- action2 x
+  return (y + 1)
+
+-- Without do notation (explicit binds)
+withoutDo = 
+  action1 >>= \x ->
+  action2 x >>= \y ->
+  return (y + 1)
+```
+
+## Common Mistakes
+
+1. **Forgetting `<-` for monadic actions**:
+   ```haskell
+   do
+     line = getLine      -- WRONG: assigns the action itself
+     line <- getLine     -- RIGHT: extracts the String
+   ```
+
+2. **Using `return` to exit early** (it doesn't!):
+   ```haskell
+   do
+     when condition (return ())  -- doesn't exit
+     doSomethingElse            -- still executes
+   ```
+
+3. **Mixing `<-` and `=`**:
+   ```haskell
+   do
+     x <- pure 5        -- RIGHT for monadic value
+     y = 5              -- SYNTAX ERROR
+     let y = 5          -- RIGHT for pure value
+   ```
+
+## Type Signature
+
+Any type using `do` notation must be a `Monad`:
+
+```haskell
+example :: Monad m => m Int
+example = do
+  x <- return 5
+  return (x + 1)
+```
+
+## Conclusion
+
+The `do` notation is one of Haskell's most important features for making monadic code readable and maintainable. It bridges functional and imperative programming styles while maintaining referential transparency.

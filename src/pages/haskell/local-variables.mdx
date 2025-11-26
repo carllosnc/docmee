@@ -1,0 +1,451 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Local Variables
+
+In Haskell, "local variables" work differently than in imperative languages. Since Haskell is a pure functional language, variables are **immutable bindings** rather than memory locations that can change. This guide explains the various ways to create local bindings in Haskell.
+
+## Table of Contents
+1. [The let Expression](#1-the-let-expression)
+2. [The where Clause](#2-the-where-clause)
+3. [let vs where](#3-let-vs-where)
+4. [Lambda Expressions with Local Bindings](#4-lambda-expressions-with-local-bindings)
+5. [Case Expressions with Local Bindings](#5-case-expressions-with-local-bindings)
+6. [Local Bindings in do Notation](#6-local-bindings-in-do-notation)
+7. [Shadowing](#7-shadowing)
+8. [Recursive Local Bindings](#8-recursive-local-bindings)
+9. [Best Practices](#9-best-practices)
+10. [Common Patterns](#10-common-patterns)
+
+## 1. The `let` Expression
+
+The `let` expression allows you to bind values locally within an expression.
+
+### Syntax
+
+```haskell
+let binding1 = value1
+    binding2 = value2
+    binding3 = value3
+in expression
+```
+
+### Examples
+
+```haskell
+-- Simple let binding
+circleArea :: Double -> Double
+circleArea radius = 
+  let pi = 3.14159
+      square x = x * x
+  in pi * square radius
+
+-- Multiple bindings
+quadraticFormula :: Double -> Double -> Double -> (Double, Double)
+quadraticFormula a b c =
+  let discriminant = b^2 - 4*a*c
+      sqrtDiscriminant = sqrt discriminant
+      root1 = (-b + sqrtDiscriminant) / (2*a)
+      root2 = (-b - sqrtDiscriminant) / (2*a)
+  in (root1, root2)
+
+-- Nested let bindings
+complexCalc :: Int -> Int
+complexCalc x =
+  let y = x + 1
+      z = let w = y * 2
+          in w + y
+  in z * 2
+```
+
+### Pattern Matching in `let`
+
+```haskell
+-- Destructuring tuples
+processPoint :: (Int, Int) -> Int
+processPoint point =
+  let (x, y) = point
+  in x + y
+
+-- Destructuring lists
+firstTwo :: [a] -> (a, a)
+firstTwo list =
+  let (a:b:_) = list  -- Warning: partial pattern!
+  in (a, b)
+
+-- Safer with Maybe
+firstTwoSafe :: [a] -> Maybe (a, a)
+firstTwoSafe (a:b:_) = Just (a, b)
+firstTwoSafe _ = Nothing
+```
+
+## 2. The `where` Clause
+
+The `where` clause defines bindings that are local to a function definition. It appears **after** the expression.
+
+### Syntax
+
+```haskell
+functionName args = expression
+  where binding1 = value1
+        binding2 = value2
+```
+
+### Examples
+
+```haskell
+-- Basic where clause
+bmiTell :: Double -> Double -> String
+bmiTell weight height = 
+  if bmi < 18.5
+    then "Underweight"
+  else if bmi < 25.0
+    then "Normal"
+  else "Overweight"
+  where bmi = weight / height^2
+
+-- Multiple bindings
+gradeMessage :: Int -> String
+gradeMessage score
+  | score >= excellent = "Excellent!"
+  | score >= good = "Good job!"
+  | score >= passing = "You passed"
+  | otherwise = "Need improvement"
+  where excellent = 90
+        good = 75
+        passing = 60
+
+-- Functions in where
+cylinderVolume :: Double -> Double -> Double
+cylinderVolume radius height = baseArea * height
+  where baseArea = circleArea radius
+        circleArea r = pi * r^2
+```
+
+### Pattern Matching in `where`
+
+```haskell
+initials :: String -> String -> String
+initials firstname lastname = [f] ++ ". " ++ [l] ++ "."
+  where (f:_) = firstname
+        (l:_) = lastname
+
+-- Multiple patterns
+describePair :: (Int, Int) -> String
+describePair pair = "First: " ++ show x ++ ", Second: " ++ show y
+  where (x, y) = pair
+```
+
+## 3. `let` vs `where`
+
+### Differences
+
+**let is an expression** (has a value):
+```haskell
+-- let can be used anywhere an expression is valid
+result = (let x = 5 in x * 2) + 10
+
+-- let in list comprehension
+evens = [let square = x * x in square | x <- [1..10], even x]
+
+-- let in do notation
+action = do
+  let name = "Alice"
+  putStrLn $ "Hello, " ++ name
+```
+
+**where is a declaration** (attached to function definitions):
+```haskell
+-- where is attached to function/pattern
+greet name = message
+  where message = "Hello, " ++ name
+
+-- where cannot be used as an expression
+-- result = (x where x = 5) * 2  -- ERROR!
+```
+
+### Scope Differences
+
+```haskell
+-- where can see function parameters
+calculatePrice :: Double -> Double -> Double
+calculatePrice price quantity = total
+  where total = price * quantity * (1 + tax)
+        tax = 0.1  -- can see price and quantity
+
+-- let needs parameters explicitly
+calculatePrice2 :: Double -> Double -> Double
+calculatePrice2 price quantity = 
+  let tax = 0.1
+      total = price * quantity * (1 + tax)
+  in total
+```
+
+### Guards with `where`
+
+```haskell
+-- where works naturally with guards
+bmiCategory :: Double -> Double -> String
+bmiCategory weight height
+  | bmi < skinny = "Underweight"
+  | bmi < normal = "Normal"
+  | bmi < fat = "Overweight"
+  | otherwise = "Obese"
+  where bmi = weight / height^2
+        skinny = 18.5
+        normal = 25.0
+        fat = 30.0
+
+-- let doesn't work as well with guards
+bmiCategory2 :: Double -> Double -> String
+bmiCategory2 weight height
+  | let bmi = weight / height^2 in bmi < 18.5 = "Underweight"
+  | let bmi = weight / height^2 in bmi < 25.0 = "Normal"  -- recalculates!
+  | otherwise = "Overweight"
+```
+
+## 4. Lambda Expressions with Local Bindings
+
+Lambda expressions can have local bindings too.
+
+```haskell
+-- Using let in lambda
+doubleAndAdd = \x -> let doubled = x * 2 in doubled + 10
+
+-- Multiple bindings
+complexLambda = \x y -> 
+  let sum = x + y
+      product = x * y
+      average = sum / 2
+  in (sum, product, average)
+
+-- In higher-order functions
+result = map (\x -> let square = x * x in square + 1) [1..5]
+```
+
+## 5. Case Expressions with Local Bindings
+
+```haskell
+-- let in case
+describeList :: [a] -> String
+describeList xs = case xs of
+  [] -> "empty"
+  [x] -> "singleton"
+  xs -> let len = length xs
+        in "length: " ++ show len
+
+-- where with case
+processValue :: Maybe Int -> String
+processValue mx = case mx of
+  Nothing -> "No value"
+  Just x -> if x > threshold
+              then "High"
+              else "Low"
+  where threshold = 10
+```
+
+## 6. Local Bindings in `do` Notation
+
+In `do` blocks, you can use `let` without `in`:
+
+```haskell
+-- let without 'in' in do blocks
+main :: IO ()
+main = do
+  putStrLn "Enter your name:"
+  name <- getLine
+  let greeting = "Hello, " ++ name ++ "!"
+      length_msg = "Your name has " ++ show (length name) ++ " letters"
+  putStrLn greeting
+  putStrLn length_msg
+
+-- Multiple let bindings
+calculate :: IO ()
+calculate = do
+  let x = 5
+      y = 10
+      sum = x + y
+      product = x * y
+  print sum
+  print product
+```
+
+## 7. Shadowing
+
+Haskell allows variable shadowing (inner bindings hide outer ones):
+
+```haskell
+-- Shadowing example
+shadowExample :: Int
+shadowExample = 
+  let x = 5
+  in let x = 10  -- shadows outer x
+     in x        -- evaluates to 10
+
+-- Nested shadowing
+nestedShadow :: Int
+nestedShadow = x + y
+  where x = 1
+        y = x + 2  -- x is 1 here
+        x = 10     -- this x shadows the first x, but y already used the old one
+-- Result: 1 + 3 = 4 (not 10 + 12)
+
+-- Better: avoid shadowing when possible
+betterNested :: Int
+betterNested = x1 + y
+  where x1 = 1
+        y = x1 + 2
+        x2 = 10
+```
+
+## 8. Recursive Local Bindings
+
+Local bindings can be recursive:
+
+```haskell
+-- Recursive function in where
+factorial :: Int -> Int
+factorial n = go n
+  where go 0 = 1
+        go n = n * go (n - 1)
+
+-- Mutually recursive bindings
+evenOdd :: Int -> (Bool, Bool)
+evenOdd n = (isEven n, isOdd n)
+  where isEven 0 = True
+        isEven n = isOdd (n - 1)
+        isOdd 0 = False
+        isOdd n = isEven (n - 1)
+
+-- Recursive let
+factorialLet :: Int -> Int
+factorialLet n = 
+  let fac 0 = 1
+      fac n = n * fac (n - 1)
+  in fac n
+```
+
+## 9. Best Practices
+
+### When to Use `let`
+
+- Inside expressions
+- In list comprehensions
+- In `do` blocks (without `in`)
+- When you need the binding in a specific sub-expression
+
+```haskell
+-- Good use of let
+quickCalc = let x = expensive_computation in x * x + x
+
+-- Let in list comprehension
+squares = [let square = x * x in (x, square) | x <- [1..10]]
+```
+
+### When to Use `where`
+
+- After function definitions
+- With guards
+- When bindings apply to multiple guards or patterns
+- For auxiliary functions used by main function
+
+```haskell
+-- Good use of where
+processData :: [Int] -> Int
+processData xs
+  | null xs = 0
+  | length xs < threshold = sum xs
+  | otherwise = sum (take threshold xs)
+  where threshold = 10
+        sum = foldl (+) 0  -- local helper
+```
+
+### Naming Conventions
+
+```haskell
+-- Use descriptive names
+calculateDiscount :: Double -> Double
+calculateDiscount price = discounted
+  where discountRate = 0.1
+        discountAmount = price * discountRate
+        discounted = price - discountAmount
+
+-- Avoid single letters except for very local scope
+-- Good:
+distance x1 y1 x2 y2 = sqrt (dx^2 + dy^2)
+  where dx = x2 - x1
+        dy = y2 - y1
+
+-- Less clear:
+distance x1 y1 x2 y2 = sqrt (a^2 + b^2)
+  where a = x2 - x1
+        b = y2 - y1
+```
+
+## 10. Common Patterns
+
+### Helper Functions
+
+```haskell
+-- Local helper functions
+quicksort :: Ord a => [a] -> [a]
+quicksort [] = []
+quicksort (x:xs) = smaller ++ [x] ++ larger
+  where smaller = quicksort [a | a <- xs, a <= x]
+        larger = quicksort [a | a <- xs, a > x]
+```
+
+### Configuration Values
+
+```haskell
+-- Local configuration
+processImage :: Image -> Image
+processImage img = resize (scale img)
+  where maxWidth = 800
+        maxHeight = 600
+        scale = scaleToFit maxWidth maxHeight
+        resize = applyResize img
+```
+
+### Breaking Down Complex Expressions
+
+```haskell
+-- Instead of:
+complexCalc x y = ((x + y) * (x - y)) / ((x * 2) + (y * 3))
+
+-- Better:
+complexCalc x y = numerator / denominator
+  where numerator = sum * difference
+        denominator = doubleX + tripleY
+        sum = x + y
+        difference = x - y
+        doubleX = x * 2
+        tripleY = y * 3
+```
+
+## Key Takeaways
+
+1. **Variables are immutable** - they're bindings, not storage locations
+2. **`let`** is an expression, **`where`** is a declaration
+3. **Scope matters** - bindings are only visible in their scope
+4. **Pattern matching** works in both `let` and `where`
+5. **Shadowing is allowed** but can be confusing
+6. **Choose based on context**: `let` for expressions, `where` for function definitions
+7. **Use local bindings** to make code more readable and avoid repetition
+
+## Summary Table
+
+| Feature | `let` | `where` |
+|---------|-------|---------|
+| Type | Expression | Declaration |
+| Position | Before expression | After expression |
+| Use in guards | Awkward | Natural |
+| Use in expressions | Yes | No |
+| Use in do blocks | Yes (no `in`) | No |
+| Scope | Sub-expression | Entire function |
+| Pattern matching | Yes | Yes |
+| Multiple clauses | No | Yes |
+
+Local bindings in Haskell are powerful tools for organizing code, naming intermediate values, and creating helper functions with limited scope.

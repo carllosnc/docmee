@@ -1,0 +1,764 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# IO
+
+IO in Haskell is how the language manages side effects while maintaining functional purity. The `IO` type represents computations that interact with the outside world.
+
+## Table of Contents
+1. [What is IO?](#what-is-io)
+2. [Type System](#type-system)
+3. [Basic IO Operations](#basic-io-operations)
+4. [Reading Input](#reading-input)
+5. [Writing Output](#writing-output)
+6. [File Operations](#file-operations)
+7. [Error Handling](#error-handling)
+8. [Advanced IO](#advanced-io)
+9. [Common Patterns](#common-patterns)
+10. [Performance Considerations](#performance-considerations)
+
+## What is IO?
+
+`IO` is a monad that encapsulates side effects. It separates pure functions from impure actions.
+
+### Key Concepts
+
+**Pure vs Impure**:
+```haskell
+-- Pure function - same input always gives same output
+add :: Int -> Int -> Int
+add x y = x + y
+
+-- Impure action - result depends on external state
+getLine :: IO String
+getCurrentTime :: IO UTCTime
+```
+
+**IO Actions are First-Class Values**:
+```haskell
+-- This doesn't perform IO, it just creates an IO action
+greeting :: IO ()
+greeting = putStrLn "Hello!"
+
+-- We can pass IO actions around
+runTwice :: IO a -> IO a
+runTwice action = do
+  action
+  action
+```
+
+## Type System
+
+### Understanding IO Types
+
+```haskell
+-- IO () - performs IO, returns nothing meaningful
+putStrLn :: String -> IO ()
+
+-- IO a - performs IO, returns a value of type a
+getLine :: IO String
+readFile :: FilePath -> IO String
+
+-- a -> IO b - takes pure value, performs IO, returns result
+print :: Show a => a -> IO ()
+writeFile :: FilePath -> String -> IO ()
+```
+
+### The IO Type Constructor
+
+```haskell
+-- IO is a type constructor
+type IO a = RealWorld -> (RealWorld, a)  -- Conceptual representation
+
+-- It's a Monad
+instance Monad IO where
+  return :: a -> IO a
+  (>>=) :: IO a -> (a -> IO b) -> IO b
+
+-- Also Functor and Applicative
+instance Functor IO where
+  fmap :: (a -> b) -> IO a -> IO b
+
+instance Applicative IO where
+  pure :: a -> IO a
+  (<*>) :: IO (a -> b) -> IO a -> IO b
+```
+
+## Basic IO Operations
+
+### Console Output
+
+```haskell
+-- Print string with newline
+putStrLn :: String -> IO ()
+putStrLn "Hello, World!"
+
+-- Print string without newline
+putStr :: String -> IO ()
+putStr "Hello, "
+putStr "World!"
+
+-- Print any Show-able value
+print :: Show a => a -> IO ()
+print 42
+print [1, 2, 3]
+print (Just "value")
+```
+
+### Console Input
+
+```haskell
+-- Read a line
+getLine :: IO String
+name <- getLine
+
+-- Read a single character
+getChar :: IO Char
+c <- getChar
+
+-- Read entire input as String
+getContents :: IO String
+contents <- getContents
+```
+
+### Basic Example
+
+```haskell
+main :: IO ()
+main = do
+  putStrLn "What's your name?"
+  name <- getLine
+  putStrLn $ "Hello, " ++ name ++ "!"
+```
+
+## Reading Input
+
+### Standard Input
+
+```haskell
+-- Read one line
+readOneLine :: IO String
+readOneLine = getLine
+
+-- Read multiple lines until empty
+readLines :: IO [String]
+readLines = do
+  line <- getLine
+  if null line
+    then return []
+    else do
+      rest <- readLines
+      return (line : rest)
+
+-- Read and parse
+readNumber :: IO Int
+readNumber = do
+  input <- getLine
+  return (read input :: Int)
+
+-- Safer parsing
+readNumberSafe :: IO (Maybe Int)
+readNumberSafe = do
+  input <- getLine
+  return (readMaybe input :: Maybe Int)
+```
+
+### Lazy vs Strict Input
+
+```haskell
+import qualified Data.Text.IO as TIO
+import qualified Data.ByteString as BS
+
+-- Lazy - reads as needed (good for large files)
+contents <- getContents  -- String (lazy)
+
+-- Strict - reads all at once (better for small files)
+contents <- TIO.readFile "file.txt"  -- Text (strict)
+contents <- BS.readFile "file.dat"   -- ByteString (strict)
+```
+
+## Writing Output
+
+### Formatted Output
+
+```haskell
+import Text.Printf
+
+main :: IO ()
+main = do
+  printf "Hello, %s! You are %d years old.\n" "Alice" 30
+  printf "Value: %.2f\n" (3.14159 :: Double)
+```
+
+### String Interpolation Alternative
+
+```haskell
+-- Using show and concatenation
+outputValue :: Show a => String -> a -> IO ()
+outputValue label value = 
+  putStrLn $ label ++ ": " ++ show value
+
+-- Usage
+main = do
+  outputValue "Result" 42
+  outputValue "List" [1, 2, 3]
+```
+
+## File Operations
+
+### Reading Files
+
+```haskell
+import System.IO
+
+-- Read entire file (lazy)
+readFile :: FilePath -> IO String
+contents <- readFile "input.txt"
+
+-- Read entire file (strict)
+import qualified Data.Text.IO as TIO
+contents <- TIO.readFile "input.txt"
+
+-- Read with handle
+readWithHandle :: IO ()
+readWithHandle = do
+  handle <- openFile "input.txt" ReadMode
+  contents <- hGetContents handle
+  putStrLn contents
+  hClose handle
+
+-- Using bracket for safety
+import Control.Exception (bracket)
+
+readFileSafe :: FilePath -> IO String
+readFileSafe path = 
+  bracket (openFile path ReadMode)
+          hClose
+          hGetContents
+```
+
+### Writing Files
+
+```haskell
+-- Write entire file (overwrites)
+writeFile :: FilePath -> String -> IO ()
+writeFile "output.txt" "Hello, World!"
+
+-- Append to file
+appendFile :: FilePath -> String -> IO ()
+appendFile "log.txt" "New entry\n"
+
+-- Write with handle
+writeWithHandle :: IO ()
+writeWithHandle = do
+  handle <- openFile "output.txt" WriteMode
+  hPutStrLn handle "Line 1"
+  hPutStrLn handle "Line 2"
+  hClose handle
+```
+
+### File Modes
+
+```haskell
+data IOMode = ReadMode 
+            | WriteMode 
+            | AppendMode 
+            | ReadWriteMode
+
+-- Examples
+openFile "file.txt" ReadMode       -- read only
+openFile "file.txt" WriteMode      -- write (truncate)
+openFile "file.txt" AppendMode     -- append
+openFile "file.txt" ReadWriteMode  -- read and write
+```
+
+### Handle Operations
+
+```haskell
+-- Check if handle is ready
+hReady :: Handle -> IO Bool
+
+-- Check if at end of file
+hIsEOF :: Handle -> IO Bool
+
+-- Flush buffer
+hFlush :: Handle -> IO ()
+
+-- Set buffering mode
+hSetBuffering :: Handle -> BufferMode -> IO ()
+-- BufferMode = NoBuffering | LineBuffering | BlockBuffering (Maybe Int)
+
+-- Example: unbuffered output
+hSetBuffering stdout NoBuffering
+```
+
+### Working with Directories
+
+```haskell
+import System.Directory
+
+-- Check existence
+doesFileExist :: FilePath -> IO Bool
+doesDirectoryExist :: FilePath -> IO Bool
+
+-- List directory
+listDirectory :: FilePath -> IO [FilePath]
+
+-- Get current directory
+getCurrentDirectory :: IO FilePath
+
+-- Change directory
+setCurrentDirectory :: FilePath -> IO ()
+
+-- Create/remove directories
+createDirectory :: FilePath -> IO ()
+removeDirectory :: FilePath -> IO ()
+
+-- Remove file
+removeFile :: FilePath -> IO ()
+
+-- Rename/move
+renameFile :: FilePath -> FilePath -> IO ()
+
+-- Copy file
+copyFile :: FilePath -> FilePath -> IO ()
+```
+
+## Error Handling
+
+### Using Maybe and Either
+
+```haskell
+import Control.Exception
+import System.IO.Error
+
+-- Safe file reading
+safeReadFile :: FilePath -> IO (Maybe String)
+safeReadFile path = do
+  result <- try (readFile path) :: IO (Either IOError String)
+  case result of
+    Left _ -> return Nothing
+    Right contents -> return (Just contents)
+
+-- With Either for error info
+readFileEither :: FilePath -> IO (Either String String)
+readFileEither path = do
+  result <- try (readFile path)
+  case result of
+    Left err -> return $ Left (show (err :: IOError))
+    Right contents -> return $ Right contents
+```
+
+### Exception Handling
+
+```haskell
+import Control.Exception
+
+-- Catch specific exceptions
+safeDivision :: IO ()
+safeDivision = do
+  catch (print (5 `div` 0))
+        (\e -> putStrLn $ "Error: " ++ show (e :: ArithException))
+
+-- Catch any exception
+catchAll :: IO a -> IO (Maybe a)
+catchAll action = 
+  catch (Just <$> action)
+        (\(_ :: SomeException) -> return Nothing)
+
+-- Finally - ensure cleanup
+withCleanup :: IO a -> IO () -> IO a
+withCleanup action cleanup = do
+  result <- try action :: IO (Either SomeException a)
+  cleanup
+  case result of
+    Left e -> throwIO e
+    Right r -> return r
+
+-- Better: use bracket
+bracket :: IO a         -- acquire resource
+        -> (a -> IO b)  -- release resource
+        -> (a -> IO c)  -- use resource
+        -> IO c
+
+-- Example
+processFile :: FilePath -> IO ()
+processFile path = 
+  bracket (openFile path ReadMode)
+          hClose
+          (\handle -> do
+            contents <- hGetContents handle
+            print (length contents))
+```
+
+### Checking IO Errors
+
+```haskell
+import System.IO.Error
+
+-- Check error type
+isAlreadyExistsError :: IOError -> Bool
+isDoesNotExistError :: IOError -> Bool
+isAlreadyInUseError :: IOError -> Bool
+isFullError :: IOError -> Bool
+isEOFError :: IOError -> Bool
+isIllegalOperation :: IOError -> Bool
+isPermissionError :: IOError -> Bool
+
+-- Example
+safeOpen :: FilePath -> IO (Maybe Handle)
+safeOpen path = do
+  result <- try (openFile path ReadMode)
+  case result of
+    Left err -> do
+      if isDoesNotExistError err
+        then putStrLn "File doesn't exist"
+        else putStrLn $ "Other error: " ++ show err
+      return Nothing
+    Right handle -> return (Just handle)
+```
+
+## Advanced IO
+
+### Handles and Streams
+
+```haskell
+-- Standard handles
+stdin :: Handle
+stdout :: Handle
+stderr :: Handle
+
+-- Write to stderr
+hPutStrLn stderr "Error message"
+
+-- Duplicate handle
+hDuplicate :: Handle -> IO Handle
+
+-- Create pipe
+createPipe :: IO (Handle, Handle)
+```
+
+### Binary IO
+
+```haskell
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
+
+-- Strict ByteString
+readBytes :: FilePath -> IO BS.ByteString
+readBytes = BS.readFile
+
+writeBytes :: FilePath -> BS.ByteString -> IO ()
+writeBytes = BS.writeFile
+
+-- Lazy ByteString (for large files)
+readBytesLazy :: FilePath -> IO BL.ByteString
+readBytesLazy = BL.readFile
+
+writeBytesLazy :: FilePath -> BL.ByteString -> IO ()
+writeBytesLazy = BL.writeFile
+```
+
+### Temporary Files
+
+```haskell
+import System.IO.Temp
+
+-- Create temporary file
+withTempFile :: FilePath           -- directory
+             -> String             -- template
+             -> (FilePath -> Handle -> IO a)
+             -> IO a
+
+-- Example
+processWithTemp :: IO ()
+processWithTemp = 
+  withTempFile "." "temp.txt" $ \path handle -> do
+    hPutStrLn handle "temporary data"
+    hClose handle
+    -- file is deleted when this block exits
+```
+
+### File Locking
+
+```haskell
+import System.IO
+
+-- Lock file
+hLock :: Handle -> LockMode -> IO ()
+-- LockMode = SharedLock | ExclusiveLock
+
+-- Try to lock (non-blocking)
+hTryLock :: Handle -> LockMode -> IO Bool
+
+-- Unlock
+hUnlock :: Handle -> IO ()
+```
+
+### Memory-Mapped Files
+
+```haskell
+import System.IO.MMap
+
+-- Memory map file (efficient for large files)
+mmapFileByteString :: FilePath -> IO BS.ByteString
+
+-- Memory map with options
+mmapWithFilePtr :: FilePath -> Mode -> Maybe (Int64, Int) -> IO (Ptr Word8, Int)
+```
+
+## Common Patterns
+
+### Reading and Processing Files
+
+```haskell
+-- Process file line by line
+processLines :: FilePath -> (String -> String) -> FilePath -> IO ()
+processLines input transform output = do
+  contents <- readFile input
+  let processed = unlines $ map transform (lines contents)
+  writeFile output processed
+
+-- Usage
+main = processLines "input.txt" reverse "output.txt"
+```
+
+### Interactive Programs
+
+```haskell
+-- REPL pattern
+repl :: IO ()
+repl = do
+  putStr "> "
+  hFlush stdout  -- ensure prompt is displayed
+  input <- getLine
+  unless (input == "quit") $ do
+    putStrLn $ "You said: " ++ input
+    repl
+
+-- Menu system
+showMenu :: IO ()
+showMenu = do
+  putStrLn "1. Option 1"
+  putStrLn "2. Option 2"
+  putStrLn "3. Exit"
+  putStr "Choose: "
+  hFlush stdout
+  choice <- getLine
+  case choice of
+    "1" -> do
+      putStrLn "Option 1 selected"
+      showMenu
+    "2" -> do
+      putStrLn "Option 2 selected"
+      showMenu
+    "3" -> putStrLn "Goodbye!"
+    _ -> do
+      putStrLn "Invalid choice"
+      showMenu
+```
+
+### Combining IO Actions
+
+```haskell
+import Control.Monad
+
+-- Run multiple IO actions
+sequence :: [IO a] -> IO [a]
+actions = [putStrLn "a", putStrLn "b", putStrLn "c"]
+sequence actions
+
+-- Run and ignore results
+sequence_ :: [IO a] -> IO ()
+sequence_ [putStrLn "a", putStrLn "b", putStrLn "c"]
+
+-- Map over IO
+mapM :: (a -> IO b) -> [a] -> IO [b]
+results <- mapM print [1, 2, 3]
+
+mapM_ :: (a -> IO b) -> [a] -> IO ()
+mapM_ print [1, 2, 3]
+
+-- Forever loop
+forever :: IO a -> IO b
+forever $ do
+  line <- getLine
+  putStrLn $ "Echo: " ++ line
+
+-- Replicate IO action
+replicateM :: Int -> IO a -> IO [a]
+lines <- replicateM 3 getLine  -- read 3 lines
+
+replicateM_ :: Int -> IO a -> IO ()
+replicateM_ 3 (putStrLn "Hello")  -- print 3 times
+```
+
+### Conditional IO
+
+```haskell
+import Control.Monad
+
+-- Run action if condition is true
+when :: Bool -> IO () -> IO ()
+when (x > 10) $ putStrLn "Greater than 10"
+
+-- Run action if condition is false
+unless :: Bool -> IO () -> IO ()
+unless (null list) $ print list
+
+-- Choose between two actions
+if condition
+  then action1
+  else action2
+```
+
+### Filtering IO
+
+```haskell
+-- Filter with IO predicate
+filterM :: (a -> IO Bool) -> [a] -> IO [a]
+
+-- Example: filter files that exist
+existingFiles <- filterM doesFileExist ["a.txt", "b.txt", "c.txt"]
+```
+
+## Performance Considerations
+
+### Lazy vs Strict IO
+
+```haskell
+-- Lazy IO (can cause space leaks)
+lazyRead :: IO ()
+lazyRead = do
+  contents <- readFile "large.txt"  -- doesn't read immediately
+  putStrLn $ take 100 contents      -- only reads what's needed
+
+-- Strict IO (better for most cases)
+strictRead :: IO ()
+strictRead = do
+  contents <- TIO.readFile "large.txt"  -- reads entire file
+  TIO.putStrLn $ TIO.take 100 contents
+```
+
+### Buffering Strategies
+
+```haskell
+-- Line buffering (default for stdout)
+hSetBuffering stdout LineBuffering
+
+-- Block buffering (fastest for files)
+hSetBuffering handle (BlockBuffering (Just 4096))
+
+-- No buffering (immediate output)
+hSetBuffering stdout NoBuffering
+```
+
+### Efficient String Handling
+
+```haskell
+-- Avoid String for large data
+-- Use Text for unicode text
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+
+textProcessing :: IO ()
+textProcessing = do
+  content <- TIO.readFile "large.txt"
+  let processed = T.toUpper content
+  TIO.writeFile "output.txt" processed
+
+-- Use ByteString for binary data
+import qualified Data.ByteString as BS
+
+binaryProcessing :: IO ()
+binaryProcessing = do
+  content <- BS.readFile "data.bin"
+  let processed = BS.map (+1) content
+  BS.writeFile "output.bin" processed
+```
+
+### Chunked Processing
+
+```haskell
+-- Process large files in chunks
+import qualified Data.ByteString.Lazy as BL
+
+processChunks :: FilePath -> IO ()
+processChunks path = do
+  contents <- BL.readFile path
+  let chunks = BL.toChunks contents
+  mapM_ processChunk chunks
+  where
+    processChunk chunk = do
+      putStrLn $ "Processing chunk of size: " ++ show (BS.length chunk)
+```
+
+## Best Practices
+
+1. **Use appropriate types**:
+   - `String` for small text
+   - `Text` for unicode text
+   - `ByteString` for binary data or large text
+
+2. **Handle errors explicitly**:
+   - Use `try`, `catch`, or `bracket`
+   - Don't ignore exceptions
+
+3. **Close resources properly**:
+   - Use `bracket` or `withFile`
+   - Avoid manual `open`/`close`
+
+4. **Prefer strict IO for most cases**:
+   - Lazy IO can cause space leaks
+   - Use lazy IO only when needed
+
+5. **Flush output when needed**:
+   - Use `hFlush` for interactive programs
+   - Ensures output is visible immediately
+
+6. **Use appropriate buffering**:
+   - Line buffering for interactive output
+   - Block buffering for file processing
+
+## Common IO Functions Reference
+
+```haskell
+-- Console
+putChar :: Char -> IO ()
+putStr :: String -> IO ()
+putStrLn :: String -> IO ()
+print :: Show a => a -> IO ()
+getChar :: IO Char
+getLine :: IO String
+getContents :: IO String
+
+-- Files
+readFile :: FilePath -> IO String
+writeFile :: FilePath -> String -> IO ()
+appendFile :: FilePath -> String -> IO ()
+
+-- Handles
+openFile :: FilePath -> IOMode -> IO Handle
+hClose :: Handle -> IO ()
+hGetChar :: Handle -> IO Char
+hGetLine :: Handle -> IO String
+hGetContents :: Handle -> IO String
+hPutChar :: Handle -> Char -> IO ()
+hPutStr :: Handle -> String -> IO ()
+hPutStrLn :: Handle -> String -> IO ()
+hIsEOF :: Handle -> IO Bool
+hFlush :: Handle -> IO ()
+
+-- Directories
+getCurrentDirectory :: IO FilePath
+setCurrentDirectory :: FilePath -> IO ()
+listDirectory :: FilePath -> IO [FilePath]
+doesFileExist :: FilePath -> IO Bool
+doesDirectoryExist :: FilePath -> IO Bool
+```
+
+## Conclusion
+
+IO in Haskell elegantly separates pure computation from side effects. By understanding the IO monad and its operations, you can write robust, maintainable programs that interact with the outside world while preserving Haskell's functional purity.
