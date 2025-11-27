@@ -1,0 +1,706 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# List Comprehension Reference
+
+List comprehension is a concise and elegant way to create lists in Haskell. It's based on mathematical set notation and provides a readable syntax for filtering, transforming, and combining lists.
+
+## Table of Contents
+1. [Basic Syntax](#1-basic-syntax)
+2. [Generators](#2-generators)
+3. [Guards (Filters)](#3-guards-filters)
+4. [Multiple Generators](#4-multiple-generators)
+5. [Pattern Matching](#5-pattern-matching)
+6. [Local Bindings](#6-local-bindings)
+7. [Nested Comprehensions](#7-nested-comprehensions)
+8. [Common Patterns](#8-common-patterns)
+9. [Performance Considerations](#9-performance-considerations)
+10. [Relationship to do Notation](#10-relationship-to-do-notation)
+11. [Advanced Examples](#11-advanced-examples)
+
+## 1. Basic Syntax
+
+### General Form
+
+```haskell
+[ expression | generator, guard, ... ]
+```
+
+The basic structure:
+- **expression**: what to output for each element
+- **generator**: draws elements from a list (using `<-`)
+- **guard**: boolean conditions to filter elements
+
+### Simple Examples
+
+```haskell
+-- Generate numbers 1 to 10
+numbers = [1..10]
+-- Result: [1,2,3,4,5,6,7,8,9,10]
+
+-- Double each number
+doubled = [x * 2 | x <- [1..10]]
+-- Result: [2,4,6,8,10,12,14,16,18,20]
+
+-- Square each number
+squares = [x^2 | x <- [1..10]]
+-- Result: [1,4,9,16,25,36,49,64,81,100]
+
+-- String transformation
+uppercase = [toUpper c | c <- "hello world"]
+-- Result: "HELLO WORLD"
+```
+
+## 2. Generators
+
+Generators draw elements from lists using the `<-` operator.
+
+### Single Generator
+
+```haskell
+-- Basic generator
+simple = [x | x <- [1..5]]
+-- Result: [1,2,3,4,5]
+
+-- Transform with function
+transformed = [x + 10 | x <- [1..5]]
+-- Result: [11,12,13,14,15]
+
+-- Use in expressions
+calculated = [x * 2 + 1 | x <- [1..5]]
+-- Result: [3,5,7,9,11]
+```
+
+### Generator Sources
+
+```haskell
+-- From range
+fromRange = [x | x <- [1..10]]
+
+-- From existing list
+fromList = [x * 2 | x <- [10, 20, 30]]
+-- Result: [20,40,60]
+
+-- From infinite list
+firstTen = take 10 [x | x <- [1..]]
+-- Result: [1,2,3,4,5,6,7,8,9,10]
+
+-- From string
+chars = [c | c <- "Haskell"]
+-- Result: "Haskell"
+```
+
+## 3. Guards (Filters)
+
+Guards are boolean conditions that filter which elements to include.
+
+### Basic Guards
+
+```haskell
+-- Filter even numbers
+evens = [x | x <- [1..10], even x]
+-- Result: [2,4,6,8,10]
+
+-- Filter odd numbers
+odds = [x | x <- [1..10], odd x]
+-- Result: [1,3,5,7,9]
+
+-- Numbers greater than 5
+greaterThan5 = [x | x <- [1..10], x > 5]
+-- Result: [6,7,8,9,10]
+
+-- Numbers divisible by 3
+divisibleBy3 = [x | x <- [1..20], x `mod` 3 == 0]
+-- Result: [3,6,9,12,15,18]
+```
+
+### Multiple Guards
+
+```haskell
+-- Multiple conditions (AND)
+filtered = [x | x <- [1..20], x > 5, x < 15, even x]
+-- Result: [6,8,10,12,14]
+
+-- Complex conditions
+complex = [x | x <- [1..100], x `mod` 3 == 0, x `mod` 5 == 0]
+-- Result: [15,30,45,60,75,90] (divisible by both 3 and 5)
+
+-- Using functions in guards
+vowels = [c | c <- "Hello World", isVowel c]
+  where isVowel c = c `elem` "aeiouAEIOU"
+-- Result: "eoo"
+```
+
+### Guard Order Matters
+
+```haskell
+-- Efficient: filter first, then transform
+efficient = [x^2 | x <- [1..1000000], x `mod` 2 == 0]
+
+-- Less efficient: transform all, then filter
+lessEfficient = [x | x <- [y^2 | y <- [1..1000000]], even x]
+```
+
+## 4. Multiple Generators
+
+Multiple generators create combinations (Cartesian products).
+
+### Two Generators
+
+```haskell
+-- Cartesian product
+pairs = [(x, y) | x <- [1, 2, 3], y <- [4, 5]]
+-- Result: [(1,4),(1,5),(2,4),(2,5),(3,4),(3,5)]
+
+-- Later generators can depend on earlier ones
+dependent = [(x, y) | x <- [1..3], y <- [x..3]]
+-- Result: [(1,1),(1,2),(1,3),(2,2),(2,3),(3,3)]
+
+-- Triangle combinations
+triangles = [(x, y) | x <- [1..5], y <- [1..x]]
+-- Result: [(1,1),(2,1),(2,2),(3,1),(3,2),(3,3),(4,1)...]
+```
+
+### Three or More Generators
+
+```haskell
+-- Three generators
+triples = [(x, y, z) | x <- [1..3], y <- [1..3], z <- [1..3]]
+-- Result: [(1,1,1),(1,1,2),(1,1,3),(1,2,1)...] (27 combinations)
+
+-- Pythagorean triples
+pythagorean = [(a, b, c) | c <- [1..20], 
+                            b <- [1..c], 
+                            a <- [1..b], 
+                            a^2 + b^2 == c^2]
+-- Result: [(3,4,5),(6,8,10),(5,12,13),(9,12,15),(8,15,17)]
+
+-- Right-angled triangle perimeter <= 24
+rightTriangles = [(a, b, c) | c <- [1..10], 
+                               b <- [1..c], 
+                               a <- [1..b], 
+                               a^2 + b^2 == c^2,
+                               a + b + c <= 24]
+-- Result: [(3,4,5),(6,8,10)]
+```
+
+### Order of Generators
+
+```haskell
+-- Rightmost generator varies fastest
+order1 = [(x, y) | x <- [1, 2], y <- [3, 4]]
+-- Result: [(1,3),(1,4),(2,3),(2,4)]
+
+-- Compare with reversed order
+order2 = [(x, y) | y <- [3, 4], x <- [1, 2]]
+-- Result: [(1,3),(2,3),(1,4),(2,4)]
+```
+
+## 5. Pattern Matching
+
+List comprehensions support pattern matching in generators.
+
+### Tuple Patterns
+
+```haskell
+-- Extract from tuples
+firsts = [x | (x, _) <- [(1, 2), (3, 4), (5, 6)]]
+-- Result: [1,3,5]
+
+seconds = [y | (_, y) <- [(1, 2), (3, 4), (5, 6)]]
+-- Result: [2,4,6]
+
+-- Sum tuple pairs
+sums = [x + y | (x, y) <- [(1, 2), (3, 4), (5, 6)]]
+-- Result: [3,7,11]
+```
+
+### List Patterns
+
+```haskell
+-- Pattern match on list structure
+headElements = [x | (x:_) <- [[1,2], [3,4,5], [6]]]
+-- Result: [1,3,6]
+
+-- Match specific patterns
+specific = [x | [x, y] <- [[1,2], [3,4], [5,6,7]]]
+-- Result: [1,3] (last element doesn't match pattern)
+
+-- Multiple elements
+pairs = [(x, y) | (x:y:_) <- [[1,2,3], [4,5], [6,7,8,9]]]
+-- Result: [(1,2),(4,5),(6,7)]
+```
+
+### Maybe Patterns
+
+```haskell
+-- Extract Just values (skips Nothing)
+justValues = [x | Just x <- [Just 1, Nothing, Just 3, Nothing, Just 5]]
+-- Result: [1,3,5]
+
+-- Note: This uses MonadFail, silently skipping non-matches
+```
+
+### Custom Type Patterns
+
+```haskell
+data Person = Person { name :: String, age :: Int }
+
+-- Extract names of adults
+adultNames = [name p | p <- people, age p >= 18]
+
+-- Using pattern matching
+names = [n | Person n _ <- people]
+```
+
+## 6. Local Bindings
+
+Use `let` to create local bindings within comprehensions.
+
+### Basic Let Bindings
+
+```haskell
+-- Calculate once, use multiple times
+withLet = [x + y | x <- [1..5], 
+                   let y = x * 2]
+-- Result: [3,6,9,12,15]
+
+-- Multiple let bindings
+complex = [result | x <- [1..5],
+                    let square = x^2,
+                    let cube = x^3,
+                    let result = square + cube]
+-- Result: [2,12,36,80,150]
+
+-- Let with expressions
+calculated = [total | x <- [1..10],
+                      let double = x * 2,
+                      let triple = x * 3,
+                      let total = double + triple]
+```
+
+### Let vs Guard
+
+```haskell
+-- let doesn't filter
+withLetOnly = [y | x <- [1..5], let y = x * 2]
+-- Result: [2,4,6,8,10] (all elements included)
+
+-- Guard filters
+withGuard = [x | x <- [1..5], even x]
+-- Result: [2,4] (only even elements)
+
+-- Combine let and guard
+combined = [y | x <- [1..10], 
+                let y = x * 2, 
+                y > 10]
+-- Result: [12,14,16,18,20]
+```
+
+### Complex Let Usage
+
+```haskell
+-- Helper functions in let
+processed = [formatted | x <- [1..5],
+                         let square = x^2,
+                         let formatted = "Value: " ++ show x ++ 
+                                        ", Square: " ++ show square]
+
+-- Nested calculations
+nested = [result | x <- [1..10],
+                   let a = x * 2,
+                   let b = a + 5,
+                   let result = b * 3,
+                   result > 30]
+```
+
+## 7. Nested Comprehensions
+
+List comprehensions can be nested within each other.
+
+### Basic Nesting
+
+```haskell
+-- Nested comprehension
+nested = [[y | y <- [1..x]] | x <- [1..5]]
+-- Result: [[1],[1,2],[1,2,3],[1,2,3,4],[1,2,3,4,5]]
+
+-- Matrix operations
+matrix = [[x * y | y <- [1..3]] | x <- [1..3]]
+-- Result: [[1,2,3],[2,4,6],[3,6,9]]
+
+-- Flatten with comprehension
+flattened = [y | xs <- [[1,2], [3,4], [5,6]], y <- xs]
+-- Result: [1,2,3,4,5,6]
+```
+
+### Practical Examples
+
+```haskell
+-- Transpose matrix
+transpose :: [[a]] -> [[a]]
+transpose matrix = [[row !! i | row <- matrix] | i <- [0..length (head matrix) - 1]]
+
+-- Example
+transposed = transpose [[1,2,3], [4,5,6], [7,8,9]]
+-- Result: [[1,4,7],[2,5,8],[3,6,9]]
+
+-- Create multiplication table
+multTable n = [[x * y | y <- [1..n]] | x <- [1..n]]
+```
+
+## 8. Common Patterns
+
+### Map Pattern
+
+```haskell
+-- Map using comprehension
+doubled = [x * 2 | x <- [1..5]]
+-- Equivalent to: map (*2) [1..5]
+
+-- With function
+squared = [x^2 | x <- [1..10]]
+-- Equivalent to: map (^2) [1..10]
+```
+
+### Filter Pattern
+
+```haskell
+-- Filter using comprehension
+evens = [x | x <- [1..10], even x]
+-- Equivalent to: filter even [1..10]
+
+-- Combined filter
+filtered = [x | x <- [1..20], x > 5, x < 15]
+-- Equivalent to: filter (\x -> x > 5 && x < 15) [1..20]
+```
+
+### Map + Filter Pattern
+
+```haskell
+-- Map and filter
+doubledEvens = [x * 2 | x <- [1..10], even x]
+-- Equivalent to: map (*2) (filter even [1..10])
+
+-- More complex
+processed = [x^2 | x <- [1..20], x `mod` 3 == 0]
+-- Equivalent to: map (^2) (filter (\x -> x `mod` 3 == 0) [1..20])
+```
+
+### Zip Pattern
+
+```haskell
+-- Zip two lists
+zipped = [(x, y) | (x, y) <- zip [1..5] ['a'..'e']]
+-- Equivalent to: zip [1..5] ['a'..'e']
+-- Result: [(1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')]
+
+-- ZipWith pattern
+summed = [x + y | (x, y) <- zip [1..5] [10..14]]
+-- Equivalent to: zipWith (+) [1..5] [10..14]
+-- Result: [11,13,15,17,19]
+```
+
+### Cartesian Product
+
+```haskell
+-- All pairs
+allPairs = [(x, y) | x <- [1, 2, 3], y <- [4, 5, 6]]
+
+-- Unique pairs (no duplicates, order independent)
+uniquePairs = [(x, y) | x <- [1..5], y <- [x+1..5]]
+-- Result: [(1,2),(1,3),(1,4),(1,5),(2,3),(2,4)...]
+```
+
+### Concat Pattern
+
+```haskell
+-- Flatten list of lists
+flattened = [x | xs <- [[1,2], [3,4], [5,6]], x <- xs]
+-- Equivalent to: concat [[1,2], [3,4], [5,6]]
+-- Result: [1,2,3,4,5,6]
+
+-- ConcatMap pattern
+concatMapped = [y | x <- [1..3], y <- [x, x*10]]
+-- Equivalent to: concatMap (\x -> [x, x*10]) [1..3]
+-- Result: [1,10,2,20,3,30]
+```
+
+## 9. Performance Considerations
+
+### Efficiency Tips
+
+```haskell
+-- Good: filter early
+efficient = [expensive x | x <- largeList, cheap x]
+
+-- Bad: transform all, then filter
+inefficient = [x | x <- [expensive y | y <- largeList], cheap x]
+
+-- Good: use strict functions when needed
+import Data.List (foldl')
+sumStrict = foldl' (+) 0 [x^2 | x <- [1..1000000]]
+```
+
+### Infinite Lists
+
+```haskell
+-- Lazy evaluation allows infinite lists
+naturals = [1..]
+evens = [x | x <- [1..], even x]
+squares = [x^2 | x <- [1..]]
+
+-- Take only what you need
+firstTenEvens = take 10 evens
+-- Result: [2,4,6,8,10,12,14,16,18,20]
+
+-- Fibonacci using infinite list
+fibs = 0 : 1 : [a + b | (a, b) <- zip fibs (tail fibs)]
+firstTenFibs = take 10 fibs
+-- Result: [0,1,1,2,3,5,8,13,21,34]
+```
+
+### Memory Considerations
+
+```haskell
+-- Space leak: keeps entire list in memory
+sumOfSquares = sum [x^2 | x <- [1..1000000]]
+
+-- Better: use strict fold
+import Data.List (foldl')
+sumOfSquaresStrict = foldl' (+) 0 [x^2 | x <- [1..1000000]]
+
+-- Or use direct recursion for large computations
+```
+
+## 10. Relationship to `do` Notation
+
+List comprehensions desugar to `do` notation (both use the List monad).
+
+### Equivalences
+
+```haskell
+-- List comprehension
+comp1 = [x * 2 | x <- [1..5]]
+
+-- Equivalent do notation
+do1 = do
+  x <- [1..5]
+  return (x * 2)
+
+-- With guard
+comp2 = [x | x <- [1..10], even x]
+
+-- Equivalent do notation with guard
+do2 = do
+  x <- [1..10]
+  guard (even x)
+  return x
+
+-- Multiple generators
+comp3 = [(x, y) | x <- [1, 2], y <- [3, 4]]
+
+-- Equivalent do notation
+do3 = do
+  x <- [1, 2]
+  y <- [3, 4]
+  return (x, y)
+```
+
+### Desugaring Rules
+
+```haskell
+-- Basic form
+[e | x <- xs]
+-- Desugars to:
+xs >>= \x -> return e
+
+-- With guard
+[e | x <- xs, guard]
+-- Desugars to:
+xs >>= \x -> if guard then return e else []
+
+-- Multiple generators
+[e | x <- xs, y <- ys]
+-- Desugars to:
+xs >>= \x -> ys >>= \y -> return e
+```
+
+## 11. Advanced Examples
+
+### String Processing
+
+```haskell
+-- Remove vowels
+removeVowels str = [c | c <- str, not (c `elem` "aeiouAEIOU")]
+-- removeVowels "Hello World" = "Hll Wrld"
+
+-- Caesar cipher
+caesar n str = [shift n c | c <- str]
+  where shift n c | isLower c = chr (ord 'a' + (ord c - ord 'a' + n) `mod` 26)
+                  | isUpper c = chr (ord 'A' + (ord c - ord 'A' + n) `mod` 26)
+                  | otherwise = c
+
+-- Word count
+wordFreq text = [(w, length [() | w' <- words text, w' == w]) | w <- nub (words text)]
+```
+
+### Mathematical Operations
+
+```haskell
+-- Prime numbers (Sieve of Eratosthenes)
+primes = sieve [2..]
+  where sieve (p:xs) = p : sieve [x | x <- xs, x `mod` p /= 0]
+
+-- First 10 primes
+firstPrimes = take 10 primes
+-- Result: [2,3,5,7,11,13,17,19,23,29]
+
+-- Perfect numbers (sum of divisors equals the number)
+perfectNumbers = [n | n <- [1..1000],
+                      sum [d | d <- [1..n-1], n `mod` d == 0] == n]
+-- Result: [6,28,496]
+
+-- Factors of a number
+factors n = [x | x <- [1..n], n `mod` x == 0]
+-- factors 12 = [1,2,3,4,6,12]
+```
+
+### List Operations
+
+```haskell
+-- Quick sort
+quicksort [] = []
+quicksort (x:xs) = quicksort smaller ++ [x] ++ quicksort larger
+  where smaller = [a | a <- xs, a <= x]
+        larger = [a | a <- xs, a > x]
+
+-- Permutations
+perms [] = [[]]
+perms xs = [x:ys | x <- xs, ys <- perms (delete x xs)]
+
+-- Combinations
+combinations 0 _ = [[]]
+combinations _ [] = []
+combinations n (x:xs) = [x:ys | ys <- combinations (n-1) xs] ++ combinations n xs
+```
+
+### Grid and Matrix Operations
+
+```haskell
+-- Generate chess board coordinates
+chessBoard = [(x, y) | x <- [1..8], y <- [1..8]]
+
+-- Knight moves from a position
+knightMoves (x, y) = [(x', y') | (dx, dy) <- moves,
+                                  let x' = x + dx,
+                                  let y' = y + dy,
+                                  x' >= 1, x' <= 8,
+                                  y' >= 1, y' <= 8]
+  where moves = [(2,1),(2,-1),(-2,1),(-2,-1),
+                 (1,2),(1,-2),(-1,2),(-1,-2)]
+
+-- Matrix addition
+addMatrix m1 m2 = [[a + b | (a, b) <- zip row1 row2] 
+                   | (row1, row2) <- zip m1 m2]
+```
+
+### Combinatorial Problems
+
+```haskell
+-- Eight queens problem (simplified)
+queens :: Int -> [[Int]]
+queens n = solve n
+  where
+    solve 0 = [[]]
+    solve k = [q:qs | qs <- solve (k-1), q <- [1..n], safe q qs]
+    safe q qs = and [q /= q' && abs (q - q') /= i | (q', i) <- zip qs [1..]]
+
+-- Sudoku helper - get possible values
+possibleValues grid row col = [v | v <- [1..9], valid v]
+  where valid v = v `notElem` usedValues
+        usedValues = [grid !! r !! c | r <- [0..8], c <- [0..8],
+                      r == row || c == col || 
+                      (r `div` 3 == row `div` 3 && c `div` 3 == col `div` 3)]
+```
+
+## Best Practices
+
+1. **Use guards for filtering, not if-then-else**
+   ```haskell
+   -- Good
+   evens = [x | x <- [1..10], even x]
+   
+   -- Avoid
+   evens = [x | x <- [1..10], if even x then True else False]
+   ```
+
+2. **Order generators efficiently**
+   ```haskell
+   -- Good: smaller list first
+   efficient = [(x, y) | x <- small, y <- large]
+   
+   -- Less efficient
+   inefficient = [(x, y) | y <- large, x <- small]
+   ```
+
+3. **Use pattern matching to filter and extract**
+   ```haskell
+   -- Good
+   firsts = [x | (x, _) <- pairs]
+   
+   -- Less clear
+   firsts = [fst p | p <- pairs]
+   ```
+
+4. **Break complex comprehensions into steps**
+   ```haskell
+   -- Instead of one complex comprehension
+   result = [complex expression | multiple generators, many guards]
+   
+   -- Better
+   step1 = [x | x <- source, guard1]
+   step2 = [transform x | x <- step1, guard2]
+   result = [final x | x <- step2]
+   ```
+
+## Summary
+
+List comprehensions in Haskell provide:
+- **Concise syntax** for list creation
+- **Readable code** that resembles mathematical notation
+- **Powerful filtering** with guards
+- **Pattern matching** in generators
+- **Composability** with multiple generators
+- **Lazy evaluation** for efficient computation
+
+They are syntactic sugar for the List monad but offer a more intuitive syntax for many common list operations.
+
+## Quick Reference
+
+```haskell
+-- Basic
+[x * 2 | x <- [1..10]]                      -- map
+
+-- With guard
+[x | x <- [1..10], even x]                  -- filter
+
+-- Multiple generators
+[(x, y) | x <- [1..3], y <- [1..3]]        -- cartesian product
+
+-- Dependent generators
+[(x, y) | x <- [1..3], y <- [x..3]]        -- triangular
+
+-- With let
+[y | x <- [1..5], let y = x * 2]           -- local binding
+
+-- Pattern matching
+[x | (x, _) <- pairs]                       -- extract from tuple
+
+-- Nested
+[[y | y <- [1..x]] | x <- [1..5]]          -- nested lists
+```
+
+List comprehensions are one of Haskell's most elegant features, making list manipulation both powerful and readable.
