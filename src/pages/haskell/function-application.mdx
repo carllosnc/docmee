@@ -1,0 +1,273 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Function Application with $
+
+## What Is the $ Operator?
+
+The `$` operator is a function application operator in Haskell. It's defined as:
+
+```haskell
+($) :: (a -> b) -> a -> b
+f $ x = f x
+```
+
+While it might seem redundant (just applying a function to an argument), it's actually one of the most useful operators in Haskell.
+
+## The Key Difference: Precedence and Associativity
+
+### Normal Function Application
+- Has the **highest precedence** (10)
+- Is **left-associative**
+- Written as: `f x`
+
+### Function Application with $
+- Has the **lowest precedence** (0)
+- Is **right-associative**
+- Written as: `f $ x`
+
+## Why Use $?
+
+The primary benefit is **avoiding parentheses**. Since `$` has the lowest precedence, everything to its right is evaluated first.
+
+### Example 1: Avoiding Nested Parentheses
+
+```haskell
+-- Without $
+sum (filter (> 10) (map (*2) [1..10]))
+
+-- With $
+sum $ filter (> 10) $ map (*2) [1..10]
+```
+
+### Example 2: Simple Function Calls
+
+```haskell
+-- Without $
+putStrLn (show (1 + 1))
+
+-- With $
+putStrLn $ show $ 1 + 1
+```
+
+## How $ Works: Evaluation Order
+
+The `$` operator makes everything to its right evaluate first:
+
+```haskell
+f $ g $ h x
+-- Equivalent to:
+f (g (h x))
+```
+
+Think of it as: "apply function `f` to the result of everything that comes after `$`"
+
+## Common Use Cases
+
+### 1. Simplifying Print Statements
+
+```haskell
+-- Without $
+putStrLn (show (sum [1, 2, 3, 4, 5]))
+
+-- With $
+putStrLn $ show $ sum [1, 2, 3, 4, 5]
+```
+
+### 2. Chaining Functions
+
+```haskell
+-- Without $
+print (take 5 (reverse (filter even [1..20])))
+
+-- With $
+print $ take 5 $ reverse $ filter even [1..20]
+```
+
+### 3. With Higher-Order Functions
+
+```haskell
+-- Without $
+map (\x -> x * 2) (filter (> 5) [1..10])
+
+-- With $
+map (\x -> x * 2) $ filter (> 5) [1..10]
+```
+
+### 4. In List Comprehensions Context
+
+```haskell
+-- Without $
+result = sum (map (*2) (filter odd [1..10]))
+
+-- With $
+result = sum $ map (*2) $ filter odd [1..10]
+```
+
+## When NOT to Use $
+
+### Don't use $ for single arguments
+
+```haskell
+-- Bad (unnecessary)
+print $ 5
+
+-- Good
+print 5
+```
+
+### Don't use $ when regular application is clearer
+
+```haskell
+-- Confusing
+f $ x y
+-- This means: f (x y)
+
+-- Clearer with parentheses
+f (x y)
+```
+
+## $ vs. Parentheses: Side-by-Side Comparison
+
+```haskell
+-- Multiple nested functions
+head (reverse (filter even [1..10]))
+head $ reverse $ filter even [1..10]
+
+-- Function with multiple arguments
+max (abs (-5)) (abs (-3))
+max (abs (-5)) $ abs (-3)
+
+-- Complex expressions
+sqrt (sum (map (^2) [1..10]))
+sqrt $ sum $ map (^2) [1..10]
+
+-- Mixed operations
+length (filter (> 5) (map (*2) [1..10]))
+length $ filter (> 5) $ map (*2) [1..10]
+```
+
+## Understanding Precedence
+
+Function application normally has the highest precedence:
+
+```haskell
+-- Function application binds tighter than operators
+f x + g y
+-- Means: (f x) + (g y)
+
+-- With $, we can change this
+f $ x + g y
+-- Means: f (x + g y)
+```
+
+### Practical Example
+
+```haskell
+-- Without $
+putStrLn (show (3 + 4))
+
+-- With $
+putStrLn $ show $ 3 + 4
+-- This works because $ has lower precedence than +
+-- So it's: putStrLn (show (3 + 4))
+```
+
+## $ with Lambda Functions
+
+```haskell
+-- Without $
+map (\x -> x * 2) (filter (\x -> x > 5) [1..10])
+
+-- With $
+map (\x -> x * 2) $ filter (\x -> x > 5) [1..10]
+```
+
+## $ with Conditionals
+
+```haskell
+-- Without $
+print (if x > 5 then "big" else "small")
+
+-- With $
+print $ if x > 5 then "big" else "small"
+```
+
+## Right Associativity in Action
+
+Because `$` is right-associative, chains are evaluated from right to left:
+
+```haskell
+f $ g $ h $ x
+-- Groups as:
+f $ (g $ (h $ x))
+-- Which is equivalent to:
+f (g (h x))
+```
+
+## Combining $ with Other Operators
+
+```haskell
+-- With arithmetic
+print $ 2 * 3 + 4
+-- Means: print (2 * 3 + 4)
+
+-- With comparison
+putStrLn $ show $ 5 > 3
+-- Means: putStrLn (show (5 > 3))
+
+-- With list operations
+print $ head $ tail [1, 2, 3, 4]
+-- Means: print (head (tail [1, 2, 3, 4]))
+```
+
+## Real-World Examples
+
+### Example 1: Data Processing Pipeline
+
+```haskell
+-- Without $
+result = sum (map (*2) (filter even (take 10 [1..])))
+
+-- With $
+result = sum $ map (*2) $ filter even $ take 10 [1..]
+```
+
+### Example 2: String Manipulation
+
+```haskell
+-- Without $
+output = unwords (reverse (words (map toUpper "hello world")))
+
+-- With $
+output = unwords $ reverse $ words $ map toUpper "hello world"
+```
+
+### Example 3: I/O Operations
+
+```haskell
+main :: IO ()
+main = do
+    putStrLn $ "Enter a number:"
+    input <- getLine
+    putStrLn $ "You entered: " ++ input
+    print $ read input + 10
+```
+
+## Style Guidelines
+
+1. **Use $ to reduce parentheses** when you have multiple nested function calls
+2. **Prefer $ for readability** in function chains
+3. **Don't overuse** - if you only have one function call, parentheses might be clearer
+4. **Be consistent** with your codebase's style
+
+## Key Takeaways
+
+- `$` is function application with the lowest precedence
+- It's right-associative, grouping from right to left
+- Main benefit: **avoiding parentheses** in nested function calls
+- Use it to make code more readable, especially in function chains
+- Think of it as "everything to the right happens first"
+- It's semantically equivalent to using parentheses, just syntactic sugar for cleaner code

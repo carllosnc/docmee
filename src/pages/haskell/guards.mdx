@@ -1,0 +1,199 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Guards
+
+## What Are Guards?
+
+Guards are a way to write conditional expressions in Haskell function definitions. They provide a cleaner and more readable alternative to nested `if-then-else` expressions, especially when you have multiple conditions to check.
+
+## Basic Syntax
+
+Guards are written using the pipe symbol `|` followed by a boolean expression, then `=` and the result expression:
+
+```haskell
+functionName parameters
+  | condition1 = result1
+  | condition2 = result2
+  | condition3 = result3
+  | otherwise  = defaultResult
+```
+
+## Simple Example
+
+Here's a function that classifies numbers:
+
+```haskell
+classifyNumber :: Int -> String
+classifyNumber n
+  | n < 0     = "Negative"
+  | n == 0    = "Zero"
+  | n > 0     = "Positive"
+```
+
+## The `otherwise` Keyword
+
+`otherwise` is simply defined as `True` and is used as a catch-all guard at the end:
+
+```haskell
+grade :: Int -> String
+grade score
+  | score >= 90 = "A"
+  | score >= 80 = "B"
+  | score >= 70 = "C"
+  | score >= 60 = "D"
+  | otherwise   = "F"
+```
+
+Without `otherwise`, if no guards match, you'll get a runtime error.
+
+## Guards with Pattern Matching
+
+You can combine guards with pattern matching:
+
+```haskell
+describe :: [a] -> String
+describe list
+  | null list = "Empty list"
+  | length list == 1 = "Single element"
+  | length list < 5 = "Short list"
+  | otherwise = "Long list"
+```
+
+Or use pattern matching first:
+
+```haskell
+describeList :: [a] -> String
+describeList [] = "Empty list"
+describeList [x]
+  | x == x = "Single element"
+describeList xs
+  | length xs < 5 = "Short list"
+  | otherwise = "Long list"
+```
+
+## Using Where Clauses with Guards
+
+You can use `where` to define local variables that are accessible in all guards:
+
+```haskell
+bmiTell :: Double -> Double -> String
+bmiTell weight height
+  | bmi <= 18.5 = "Underweight"
+  | bmi <= 25.0 = "Normal"
+  | bmi <= 30.0 = "Overweight"
+  | otherwise   = "Obese"
+  where bmi = weight / height ^ 2
+```
+
+## Multiple Conditions in One Guard
+
+You can use logical operators to combine conditions:
+
+```haskell
+isWeekend :: String -> Bool
+isWeekend day
+  | day == "Saturday" || day == "Sunday" = True
+  | otherwise = False
+
+isValidAge :: Int -> Bool
+isValidAge age
+  | age >= 0 && age <= 120 = True
+  | otherwise = False
+```
+
+## Guards in Case Expressions
+
+While guards are typically used in function definitions, you can achieve similar results with case expressions:
+
+```haskell
+-- Using guards
+sign :: Int -> String
+sign n
+  | n > 0  = "Positive"
+  | n < 0  = "Negative"
+  | n == 0 = "Zero"
+
+-- Using case
+sign' :: Int -> String
+sign' n = case () of
+  _ | n > 0  -> "Positive"
+    | n < 0  -> "Negative"
+    | n == 0 -> "Zero"
+```
+
+## Complex Example
+
+Here's a more complex example combining multiple concepts:
+
+```haskell
+waterState :: Double -> String
+waterState temp
+  | temp <= freezing = "Ice"
+  | temp >= boiling  = "Steam"
+  | temp > comfortable && temp < hot = "Pleasant"
+  | otherwise = "Liquid water"
+  where
+    freezing = 0
+    boiling = 100
+    comfortable = 20
+    hot = 30
+```
+
+## Guards vs. If-Then-Else
+
+Compare these two approaches:
+
+```haskell
+-- Using guards (cleaner)
+max' :: Int -> Int -> Int
+max' a b
+  | a > b     = a
+  | otherwise = b
+
+-- Using if-then-else (more verbose)
+max'' :: Int -> Int -> Int
+max'' a b = if a > b then a else b
+```
+
+Guards are generally preferred when you have multiple conditions to check.
+
+## Common Patterns
+
+### Absolute Value
+```haskell
+abs' :: Int -> Int
+abs' n
+  | n < 0     = -n
+  | otherwise = n
+```
+
+### Maximum of Three Numbers
+```haskell
+max3 :: Int -> Int -> Int -> Int
+max3 a b c
+  | a >= b && a >= c = a
+  | b >= c           = b
+  | otherwise        = c
+```
+
+### Fizz Buzz
+```haskell
+fizzBuzz :: Int -> String
+fizzBuzz n
+  | n `mod` 15 == 0 = "FizzBuzz"
+  | n `mod` 3 == 0  = "Fizz"
+  | n `mod` 5 == 0  = "Buzz"
+  | otherwise       = show n
+```
+
+## Key Takeaways
+
+- Guards provide readable multi-way conditionals
+- Use `otherwise` as your final guard to avoid runtime errors
+- Guards are evaluated top-to-bottom; the first true condition wins
+- Combine guards with `where` clauses for cleaner code
+- Guards work well with pattern matching
+- Prefer guards over nested if-then-else for multiple conditions

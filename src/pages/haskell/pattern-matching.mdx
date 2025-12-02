@@ -1,0 +1,555 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/haskell">← Haskell</a> <br /> <br />
+
+# Pattern Matching
+
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Basic Pattern Matching](#basic-pattern-matching)
+3. [Patterns on Different Types](#patterns-on-different-types)
+4. [Advanced Pattern Matching](#advanced-pattern-matching)
+5. [Pattern Guards](#pattern-guards)
+6. [View Patterns](#view-patterns)
+7. [Pattern Synonyms](#pattern-synonyms)
+8. [Best Practices and Common Pitfalls](#best-practices-and-common-pitfalls)
+
+## Introduction
+
+Pattern matching is a fundamental feature in Haskell that allows you to deconstruct data structures and bind variables to their components. It provides a concise and readable way to handle different cases in your code.
+
+Pattern matching occurs in several contexts: function definitions, case expressions, let bindings, list comprehensions, and do notation.
+
+## Basic Pattern Matching
+
+### Literal Patterns
+
+Match against specific values directly.
+
+```haskell
+-- Matching integers
+factorial :: Int -> Int
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+-- Matching booleans
+not' :: Bool -> Bool
+not' True = False
+not' False = True
+
+-- Matching characters
+isVowel :: Char -> Bool
+isVowel 'a' = True
+isVowel 'e' = True
+isVowel 'i' = True
+isVowel 'o' = True
+isVowel 'u' = True
+isVowel _   = False
+```
+
+### Variable Patterns
+
+Bind values to variables.
+
+```haskell
+-- Simple variable binding
+identity :: a -> a
+identity x = x
+
+-- Multiple variables
+add :: Int -> Int -> Int
+add x y = x + y
+```
+
+### Wildcard Pattern
+
+The underscore `_` matches anything without binding it to a variable.
+
+```haskell
+-- Ignore second element
+fst' :: (a, b) -> a
+fst' (x, _) = x
+
+-- Ignore function argument
+const' :: a -> b -> a
+const' x _ = x
+```
+
+### As-Patterns
+
+Use `@` to bind a name to the entire value while also pattern matching on it.
+
+```haskell
+-- Bind entire list while matching head
+duplicate :: [a] -> [a]
+duplicate [] = []
+duplicate xs@(x:_) = x : xs
+
+-- Example usage: duplicate [1,2,3] => [1,1,2,3]
+
+-- Check if list starts with specific element
+startsWithA :: String -> Bool
+startsWithA s@('a':_) = True
+startsWithA _ = False
+```
+
+## Patterns on Different Types
+
+### Tuple Patterns
+
+Deconstruct tuples of any size.
+
+```haskell
+-- Pairs
+addPair :: (Int, Int) -> Int
+addPair (x, y) = x + y
+
+-- Triples
+firstOfThree :: (a, b, c) -> a
+firstOfThree (x, _, _) = x
+
+-- Nested tuples
+flatten :: ((a, b), c) -> (a, b, c)
+flatten ((x, y), z) = (x, y, z)
+```
+
+### List Patterns
+
+Match on list structure using the cons operator `:` or list syntax `[]`.
+
+```haskell
+-- Empty list
+isEmpty :: [a] -> Bool
+isEmpty [] = True
+isEmpty _  = False
+
+-- Head and tail
+head' :: [a] -> a
+head' (x:_) = x
+head' [] = error "empty list"
+
+-- Multiple elements
+firstTwo :: [a] -> (a, a)
+firstTwo (x:y:_) = (x, y)
+firstTwo _ = error "list too short"
+
+-- Explicit list syntax
+exactlyTwo :: [a] -> Bool
+exactlyTwo [_, _] = True
+exactlyTwo _ = False
+```
+
+### Algebraic Data Type Patterns
+
+Match on custom data constructors.
+
+```haskell
+-- Simple ADT
+data Color = Red | Green | Blue
+
+colorName :: Color -> String
+colorName Red = "red"
+colorName Green = "green"
+colorName Blue = "blue"
+
+-- ADT with fields
+data Point = Point Double Double
+
+distance :: Point -> Double
+distance (Point x y) = sqrt (x*x + y*y)
+
+-- Recursive ADT
+data Tree a = Leaf a | Node (Tree a) (Tree a)
+
+depth :: Tree a -> Int
+depth (Leaf _) = 0
+depth (Node left right) = 1 + max (depth left) (depth right)
+```
+
+### Maybe Patterns
+
+Handle optional values.
+
+```haskell
+-- Basic Maybe matching
+fromMaybe :: a -> Maybe a -> a
+fromMaybe def Nothing = def
+fromMaybe _ (Just x) = x
+
+-- Chaining operations
+addMaybes :: Maybe Int -> Maybe Int -> Maybe Int
+addMaybes (Just x) (Just y) = Just (x + y)
+addMaybes _ _ = Nothing
+```
+
+### Either Patterns
+
+Handle values that can be one of two types.
+
+```haskell
+-- Basic Either matching
+fromLeft :: Either a b -> a
+fromLeft (Left x) = x
+fromLeft (Right _) = error "not a Left"
+
+-- Error handling
+processResult :: Either String Int -> String
+processResult (Left err) = "Error: " ++ err
+processResult (Right val) = "Success: " ++ show val
+```
+
+### Record Patterns
+
+Pattern match on record fields.
+
+```haskell
+data Person = Person { name :: String, age :: Int }
+
+-- Full pattern
+greet :: Person -> String
+greet (Person {name = n, age = a}) = n ++ " is " ++ show a ++ " years old"
+
+-- Partial pattern (order doesn't matter)
+isAdult :: Person -> Bool
+isAdult (Person {age = a}) = a >= 18
+
+-- Pun syntax (when variable name matches field name)
+getName :: Person -> String
+getName (Person {name}) = name
+```
+
+## Advanced Pattern Matching
+
+### Nested Patterns
+
+Combine patterns to match deeply nested structures.
+
+```haskell
+-- Nested tuples
+addNestedPairs :: ((Int, Int), (Int, Int)) -> Int
+addNestedPairs ((a, b), (c, d)) = a + b + c + d
+
+-- Nested lists
+secondElement :: [[a]] -> Maybe a
+secondElement ((x:y:_):_) = Just y
+secondElement _ = Nothing
+
+-- Complex nesting
+data Tree a = Empty | Node a (Tree a) (Tree a)
+
+leftmostValue :: Tree a -> Maybe a
+leftmostValue Empty = Nothing
+leftmostValue (Node x Empty _) = Just x
+leftmostValue (Node _ left _) = leftmostValue left
+```
+
+### Case Expressions
+
+Pattern match within an expression.
+
+```haskell
+-- Basic case expression
+describeList :: [a] -> String
+describeList xs = case xs of
+  [] -> "empty"
+  [x] -> "singleton"
+  [x, y] -> "pair"
+  _ -> "longer list"
+
+-- Nested case
+classify :: Maybe (Either String Int) -> String
+classify mx = case mx of
+  Nothing -> "nothing"
+  Just ex -> case ex of
+    Left s -> "error: " ++ s
+    Right n -> "number: " ++ show n
+```
+
+### Lambda Patterns
+
+Pattern match in lambda functions.
+
+```haskell
+-- Simple lambda pattern
+pairs = map (\(x, y) -> x + y) [(1,2), (3,4), (5,6)]
+
+-- Multiple patterns require case
+safeDivide = \x y -> case y of
+  0 -> Nothing
+  _ -> Just (x / y)
+```
+
+### Let and Where Patterns
+
+Pattern match in local bindings.
+
+```haskell
+-- Let pattern
+distance2D :: (Double, Double) -> (Double, Double) -> Double
+distance2D p1 p2 = 
+  let (x1, y1) = p1
+      (x2, y2) = p2
+      dx = x2 - x1
+      dy = y2 - y1
+  in sqrt (dx*dx + dy*dy)
+
+-- Where pattern
+quadraticRoots :: Double -> Double -> Double -> (Double, Double)
+quadraticRoots a b c = (root1, root2)
+  where
+    (root1, root2) = ((-b + d) / (2*a), (-b - d) / (2*a))
+    d = sqrt (b*b - 4*a*c)
+```
+
+### Irrefutable Patterns
+
+Use `~` to create lazy patterns that always succeed.
+
+```haskell
+-- Without irrefutable pattern (strict)
+strictPair :: (a, b) -> String
+strictPair (x, y) = "got a pair"
+-- strictPair undefined => error
+
+-- With irrefutable pattern (lazy)
+lazyPair :: (a, b) -> String
+lazyPair ~(x, y) = "got a pair"
+-- lazyPair undefined => "got a pair"
+
+-- Useful in recursive definitions
+fibonacci :: [Integer]
+fibonacci = 0 : 1 : zipWith (+) fibonacci (tail fibonacci)
+```
+
+## Pattern Guards
+
+Guards allow boolean conditions in pattern matching.
+
+```haskell
+-- Basic guards
+absoluteValue :: Int -> Int
+absoluteValue n
+  | n < 0     = -n
+  | otherwise = n
+
+-- Multiple guards
+gradeToLetter :: Int -> Char
+gradeToLetter score
+  | score >= 90 = 'A'
+  | score >= 80 = 'B'
+  | score >= 70 = 'C'
+  | score >= 60 = 'D'
+  | otherwise   = 'F'
+
+-- Pattern guards with pattern matching
+describeList :: [a] -> String
+describeList xs
+  | [] <- xs = "empty"
+  | [_] <- xs = "singleton"
+  | (x:y:_) <- xs = "starts with two elements"
+  | otherwise = "something else"
+
+-- Guards with where clauses
+bmiCategory :: Double -> Double -> String
+bmiCategory weight height
+  | bmi < 18.5 = "underweight"
+  | bmi < 25.0 = "normal"
+  | bmi < 30.0 = "overweight"
+  | otherwise  = "obese"
+  where bmi = weight / (height * height)
+```
+
+## View Patterns
+
+View patterns (require `ViewPatterns` extension) allow you to pattern match on the result of applying a function.
+
+```haskell
+{-# LANGUAGE ViewPatterns #-}
+
+import Data.List (stripPrefix)
+
+-- Basic view pattern
+parseCommand :: String -> String
+parseCommand (stripPrefix "cmd:" -> Just rest) = "Command: " ++ rest
+parseCommand other = "Not a command: " ++ other
+
+-- Multiple view patterns
+classify :: Int -> String
+classify ((`mod` 2) -> 0, (`mod` 3) -> 0) = "divisible by 6"
+classify ((`mod` 2) -> 0) = "even"
+classify ((`mod` 3) -> 0) = "divisible by 3"
+classify _ = "other"
+
+-- With custom functions
+data Person = Person String Int
+
+isAdultView :: Person -> Maybe Person
+isAdultView p@(Person _ age) = if age >= 18 then Just p else Nothing
+
+serveAlcohol :: Person -> String
+serveAlcohol (isAdultView -> Just (Person name _)) = name ++ " can be served"
+serveAlcohol (Person name _) = name ++ " is too young"
+```
+
+## Pattern Synonyms
+
+Pattern synonyms (require `PatternSynonyms` extension) let you create reusable pattern abstractions.
+
+```haskell
+{-# LANGUAGE PatternSynonyms #-}
+
+-- Bidirectional pattern synonym
+pattern SingleDigit :: Int
+pattern SingleDigit <- x where
+  SingleDigit = 5  -- Default value when used as expression
+
+isSingleDigit :: Int -> Bool
+isSingleDigit SingleDigit = True
+isSingleDigit _ = False
+
+-- Pattern synonym with arguments
+data RGB = RGB Int Int Int
+
+pattern Red :: RGB
+pattern Red = RGB 255 0 0
+
+pattern Green :: RGB
+pattern Green = RGB 0 255 0
+
+isRed :: RGB -> Bool
+isRed Red = True
+isRed _ = False
+
+-- Complex pattern synonyms
+pattern NonEmpty :: [a] -> [a]
+pattern NonEmpty xs <- (x:xs) where
+  NonEmpty xs = xs
+
+-- Viewable pattern synonyms
+pattern Head :: a -> [a]
+pattern Head x <- (x:_)
+```
+
+## Best Practices and Common Pitfalls
+
+### Exhaustiveness
+
+Always handle all cases to avoid runtime errors.
+
+```haskell
+-- BAD: Non-exhaustive pattern
+headBad :: [a] -> a
+headBad (x:_) = x
+-- Fails on empty list!
+
+-- GOOD: Exhaustive
+headGood :: [a] -> Maybe a
+headGood (x:_) = Just x
+headGood [] = Nothing
+```
+
+### Pattern Order Matters
+
+Patterns are matched top-to-bottom, first match wins.
+
+```haskell
+-- BAD: Second pattern never matches
+isEmptyBad :: [a] -> Bool
+isEmptyBad _ = False
+isEmptyBad [] = True  -- Never reached!
+
+-- GOOD: Specific patterns first
+isEmptyGood :: [a] -> Bool
+isEmptyGood [] = True
+isEmptyGood _ = False
+```
+
+### Avoid Redundant Patterns
+
+Don't repeat unnecessary pattern matching.
+
+```haskell
+-- BAD: Redundant
+lengthBad :: [a] -> Int
+lengthBad [] = 0
+lengthBad [_] = 1
+lengthBad [_, _] = 2
+lengthBad xs = length xs  -- Could have used this everywhere
+
+-- GOOD: Simple and clear
+lengthGood :: [a] -> Int
+lengthGood [] = 0
+lengthGood (_:xs) = 1 + lengthGood xs
+```
+
+### Use Wildcards Appropriately
+
+Use `_` when you don't need the value.
+
+```haskell
+-- BAD: Unused variable
+fstBad :: (a, b) -> a
+fstBad (x, y) = x  -- y is unused, compiler warning
+
+-- GOOD: Wildcard
+fstGood :: (a, b) -> a
+fstGood (x, _) = x
+```
+
+### Leverage As-Patterns
+
+Use as-patterns to avoid redundant reconstruction.
+
+```haskell
+-- BAD: Reconstructing
+duplicateBad :: [a] -> [a]
+duplicateBad [] = []
+duplicateBad (x:xs) = x : x : xs
+
+-- GOOD: Using as-pattern
+duplicateGood :: [a] -> [a]
+duplicateGood [] = []
+duplicateGood all@(x:_) = x : all
+```
+
+### Use Pattern Guards for Complex Conditions
+
+```haskell
+-- Instead of nested ifs
+classify :: Int -> String
+classify x
+  | x > 0, even x = "positive even"
+  | x > 0 = "positive odd"
+  | x < 0 = "negative"
+  | otherwise = "zero"
+```
+
+### Common Extensions
+
+Enable these language extensions for advanced patterns:
+- `ViewPatterns`: Match on function results
+- `PatternSynonyms`: Create reusable patterns
+- `LambdaCase`: Shorthand for `\x -> case x of`
+- `PatternGuards`: Use pattern matching in guards
+- `BangPatterns`: Force evaluation with `!`
+
+```haskell
+{-# LANGUAGE LambdaCase #-}
+
+-- Instead of: \x -> case x of ...
+processEither :: Either String Int -> String
+processEither = \case
+  Left err -> "Error: " ++ err
+  Right n -> "Number: " ++ show n
+```
+
+## Summary
+
+Pattern matching is one of Haskell's most powerful features, enabling:
+- Concise function definitions
+- Safe data structure deconstruction
+- Compile-time exhaustiveness checking
+- Readable and maintainable code
+
+Master these patterns and your Haskell code will be more idiomatic, safer, and easier to understand.
