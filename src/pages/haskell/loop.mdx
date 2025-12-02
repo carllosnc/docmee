@@ -1,0 +1,615 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/">← Home </a> <br /> <br />
+
+# Loops
+
+## Introduction
+
+Haskell doesn't have traditional loops like `for` or `while` found in imperative languages. Instead, Haskell uses **recursion**, **higher-order functions**, and **list comprehensions** to achieve iteration. This is because Haskell is a purely functional language that emphasizes immutability and function composition.
+
+## Table of Contents
+
+1. [Recursion](#recursion)
+2. [Higher-Order Functions](#higher-order-functions)
+3. [List Comprehensions](#list-comprehensions)
+4. [Fold Functions](#fold-functions)
+5. [Monadic Loops (IO)](#monadic-loops-io)
+6. [Infinite Lists and Lazy Evaluation](#infinite-lists-and-lazy-evaluation)
+7. [Pattern Matching](#pattern-matching)
+8. [Guards with Recursion](#guards-with-recursion)
+
+---
+
+## Recursion
+
+Recursion is the primary way to perform repetitive operations in Haskell.
+
+### Basic Recursion Pattern
+
+```haskell
+-- General pattern
+loop :: Int -> String
+loop 0 = "Done!"
+loop n = "Step " ++ show n ++ "\n" ++ loop (n - 1)
+```
+
+### Examples
+
+#### Factorial
+```haskell
+factorial :: Integer -> Integer
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+-- Usage: factorial 5  => 120
+```
+
+#### Sum of List
+```haskell
+sumList :: [Int] -> Int
+sumList [] = 0
+sumList (x:xs) = x + sumList xs
+
+-- Usage: sumList [1,2,3,4,5]  => 15
+```
+
+#### Length of List
+```haskell
+length' :: [a] -> Int
+length' [] = 0
+length' (_:xs) = 1 + length' xs
+```
+
+#### Reverse a List
+```haskell
+reverse' :: [a] -> [a]
+reverse' [] = []
+reverse' (x:xs) = reverse' xs ++ [x]
+```
+
+#### Repeat N Times
+```haskell
+repeatN :: Int -> a -> [a]
+repeatN 0 _ = []
+repeatN n x = x : repeatN (n - 1) x
+
+-- Usage: repeatN 5 "Hi"  => ["Hi","Hi","Hi","Hi","Hi"]
+```
+
+### Tail Recursion (Optimized)
+
+Tail recursion is more efficient as it can be optimized by the compiler:
+
+```haskell
+-- Not tail recursive (builds up stack)
+factorial :: Integer -> Integer
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+
+-- Tail recursive (with accumulator)
+factorial' :: Integer -> Integer
+factorial' n = go n 1
+  where
+    go 0 acc = acc
+    go n acc = go (n - 1) (n * acc)
+```
+
+#### Tail Recursive Sum
+```haskell
+sum' :: [Int] -> Int
+sum' xs = go xs 0
+  where
+    go [] acc = acc
+    go (x:xs) acc = go xs (acc + x)
+```
+
+#### Tail Recursive Reverse
+```haskell
+reverse' :: [a] -> [a]
+reverse' xs = go xs []
+  where
+    go [] acc = acc
+    go (x:xs) acc = go xs (x:acc)
+```
+
+---
+
+## Higher-Order Functions
+
+Higher-order functions are built-in functions that replace most common loop patterns.
+
+### map - Transform Each Element
+
+```haskell
+-- Signature
+map :: (a -> b) -> [a] -> [b]
+
+-- Examples
+map (*2) [1,2,3,4,5]           -- [2,4,6,8,10]
+map (^2) [1,2,3,4,5]           -- [1,4,9,16,25]
+map toUpper "hello"            -- "HELLO"
+map reverse ["abc", "def"]     -- ["cba","fed"]
+map length ["hi", "hello"]     -- [2,5]
+```
+
+### filter - Keep Elements That Match Condition
+
+```haskell
+-- Signature
+filter :: (a -> Bool) -> [a] -> [a]
+
+-- Examples
+filter even [1,2,3,4,5,6]      -- [2,4,6]
+filter (>3) [1,2,3,4,5]        -- [4,5]
+filter (\x -> x `mod` 3 == 0) [1..10]  -- [3,6,9]
+filter null [[1], [], [2,3], []]  -- [[],[]]
+```
+
+### zip - Combine Two Lists
+
+```haskell
+-- Signature
+zip :: [a] -> [b] -> [(a, b)]
+
+-- Examples
+zip [1,2,3] ['a','b','c']      -- [(1,'a'),(2,'b'),(3,'c')]
+zip [1..] ['a'..'z']           -- Pairs with indices
+zipWith (+) [1,2,3] [4,5,6]    -- [5,7,9]
+zipWith (*) [1,2,3] [4,5,6]    -- [4,10,18]
+```
+
+### take / drop - Get Subsets
+
+```haskell
+take 5 [1..10]                 -- [1,2,3,4,5]
+drop 5 [1..10]                 -- [6,7,8,9,10]
+takeWhile (<5) [1..10]         -- [1,2,3,4]
+dropWhile (<5) [1..10]         -- [5,6,7,8,9,10]
+```
+
+### replicate - Repeat Element N Times
+
+```haskell
+replicate 5 "Hi"               -- ["Hi","Hi","Hi","Hi","Hi"]
+replicate 3 0                  -- [0,0,0]
+```
+
+### iterate - Generate Infinite Sequence
+
+```haskell
+take 5 $ iterate (*2) 1        -- [1,2,4,8,16]
+take 5 $ iterate (+1) 0        -- [0,1,2,3,4]
+```
+
+### repeat / cycle - Infinite Repetition
+
+```haskell
+take 5 $ repeat 'x'            -- "xxxxx"
+take 10 $ cycle [1,2,3]        -- [1,2,3,1,2,3,1,2,3,1]
+```
+
+---
+
+## List Comprehensions
+
+List comprehensions provide syntax similar to mathematical set notation.
+
+### Basic Syntax
+
+```haskell
+[expression | generator, predicate]
+```
+
+### Examples
+
+#### Simple Generation
+```haskell
+[x*2 | x <- [1..5]]            -- [2,4,6,8,10]
+[x^2 | x <- [1..10]]           -- [1,4,9,16,25,36,49,64,81,100]
+```
+
+#### With Predicates (Filters)
+```haskell
+[x | x <- [1..20], even x]     -- [2,4,6,8,10,12,14,16,18,20]
+[x | x <- [1..20], x `mod` 3 == 0]  -- [3,6,9,12,15,18]
+```
+
+#### Multiple Generators
+```haskell
+[(x,y) | x <- [1,2,3], y <- [4,5]]
+-- [(1,4),(1,5),(2,4),(2,5),(3,4),(3,5)]
+
+[(x,y) | x <- [1..3], y <- [1..3], x /= y]
+-- [(1,2),(1,3),(2,1),(2,3),(3,1),(3,2)]
+```
+
+#### Multiple Predicates
+```haskell
+[x | x <- [1..100], x `mod` 3 == 0, x `mod` 5 == 0]
+-- [15,30,45,60,75,90]
+```
+
+#### Nested List Comprehensions
+```haskell
+[[x | x <- [1..y]] | y <- [1..5]]
+-- [[1],[1,2],[1,2,3],[1,2,3,4],[1,2,3,4,5]]
+```
+
+#### String Manipulation
+```haskell
+[c | c <- "Hello World", c `elem` ['A'..'Z']]  -- "HW"
+[c | c <- "Hello World", c /= ' ']             -- "HelloWorld"
+```
+
+---
+
+## Fold Functions
+
+Folds are powerful abstractions for processing lists with an accumulator.
+
+### foldr - Fold Right (Lazy)
+
+```haskell
+-- Signature
+foldr :: (a -> b -> b) -> b -> [a] -> b
+
+-- How it works
+foldr f z [x1, x2, x3] = x1 `f` (x2 `f` (x3 `f` z))
+
+-- Examples
+foldr (+) 0 [1,2,3,4,5]        -- 15
+foldr (*) 1 [1,2,3,4,5]        -- 120
+foldr (++) [] ["Hello", " ", "World"]  -- "Hello World"
+foldr (:) [] [1,2,3]           -- [1,2,3] (identity)
+foldr max 0 [1,5,3,9,2]        -- 9
+```
+
+### foldl - Fold Left (Strict with foldl')
+
+```haskell
+-- Signature
+foldl :: (b -> a -> b) -> b -> [a] -> b
+
+-- How it works
+foldl f z [x1, x2, x3] = ((z `f` x1) `f` x2) `f` x3
+
+-- Examples
+foldl (+) 0 [1,2,3,4,5]        -- 15
+foldl (-) 0 [1,2,3]            -- -6 (0-1-2-3)
+foldl (flip (:)) [] [1,2,3]    -- [3,2,1] (reverse)
+```
+
+### foldl' - Strict Left Fold
+
+```haskell
+import Data.List (foldl')
+
+-- Preferred for efficiency (avoids stack overflow)
+foldl' (+) 0 [1..1000000]
+```
+
+### scanl / scanr - Fold with Intermediate Results
+
+```haskell
+scanl (+) 0 [1,2,3,4,5]        -- [0,1,3,6,10,15]
+scanr (+) 0 [1,2,3,4,5]        -- [15,14,12,9,5,0]
+```
+
+### Common Fold Patterns
+
+#### Sum
+```haskell
+sum' = foldr (+) 0
+```
+
+#### Product
+```haskell
+product' = foldr (*) 1
+```
+
+#### Length
+```haskell
+length' = foldr (\_ acc -> acc + 1) 0
+```
+
+#### Any / All
+```haskell
+any' pred = foldr (\x acc -> pred x || acc) False
+all' pred = foldr (\x acc -> pred x && acc) True
+```
+
+---
+
+## Monadic Loops (IO)
+
+For performing actions repeatedly in IO context.
+
+### sequence / sequence_ - Execute Actions
+
+```haskell
+-- sequence: Execute and collect results
+sequence :: [IO a] -> IO [a]
+
+-- Example
+sequence [putStrLn "Hello", putStrLn "World"]
+
+-- sequence_: Execute and ignore results
+sequence_ [putStrLn "Line 1", putStrLn "Line 2", putStrLn "Line 3"]
+```
+
+### mapM / mapM_ - Map with Effects
+
+```haskell
+-- mapM: Map function and collect results
+mapM print [1,2,3,4,5]
+
+-- mapM_: Map function and ignore results
+mapM_ putStrLn ["Hello", "World", "!"]
+mapM_ print [1..10]
+```
+
+### forM / forM_ - Map with Flipped Arguments
+
+```haskell
+import Control.Monad (forM, forM_)
+
+-- More natural for list-first operations
+forM_ [1..5] $ \i -> do
+    putStrLn $ "Number: " ++ show i
+
+forM [1..5] $ \i -> do
+    return (i * 2)  -- Returns [2,4,6,8,10]
+```
+
+### replicateM / replicateM_ - Repeat Action
+
+```haskell
+import Control.Monad (replicateM, replicateM_)
+
+-- Repeat and collect
+replicateM 3 getLine  -- Read 3 lines
+
+-- Repeat and ignore
+replicateM_ 5 $ putStrLn "Hello"
+```
+
+### forever - Infinite Loop
+
+```haskell
+import Control.Monad (forever)
+
+-- Infinite loop
+forever $ do
+    putStrLn "Enter command:"
+    cmd <- getLine
+    when (cmd == "quit") $ exitSuccess
+    putStrLn $ "You entered: " ++ cmd
+```
+
+### while-like Pattern
+
+```haskell
+-- Custom while loop
+whileM :: Monad m => m Bool -> m () -> m ()
+whileM condition action = do
+    continue <- condition
+    when continue $ do
+        action
+        whileM condition action
+
+-- Usage example
+main :: IO ()
+main = do
+    counter <- newIORef 0
+    whileM (do
+        count <- readIORef counter
+        return (count < 5)) $ do
+            count <- readIORef counter
+            print count
+            modifyIORef counter (+1)
+```
+
+### until-like Pattern
+
+```haskell
+-- Repeat until condition is true
+untilM :: Monad m => m Bool -> m () -> m ()
+untilM condition action = do
+    done <- condition
+    unless done $ do
+        action
+        untilM condition action
+```
+
+---
+
+## Infinite Lists and Lazy Evaluation
+
+Haskell's lazy evaluation allows working with infinite data structures.
+
+### Creating Infinite Lists
+
+```haskell
+-- All natural numbers
+[1..]
+
+-- All even numbers
+[2,4..]
+
+-- Powers of 2
+iterate (*2) 1
+
+-- Repeat forever
+repeat 'x'
+
+-- Cycle through list
+cycle [1,2,3]
+
+-- Custom infinite list
+fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+```
+
+### Working with Infinite Lists
+
+```haskell
+-- Take first 10 even numbers
+take 10 [2,4..]                -- [2,4,6,8,10,12,14,16,18,20]
+
+-- First 10 Fibonacci numbers
+take 10 fibs                   -- [0,1,1,2,3,5,8,13,21,34]
+
+-- Squares of numbers
+take 5 $ map (^2) [1..]        -- [1,4,9,16,25]
+
+-- Filter infinite list
+take 5 $ filter even [1..]     -- [2,4,6,8,10]
+```
+
+---
+
+## Pattern Matching
+
+Pattern matching is often combined with recursion for loop-like behavior.
+
+### Basic Patterns
+
+```haskell
+-- List patterns
+processList :: [Int] -> String
+processList [] = "Empty"
+processList [x] = "One element: " ++ show x
+processList [x,y] = "Two elements"
+processList (x:xs) = "Many elements, first: " ++ show x
+
+-- Tuple patterns
+sumPairs :: [(Int, Int)] -> Int
+sumPairs [] = 0
+sumPairs ((x,y):rest) = x + y + sumPairs rest
+```
+
+### @ Pattern (As-pattern)
+
+```haskell
+-- Keep reference to whole list
+firstLetter :: String -> String
+firstLetter [] = "Empty string"
+firstLetter all@(x:xs) = "First letter of " ++ all ++ " is " ++ [x]
+```
+
+### Wildcard Pattern
+
+```haskell
+-- Ignore values with _
+countElements :: [a] -> Int
+countElements [] = 0
+countElements (_:xs) = 1 + countElements xs
+```
+
+---
+
+## Guards with Recursion
+
+Combining guards and recursion for conditional loops.
+
+```haskell
+-- Countdown
+countdown :: Int -> IO ()
+countdown n
+  | n <= 0    = putStrLn "Blast off!"
+  | otherwise = do
+      print n
+      countdown (n - 1)
+
+-- Collatz sequence
+collatz :: Int -> [Int]
+collatz n
+  | n <= 1    = [1]
+  | even n    = n : collatz (n `div` 2)
+  | otherwise = n : collatz (3 * n + 1)
+
+-- Binary search
+binarySearch :: Ord a => a -> [a] -> Maybe Int
+binarySearch x xs = search 0 (length xs - 1)
+  where
+    search low high
+      | low > high = Nothing
+      | x == xs !! mid = Just mid
+      | x < xs !! mid = search low (mid - 1)
+      | otherwise = search (mid + 1) high
+      where mid = (low + high) `div` 2
+```
+
+---
+
+## Common Loop Patterns and Conversions
+
+### For Loop → Haskell
+
+```haskell
+-- C-style: for(i = 0; i < 10; i++) { print(i); }
+-- Haskell:
+mapM_ print [0..9]
+forM_ [0..9] print
+```
+
+### While Loop → Haskell
+
+```haskell
+-- C-style: while(condition) { action(); }
+-- Haskell (recursive):
+whileLoop :: Bool -> IO ()
+whileLoop False = return ()
+whileLoop True = do
+    -- action
+    -- update condition
+    whileLoop newCondition
+```
+
+### Do-While Loop → Haskell
+
+```haskell
+-- C-style: do { action(); } while(condition);
+-- Haskell:
+doWhile :: IO Bool -> IO ()
+doWhile action = do
+    continue <- action
+    when continue $ doWhile action
+```
+
+### Foreach Loop → Haskell
+
+```haskell
+-- C-style: foreach(item in items) { process(item); }
+-- Haskell:
+mapM_ process items
+forM_ items process
+```
+
+---
+
+## Performance Tips
+
+1. **Use tail recursion** for large iterations to avoid stack overflow
+2. **Prefer `foldl'`** over `foldl` for strictness
+3. **Use higher-order functions** instead of manual recursion when possible
+4. **Leverage lazy evaluation** for infinite or large data structures
+5. **Profile your code** - sometimes recursion is clearer even if slightly slower
+
+---
+
+## Summary
+
+| Pattern | Use Case | Example |
+|---------|----------|---------|
+| Recursion | Custom iteration logic | `factorial n = n * factorial (n-1)` |
+| `map` | Transform each element | `map (*2) [1,2,3]` |
+| `filter` | Select elements | `filter even [1..10]` |
+| List comprehension | Complex generation | `[x*2 | x \<- [1..5], even x]` |
+| `foldr/foldl` | Reduce to single value | `foldr (+) 0 [1..10]` |
+| `mapM_` | IO actions on list | `mapM_ print [1..5]` |
+| Infinite lists | Lazy sequences | `take 10 [1..]` |
+
+Haskell's approach to loops emphasizes **declarative** programming over imperative loops, leading to more concise and often more correct code.
