@@ -1,0 +1,374 @@
+# Algebraic Data Types in Haskell
+
+Algebraic Data Types (ADTs) are one of Haskell's most powerful features for modeling data. They allow you to define custom types by combining other types in specific ways.
+
+## What Are Algebraic Data Types?
+
+ADTs are called "algebraic" because they're formed using two fundamental operations from algebra:
+- **Sum types** (addition): A value can be one variant OR another
+- **Product types** (multiplication): A value contains one component AND another
+
+## Basic Syntax
+
+You define ADTs using the `data` keyword:
+
+```haskell
+data TypeName = Constructor1 Type1 Type2
+              | Constructor2 Type3
+              | Constructor3
+```
+
+## Product Types
+
+Product types combine multiple values together. Think of them like tuples or records.
+
+```haskell
+-- A point with x and y coordinates
+data Point = Point Double Double
+
+-- A person with name and age
+data Person = Person String Int
+
+-- Using it
+origin :: Point
+origin = Point 0.0 0.0
+
+john :: Person
+john = Person "John" 30
+```
+
+You can also use record syntax for better clarity:
+
+```haskell
+data Person = Person 
+  { name :: String
+  , age :: Int
+  , email :: String
+  }
+
+-- Creating values
+john :: Person
+john = Person { name = "John", age = 30, email = "john@example.com" }
+
+-- Accessing fields
+getName :: Person -> String
+getName p = name p
+```
+
+## Sum Types
+
+Sum types represent a choice between alternatives. The classic example is `Bool`:
+
+```haskell
+data Bool = False | True
+```
+
+More practical examples:
+
+```haskell
+-- Traffic light states
+data TrafficLight = Red | Yellow | Green
+
+-- Payment methods
+data PaymentMethod 
+  = Cash
+  | CreditCard String Int  -- card number and CVV
+  | BankTransfer String    -- account number
+  | Cryptocurrency String  -- wallet address
+
+-- Pattern matching on sum types
+describe :: TrafficLight -> String
+describe Red = "Stop"
+describe Yellow = "Caution"
+describe Green = "Go"
+```
+
+## Combining Sum and Product Types
+
+The real power comes from combining both:
+
+```haskell
+data Shape 
+  = Circle Double                    -- radius
+  | Rectangle Double Double          -- width, height
+  | Triangle Double Double Double    -- three sides
+
+area :: Shape -> Double
+area (Circle r) = pi * r * r
+area (Rectangle w h) = w * h
+area (Triangle a b c) = 
+  let s = (a + b + c) / 2
+  in sqrt (s * (s - a) * (s - b) * (s - c))
+```
+
+## Recursive Data Types
+
+ADTs can reference themselves, enabling tree and list structures:
+
+```haskell
+-- Binary tree
+data Tree a = Empty
+            | Node a (Tree a) (Tree a)
+
+-- Example tree
+exampleTree :: Tree Int
+exampleTree = Node 5
+                (Node 3 Empty Empty)
+                (Node 7 Empty Empty)
+
+-- Linked list (similar to built-in [])
+data List a = Nil
+            | Cons a (List a)
+
+-- Functions on recursive types
+treeSum :: Num a => Tree a -> a
+treeSum Empty = 0
+treeSum (Node x left right) = x + treeSum left + treeSum right
+```
+
+## Parameterized Types
+
+ADTs can be generic over type parameters:
+
+```haskell
+-- Maybe type (built-in)
+data Maybe a = Nothing | Just a
+
+-- Either type (built-in)
+data Either a b = Left a | Right b
+
+-- Your own parameterized types
+data Pair a b = Pair a b
+
+data Triple a b c = Triple a b c
+```
+
+## Common Built-in ADTs
+
+### Maybe
+Represents optional values:
+
+```haskell
+data Maybe a = Nothing | Just a
+
+safeDivide :: Double -> Double -> Maybe Double
+safeDivide _ 0 = Nothing
+safeDivide x y = Just (x / y)
+
+-- Pattern matching
+handleMaybe :: Maybe Int -> String
+handleMaybe Nothing = "No value"
+handleMaybe (Just x) = "Value: " ++ show x
+```
+
+### Either
+Represents success or failure with information:
+
+```haskell
+data Either a b = Left a | Right b
+
+-- Convention: Left for errors, Right for success
+divide :: Double -> Double -> Either String Double
+divide _ 0 = Left "Division by zero"
+divide x y = Right (x / y)
+
+-- Using it
+case divide 10 2 of
+  Left err -> putStrLn $ "Error: " ++ err
+  Right result -> putStrLn $ "Result: " ++ show result
+```
+
+### Lists
+Actually defined as an ADT:
+
+```haskell
+data [a] = [] | a : [a]
+-- [] is the empty list
+-- : is the cons operator
+```
+
+## Pattern Matching
+
+Pattern matching is the primary way to work with ADTs:
+
+```haskell
+data Result = Success String | Failure Int String
+
+handleResult :: Result -> IO ()
+handleResult (Success msg) = putStrLn $ "Success: " ++ msg
+handleResult (Failure code msg) = 
+  putStrLn $ "Error " ++ show code ++ ": " ++ msg
+
+-- Nested patterns
+data Tree a = Empty | Node a (Tree a) (Tree a)
+
+depth :: Tree a -> Int
+depth Empty = 0
+depth (Node _ left right) = 1 + max (depth left) (depth right)
+
+-- Guards with patterns
+classify :: Tree a -> String
+classify Empty = "empty"
+classify (Node _ Empty Empty) = "leaf"
+classify (Node _ _ _) = "branch"
+```
+
+## Deriving Type Classes
+
+You can automatically derive common type classes:
+
+```haskell
+data Color = Red | Green | Blue
+  deriving (Show, Eq, Ord, Enum)
+
+-- Now you can:
+-- show Red           => "Red"
+-- Red == Green       => False
+-- Red < Green        => True
+-- [Red .. Blue]      => [Red, Green, Blue]
+
+data Person = Person String Int
+  deriving (Show, Eq)
+```
+
+## Newtype
+
+For wrapping a single type with zero runtime overhead:
+
+```haskell
+newtype Email = Email String
+  deriving (Show, Eq)
+
+newtype UserId = UserId Int
+  deriving (Show, Eq)
+
+-- Type safety: can't mix up Email and UserId
+sendEmail :: Email -> IO ()
+sendEmail (Email addr) = putStrLn $ "Sending to: " ++ addr
+
+-- newtype vs data:
+-- newtype has exactly one constructor with exactly one field
+-- data can have multiple constructors and fields
+```
+
+## Type Synonyms (type keyword)
+
+Not ADTs, but related - aliases for existing types:
+
+```haskell
+type String = [Char]
+type Name = String
+type Age = Int
+type Coordinate = (Double, Double)
+
+-- These are just aliases, not new types
+-- Name and String are interchangeable
+```
+
+## Practical Examples
+
+### Modeling a simple expression language
+
+```haskell
+data Expr 
+  = Lit Int
+  | Add Expr Expr
+  | Sub Expr Expr
+  | Mul Expr Expr
+  | Div Expr Expr
+
+eval :: Expr -> Maybe Int
+eval (Lit n) = Just n
+eval (Add e1 e2) = (+) <$> eval e1 <*> eval e2
+eval (Sub e1 e2) = (-) <$> eval e1 <*> eval e2
+eval (Mul e1 e2) = (*) <$> eval e1 <*> eval e2
+eval (Div e1 e2) = do
+  v1 <- eval e1
+  v2 <- eval e2
+  if v2 == 0 then Nothing else Just (v1 `div` v2)
+
+-- Example: (5 + 3) * 2
+expr :: Expr
+expr = Mul (Add (Lit 5) (Lit 3)) (Lit 2)
+-- eval expr => Just 16
+```
+
+### Modeling a user system
+
+```haskell
+data UserStatus = Active | Suspended | Banned
+  deriving (Show, Eq)
+
+data User = User
+  { userId :: Int
+  , userName :: String
+  , userEmail :: String
+  , userStatus :: UserStatus
+  }
+  deriving (Show, Eq)
+
+canLogin :: User -> Bool
+canLogin user = userStatus user == Active
+
+data LoginResult 
+  = LoginSuccess User
+  | InvalidCredentials
+  | AccountSuspended
+  | AccountBanned
+  deriving (Show)
+```
+
+## Advanced: GADTs (Generalized ADTs)
+
+Regular ADTs can be extended with GADTs for more type safety:
+
+```haskell
+{-# LANGUAGE GADTs #-}
+
+-- Regular ADT - no type safety
+data Expr1 = IntLit Int | BoolLit Bool | Add Expr1 Expr1
+
+-- GADT - type-safe expressions
+data Expr a where
+  IntLit  :: Int -> Expr Int
+  BoolLit :: Bool -> Expr Bool
+  Add     :: Expr Int -> Expr Int -> Expr Int
+  Equals  :: Eq a => Expr a -> Expr a -> Expr Bool
+
+-- Now eval is type-safe
+eval :: Expr a -> a
+eval (IntLit n) = n
+eval (BoolLit b) = b
+eval (Add e1 e2) = eval e1 + eval e2
+eval (Equals e1 e2) = eval e1 == eval e2
+```
+
+## Best Practices
+
+1. **Make illegal states unrepresentable**: Use ADTs to encode business rules in types
+2. **Use newtype for semantic distinction**: Wrap primitives to prevent mixing concepts
+3. **Prefer small, composable types**: Break complex types into simpler pieces
+4. **Use record syntax for types with many fields**: Improves readability
+5. **Derive type classes when possible**: Saves boilerplate
+6. **Use Maybe instead of null**: Encodes possibility of absence in the type
+7. **Use Either for computations that can fail**: Better than exceptions for expected failures
+
+## Summary
+
+Algebraic Data Types are fundamental to Haskell programming. They provide:
+- **Type safety**: Catch errors at compile time
+- **Expressiveness**: Model your domain precisely
+- **Pattern matching**: Elegant way to handle different cases
+- **Composition**: Build complex types from simple ones
+
+The combination of sum types (OR), product types (AND), and recursion gives you immense power to model any data structure precisely and safely.
+
+## Additional Resources
+
+- [Haskell Wiki - Algebraic data type](https://wiki.haskell.org/Algebraic_data_type)
+- [Learn You a Haskell - Making Our Own Types and Typeclasses](http://learnyouahaskell.com/making-our-own-types-and-typeclasses)
+- [Real World Haskell - Defining Types](http://book.realworldhaskell.org/read/defining-types-streamlining-functions.html)
+
+---
+
+*Last updated: December 2025*
