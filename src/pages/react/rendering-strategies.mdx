@@ -1,0 +1,279 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/react">← React</a> <br /> <br />
+
+# Frontend Rendering Strategies: A Complete Reference
+
+Rendering strategies determine where and when your application's HTML is generated and delivered to users. Each approach involves trade-offs between performance, interactivity, SEO, and complexity.
+
+## Core Rendering Strategies
+
+### Client-Side Rendering (CSR)
+
+**How it works:** The server sends a minimal HTML shell with JavaScript bundles. The browser downloads, parses, and executes JavaScript to render the complete UI.
+
+**Process flow:**
+1. Browser requests page
+2. Server returns minimal HTML + JS bundle links
+3. Browser downloads JavaScript
+4. JavaScript executes and renders UI
+5. Application becomes interactive
+
+**Advantages:**
+- Rich interactivity without page reloads
+- Reduced server load after initial delivery
+- Seamless user experience for SPAs
+- Full access to browser APIs
+
+**Disadvantages:**
+- Poor initial load performance (large JS bundles)
+- Weak SEO without additional configuration
+- Blank screen during JavaScript download/execution
+- Poor performance on low-powered devices
+- Requires JavaScript to view any content
+
+**Best for:** Complex dashboards, applications behind authentication, tools requiring extensive client-side state
+
+**Example frameworks:** React (Create React App), Vue, Angular
+
+---
+
+### Server-Side Rendering (SSR)
+
+**How it works:** The server generates complete HTML for each request. The browser receives fully-rendered HTML, then "hydrates" it with JavaScript for interactivity.
+
+**Process flow:**
+1. Browser requests page
+2. Server executes application code
+3. Server generates complete HTML
+4. Browser displays HTML immediately (content visible)
+5. JavaScript downloads and hydrates the page
+6. Application becomes interactive
+
+**Advantages:**
+- Fast initial content display (First Contentful Paint)
+- Excellent SEO (crawlers see complete HTML)
+- Works without JavaScript enabled (basic functionality)
+- Better performance on low-powered devices initially
+
+**Disadvantages:**
+- Higher server costs (CPU for each request)
+- Slower Time to Interactive (must wait for hydration)
+- Complex caching strategies needed
+- Potential for hydration mismatches
+- Server must handle rendering load during traffic spikes
+
+**Best for:** Content-heavy sites, e-commerce, marketing pages, social media platforms
+
+**Example frameworks:** Next.js, Nuxt.js, SvelteKit, Remix
+
+---
+
+### Static Site Generation (SSG)
+
+**How it works:** HTML pages are generated at build time and served as static files. No server-side rendering happens at request time.
+
+**Process flow:**
+1. Build process generates all HTML pages
+2. Static files deployed to CDN
+3. Browser requests page
+4. CDN serves pre-built HTML instantly
+5. JavaScript hydrates for interactivity
+
+**Advantages:**
+- Extremely fast page loads (served from CDN)
+- Lowest server costs (just static file hosting)
+- Maximum reliability and scalability
+- Excellent SEO
+- Superior security (no server-side execution)
+
+**Disadvantages:**
+- Content is stale until next build
+- Build times increase with page count
+- Not suitable for dynamic, personalized content
+- Rebuilds required for content updates
+
+**Best for:** Blogs, documentation sites, marketing sites, portfolios, any content that doesn't change per-request
+
+**Example frameworks:** Next.js (SSG mode), Gatsby, Eleventy, Astro
+
+---
+
+### Incremental Static Regeneration (ISR)
+
+**How it works:** Combines static generation with periodic regeneration. Pages are statically generated but can be updated in the background after deployment.
+
+**Process flow:**
+1. Initial request serves stale static page instantly
+2. Background process regenerates page
+3. Subsequent requests receive updated version
+4. Repeat at configured intervals
+
+**Advantages:**
+- Static site speed with dynamic content
+- No complete rebuilds needed
+- Scales like static sites
+- Content freshness without SSR overhead
+
+**Disadvantages:**
+- First visitor may see stale content
+- Complexity in cache invalidation
+- Not true real-time updates
+- Framework-specific implementations
+
+**Best for:** E-commerce product pages, news sites, blogs with frequent updates
+
+**Example frameworks:** Next.js, Gatsby (with plugins)
+
+---
+
+### Progressive Hydration / Islands Architecture
+
+**How it works:** Only interactive components are hydrated with JavaScript. Static content remains purely HTML. Components hydrate on-demand or when visible.
+
+**Process flow:**
+1. Server sends HTML with minimal JS
+2. Only interactive "islands" receive JavaScript
+3. Each island hydrates independently
+4. Static content remains static
+
+**Advantages:**
+- Dramatically reduced JavaScript bundles
+- Faster Time to Interactive
+- Better performance on slow devices
+- Maintains interactivity where needed
+
+**Disadvantages:**
+- Requires careful component architecture
+- More complex build tooling
+- Limited framework support
+- Developer mental model shift required
+
+**Best for:** Content-heavy sites with selective interactivity, documentation with interactive demos
+
+**Example frameworks:** Astro, Qwik, Fresh (Deno), Marko
+
+---
+
+### Streaming SSR
+
+**How it works:** Server sends HTML in chunks as they're ready rather than waiting for complete page generation. Browser can start rendering immediately.
+
+**Process flow:**
+1. Browser requests page
+2. Server streams HTML chunks as generated
+3. Browser progressively renders content
+4. Slower components arrive later
+5. JavaScript hydrates progressively
+
+**Advantages:**
+- Faster perceived performance
+- Better handling of slow data sources
+- Improved Time to First Byte
+- Reduced waiting for slowest component
+
+**Disadvantages:**
+- More complex error handling
+- Requires modern browsers (for full benefits)
+- Debugging becomes more difficult
+- Not all hosting platforms support streaming
+
+**Best for:** Data-heavy applications, dashboards with multiple data sources
+
+**Example frameworks:** React 18+ (with Suspense), Next.js 13+, Remix
+
+---
+
+## Hybrid Approaches
+
+Modern frameworks often combine multiple strategies:
+
+**Per-route rendering:** Different pages use different strategies based on their needs. Your homepage might use SSG, product pages use ISR, and user dashboards use CSR.
+
+**Selective hydration:** SSR for initial load, with specific components hydrating based on visibility or interaction (progressive/partial hydration).
+
+**Edge rendering:** SSR happens on edge servers closer to users, combining SSR benefits with CDN-like speed.
+
+---
+
+## Key Performance Metrics
+
+**First Contentful Paint (FCP):** When first content appears. SSG/SSR excel here, CSR struggles.
+
+**Time to Interactive (TTI):** When page becomes fully interactive. CSR and static approaches can be faster since less JavaScript may be needed for hydration.
+
+**Largest Contentful Paint (LCP):** When main content is visible. SSR/SSG typically better than CSR.
+
+**Cumulative Layout Shift (CLS):** Visual stability. SSR/SSG have advantages with known layouts.
+
+**First Input Delay (FID):** Responsiveness to first interaction. Heavy hydration hurts this metric.
+
+---
+
+## Decision Framework
+
+### Choose CSR when:
+- Building authenticated applications (dashboards, admin panels)
+- SEO is not a priority
+- Content is highly dynamic and personalized
+- You need maximum client-side interactivity
+
+### Choose SSR when:
+- SEO is critical
+- Content changes per request
+- You need fast initial paint with dynamic data
+- Personalization is required
+
+### Choose SSG when:
+- Content changes infrequently
+- You need maximum performance and lowest cost
+- SEO is critical
+- Content is not personalized
+
+### Choose ISR when:
+- Content updates regularly but not per-request
+- You want SSG performance with better freshness
+- You have thousands of pages that would slow builds
+
+### Choose Islands/Progressive Hydration when:
+- You have mostly static content with selective interactivity
+- JavaScript bundle size is a concern
+- Performance on low-end devices is critical
+
+---
+
+## Modern Framework Capabilities
+
+**Next.js:** Supports SSG, SSR, ISR, CSR, and streaming with per-route configuration
+
+**Remix:** Focused on SSR with excellent data loading patterns
+
+**Astro:** Islands architecture by default, with SSR as an option
+
+**SvelteKit:** Full spectrum from SSG to SSR with excellent DX
+
+**Qwik:** Resumability approach (no hydration) with fine-grained code splitting
+
+**Nuxt:** Vue-based with SSG, SSR, and hybrid rendering
+
+---
+
+## Implementation Considerations
+
+**Data fetching patterns:** SSR requires server-side data fetching, CSR uses client-side APIs, SSG needs build-time data access.
+
+**Caching strategies:** CDN caching for static content, server-side caching for SSR, client-side caching for CSR.
+
+**Authentication:** CSR simplifies authentication, SSR/SSG require server-side session handling or edge-based solutions.
+
+**Real-time features:** Often require websockets or polling, which works better with CSR or hybrid approaches.
+
+**Code splitting:** Critical for CSR performance, beneficial for hydration in SSR scenarios.
+
+---
+
+## Conclusion
+
+The trend in modern web development is toward hybrid approaches that use the best strategy for each part of your application rather than a one-size-fits-all solution.
