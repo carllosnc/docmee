@@ -1,0 +1,473 @@
+# TypeScript Type Aliases vs Interfaces: Complete Reference
+
+## Type Aliases
+
+**Type aliases** create a new name for any type using the `type` keyword.
+
+### Basic Syntax
+
+```typescript
+type Name = string;
+type Age = number;
+type User = {
+  name: string;
+  age: number;
+};
+```
+
+### Capabilities
+
+Type aliases can represent:
+
+**1. Primitive Types**
+```typescript
+type ID = string | number;
+type Status = 'pending' | 'approved' | 'rejected';
+```
+
+**2. Object Types**
+```typescript
+type Person = {
+  name: string;
+  age: number;
+  email?: string;
+};
+```
+
+**3. Union Types**
+```typescript
+type Result = Success | Error;
+type StringOrNumber = string | number;
+type Status = 'loading' | 'success' | 'error';
+```
+
+**4. Intersection Types**
+```typescript
+type Employee = Person & {
+  employeeId: number;
+  department: string;
+};
+```
+
+**5. Tuple Types**
+```typescript
+type Coordinate = [number, number];
+type RGB = [red: number, green: number, blue: number];
+```
+
+**6. Function Types**
+```typescript
+type Callback = (data: string) => void;
+type MathOperation = (a: number, b: number) => number;
+```
+
+**7. Mapped Types**
+```typescript
+type Readonly<T> = {
+  readonly [P in keyof T]: T[P];
+};
+
+type Partial<T> = {
+  [P in keyof T]?: T[P];
+};
+```
+
+**8. Conditional Types**
+```typescript
+type IsString<T> = T extends string ? true : false;
+type NonNullable<T> = T extends null | undefined ? never : T;
+```
+
+**9. Template Literal Types**
+```typescript
+type EventName = `on${Capitalize<string>}`;
+type Color = 'red' | 'blue' | 'green';
+type ColoredShape = `${Color}-${'circle' | 'square'}`;
+// Results in: 'red-circle' | 'red-square' | 'blue-circle' | ...
+```
+
+---
+
+## Interfaces
+
+**Interfaces** define the shape of an object using the `interface` keyword.
+
+### Basic Syntax
+
+```typescript
+interface User {
+  name: string;
+  age: number;
+  email?: string;
+}
+```
+
+### Capabilities
+
+**1. Object Shapes**
+```typescript
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description?: string;
+}
+```
+
+**2. Function Signatures**
+```typescript
+interface Calculator {
+  add(a: number, b: number): number;
+  subtract(a: number, b: number): number;
+}
+
+// Or as a callable interface
+interface SearchFunc {
+  (source: string, substring: string): boolean;
+}
+```
+
+**3. Indexable Types**
+```typescript
+interface StringArray {
+  [index: number]: string;
+}
+
+interface Dictionary {
+  [key: string]: any;
+}
+```
+
+**4. Class Implementation**
+```typescript
+interface Animal {
+  name: string;
+  makeSound(): void;
+}
+
+class Dog implements Animal {
+  name: string;
+  
+  constructor(name: string) {
+    this.name = name;
+  }
+  
+  makeSound() {
+    console.log('Woof!');
+  }
+}
+```
+
+**5. Extending Interfaces**
+```typescript
+interface Person {
+  name: string;
+  age: number;
+}
+
+interface Employee extends Person {
+  employeeId: number;
+  department: string;
+}
+
+// Multiple inheritance
+interface Manager extends Employee, Leader {
+  teamSize: number;
+}
+```
+
+**6. Declaration Merging**
+```typescript
+interface Window {
+  title: string;
+}
+
+interface Window {
+  version: number;
+}
+
+// TypeScript merges these into:
+// interface Window {
+//   title: string;
+//   version: number;
+// }
+```
+
+---
+
+## Key Differences
+
+### 1. Declaration Merging
+
+Interfaces support declaration merging; type aliases don't.
+
+```typescript
+// ✅ Works with interfaces
+interface User {
+  name: string;
+}
+
+interface User {
+  age: number;
+}
+// Result: User has both name and age
+
+// ❌ Error with type aliases
+type User = {
+  name: string;
+};
+
+type User = {  // Error: Duplicate identifier 'User'
+  age: number;
+};
+```
+
+### 2. Extending/Intersection
+
+Interfaces use `extends`, type aliases use `&`.
+
+```typescript
+// Interface extending
+interface Animal {
+  name: string;
+}
+
+interface Dog extends Animal {
+  breed: string;
+}
+
+// Type alias intersection
+type Animal = {
+  name: string;
+};
+
+type Dog = Animal & {
+  breed: string;
+};
+```
+
+### 3. Union Types
+
+Only type aliases can directly represent union types.
+
+```typescript
+// ✅ Type alias
+type Status = 'success' | 'error' | 'pending';
+type ID = string | number;
+
+// ❌ Interface cannot do this directly
+```
+
+### 4. Primitive Types and Utility Types
+
+Only type aliases can represent primitives, unions, tuples, and complex utility types.
+
+```typescript
+// ✅ Type aliases only
+type Name = string;
+type Coordinate = [number, number];
+type Nullable<T> = T | null;
+type ReadonlyUser = Readonly<User>;
+```
+
+### 5. Computed Properties
+
+Type aliases are more flexible with computed property names.
+
+```typescript
+// ✅ Works better with type aliases
+type Keys = 'name' | 'age';
+type Person = {
+  [K in Keys]: string;
+};
+
+// Interfaces have limitations here
+interface Person {
+  [key: string]: string;  // Less specific
+}
+```
+
+### 6. Class Implementation
+
+Both work, but interfaces have clearer error messages.
+
+```typescript
+interface IAnimal {
+  name: string;
+  makeSound(): void;
+}
+
+type TAnimal = {
+  name: string;
+  makeSound(): void;
+};
+
+// Both work
+class Dog implements IAnimal { /* ... */ }
+class Cat implements TAnimal { /* ... */ }
+```
+
+### 7. Performance
+
+Interfaces are slightly faster for type checking in large codebases because TypeScript caches interface lookups better. The difference is usually negligible but can matter in very large projects.
+
+---
+
+## When to Use What
+
+### Use **Interfaces** when:
+
+- Defining object shapes and contracts
+- Working with classes and OOP patterns
+- You need declaration merging (like extending global types)
+- Creating public APIs that others might extend
+- You want clearer error messages
+- Building library code that users will extend
+
+```typescript
+// Good use of interface
+interface ApiResponse {
+  data: any;
+  status: number;
+  message: string;
+}
+
+interface UserService {
+  getUser(id: string): Promise<User>;
+  updateUser(id: string, data: Partial<User>): Promise<User>;
+}
+```
+
+### Use **Type Aliases** when:
+
+- Creating union or intersection types
+- Working with primitives, tuples, or functions
+- Using mapped types, conditional types, or template literals
+- You need complex type transformations
+- Creating utility types
+- Working with more functional programming patterns
+
+```typescript
+// Good use of type alias
+type Result<T> = Success<T> | Error;
+type Nullable<T> = T | null | undefined;
+type Point = [number, number];
+type EventHandler = (event: Event) => void;
+type Status = 'idle' | 'loading' | 'success' | 'error';
+```
+
+---
+
+## Practical Examples
+
+### Object Modeling
+
+```typescript
+// Interface approach (extensible)
+interface BaseUser {
+  id: string;
+  name: string;
+}
+
+interface AdminUser extends BaseUser {
+  permissions: string[];
+}
+
+// Type alias approach (composable)
+type BaseUser = {
+  id: string;
+  name: string;
+};
+
+type AdminUser = BaseUser & {
+  permissions: string[];
+};
+```
+
+### API Responses
+
+```typescript
+// Combining both
+interface ApiSuccess<T> {
+  success: true;
+  data: T;
+}
+
+interface ApiError {
+  success: false;
+  error: string;
+}
+
+type ApiResponse<T> = ApiSuccess<T> | ApiError;
+
+// Usage
+function handleResponse(response: ApiResponse<User>) {
+  if (response.success) {
+    console.log(response.data);  // TypeScript knows data exists
+  } else {
+    console.error(response.error);  // TypeScript knows error exists
+  }
+}
+```
+
+### Complex Type Utilities
+
+```typescript
+// Type aliases excel here
+type DeepReadonly<T> = {
+  readonly [P in keyof T]: T[P] extends object 
+    ? DeepReadonly<T[P]> 
+    : T[P];
+};
+
+type PickByType<T, U> = {
+  [P in keyof T as T[P] extends U ? P : never]: T[P];
+};
+
+// Extract only string properties
+type User = {
+  name: string;
+  age: number;
+  email: string;
+};
+
+type StringProps = PickByType<User, string>;
+// Result: { name: string; email: string; }
+```
+
+---
+
+## Best Practices
+
+1. **Consistency**: Pick one style for your project and stick with it for similar use cases
+2. **Public APIs**: Prefer interfaces for public APIs to allow declaration merging
+3. **React Components**: Either works, but type aliases are common for props with unions
+4. **Complex Types**: Use type aliases for unions, mapped types, and conditional types
+5. **Classes**: Prefer interfaces when working with classes and inheritance
+6. **Function Types**: Both work equally well, choose based on your style guide
+
+---
+
+## Summary Table
+
+| Feature | Interface | Type Alias |
+|---------|-----------|------------|
+| Object shapes | ✅ | ✅ |
+| Function types | ✅ | ✅ |
+| Declaration merging | ✅ | ❌ |
+| Extends keyword | ✅ | ❌ (use &) |
+| Implements in classes | ✅ | ✅ |
+| Union types | ❌ | ✅ |
+| Intersection types | ✅ (via extends) | ✅ (via &) |
+| Primitives | ❌ | ✅ |
+| Tuples | ❌ | ✅ |
+| Mapped types | Limited | ✅ |
+| Conditional types | ❌ | ✅ |
+| Template literals | ❌ | ✅ |
+| Computed properties | Limited | ✅ |
+
+---
+
+## Conclusion
+
+Both interfaces and type aliases are powerful tools in TypeScript. The choice often comes down to the specific use case and team conventions rather than one being strictly better than the other. Understanding their differences helps you make informed decisions for your TypeScript projects.
