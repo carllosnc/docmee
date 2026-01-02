@@ -1,0 +1,247 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/react">← React</a> <br /> <br />
+
+# Error Boundaries
+
+## What Are Error Boundaries?
+
+Error Boundaries are React components that catch JavaScript errors anywhere in their child component tree, log those errors, and display a fallback UI instead of crashing the entire application. They act as a safety net for your React applications.
+
+## Why Error Boundaries Matter
+
+Without error boundaries, a JavaScript error in one part of the UI could break the entire application, leaving users with a blank screen. Error boundaries prevent this by containing errors to specific parts of your component tree.
+
+## How Error Boundaries Work
+
+Error boundaries catch errors during:
+- Rendering
+- Lifecycle methods
+- Constructors of child components
+
+### What Error Boundaries Don't Catch
+
+Error boundaries do **not** catch errors in:
+- Event handlers (use regular try-catch for these)
+- Asynchronous code (setTimeout, promises)
+- Server-side rendering
+- Errors thrown in the error boundary itself
+
+## Creating an Error Boundary
+
+Error boundaries are class components that implement one or both of these lifecycle methods:
+
+**`static getDerivedStateFromError(error)`**: Used to update state so the next render shows the fallback UI.
+
+**`componentDidCatch(error, errorInfo)`**: Used to log error information.
+
+### Basic Example
+
+```jsx
+import React from 'react';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state to show fallback UI
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Log error details to an error reporting service
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong.</h1>;
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+## Using Error Boundaries
+
+Wrap error boundaries around components you want to protect:
+
+```jsx
+function App() {
+  return (
+    <div>
+      <h1>My Application</h1>
+      <ErrorBoundary>
+        <UserProfile />
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <Comments />
+      </ErrorBoundary>
+    </div>
+  );
+}
+```
+
+In this example, if `UserProfile` throws an error, only that section will show the fallback UI. The `Comments` section will continue working normally.
+
+## Advanced Error Boundary
+
+Here's a more feature-rich error boundary:
+
+```jsx
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { 
+      hasError: false,
+      error: null,
+      errorInfo: null
+    };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    this.setState({
+      error: error,
+      errorInfo: errorInfo
+    });
+    
+    // Send to error tracking service
+    logErrorToService(error, errorInfo);
+  }
+
+  resetError = () => {
+    this.setState({ 
+      hasError: false,
+      error: null,
+      errorInfo: null
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px' }}>
+          <h2>Oops! Something went wrong.</h2>
+          <p>We're sorry for the inconvenience.</p>
+          <button onClick={this.resetError}>
+            Try Again
+          </button>
+          {process.env.NODE_ENV === 'development' && (
+            <details style={{ marginTop: '20px' }}>
+              <summary>Error Details (Development Only)</summary>
+              <pre>{this.state.error && this.state.error.toString()}</pre>
+              <pre>{this.state.errorInfo.componentStack}</pre>
+            </details>
+          )}
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+## Best Practices
+
+### Granularity
+
+Place error boundaries at strategic levels in your component tree. You can have:
+- A top-level error boundary to catch catastrophic errors
+- Component-level boundaries to isolate failures
+- Feature-level boundaries for major sections
+
+```jsx
+<ErrorBoundary fallback={<PageError />}>
+  <Navigation />
+  <ErrorBoundary fallback={<SectionError />}>
+    <MainContent />
+  </ErrorBoundary>
+  <ErrorBoundary fallback={<SectionError />}>
+    <Sidebar />
+  </ErrorBoundary>
+</ErrorBoundary>
+```
+
+### Custom Fallback UI
+
+Accept a custom fallback component as a prop for flexibility:
+
+```jsx
+class ErrorBoundary extends React.Component {
+  // ... state and lifecycle methods ...
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <DefaultErrorUI />;
+    }
+    return this.props.children;
+  }
+}
+
+// Usage
+<ErrorBoundary fallback={<CustomErrorMessage />}>
+  <MyComponent />
+</ErrorBoundary>
+```
+
+### Error Reporting
+
+Integrate with error tracking services:
+
+```jsx
+componentDidCatch(error, errorInfo) {
+  // Examples of error reporting services
+  Sentry.captureException(error, { extra: errorInfo });
+  // or
+  LogRocket.captureException(error, { extra: errorInfo });
+  // or
+  analytics.track('Error Occurred', {
+    error: error.message,
+    componentStack: errorInfo.componentStack
+  });
+}
+```
+
+## Handling Event Handler Errors
+
+Since error boundaries don't catch errors in event handlers, use try-catch:
+
+```jsx
+function MyComponent() {
+  const handleClick = () => {
+    try {
+      // Code that might throw an error
+      riskyOperation();
+    } catch (error) {
+      console.error('Error in event handler:', error);
+      // Handle error appropriately
+    }
+  };
+
+  return <button onClick={handleClick}>Click Me</button>;
+}
+```
+
+## React 18+ Considerations
+
+In React 18 and later with concurrent features, error boundaries work with Suspense boundaries to provide a better error handling experience. Errors that occur during rendering can be caught and handled gracefully even with concurrent rendering.
+
+## Key Takeaways
+
+- Error boundaries prevent entire app crashes by containing errors to specific parts of the UI
+- They must be class components (no functional component equivalent yet)
+- Use multiple error boundaries at different levels for better error isolation
+- Always integrate error logging for production monitoring
+- Handle event handler errors separately with try-catch blocks
+- Provide helpful fallback UIs that guide users on what to do next
