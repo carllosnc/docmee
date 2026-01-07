@@ -1,0 +1,122 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+# Event Emitters in Node.js
+
+Node.js core API is built around an idiomatic asynchronous event-driven architecture, where certain kinds of objects (called "emitters") emit named events that cause `Function` objects ("listeners") to be called.
+
+For instance, a `net.Server` object emits an event each time a peer connects to it; a `fs.ReadStream` emits an event when the file is opened; a `stream` emits an event whenever data is available to be read.
+
+All objects that emit events are instances of the `EventEmitter` class. These objects expose an `eventEmitter.on()` function that allows one or more functions to be attached to named events emitted by the object.
+
+## Basic Usage
+
+The `EventEmitter` class is defined and exposed by the `node:events` module:
+
+```javascript
+import { EventEmitter } from 'node:events';
+
+class MyEmitter extends EventEmitter {}
+
+const myEmitter = new MyEmitter();
+
+myEmitter.on('event', () => {
+  console.log('an event occurred!');
+});
+
+myEmitter.emit('event');
+```
+
+## Methods
+
+### `on(eventName, listener)` / `addListener(eventName, listener)`
+
+Adds the `listener` function to the end of the listeners array for the named event. No checks are made to see if the `listener` has already been added. Multiple calls passing the same combination of `eventName` and `listener` will result in the `listener` being added, and called, multiple times.
+
+```javascript
+server.on('connection', (stream) => {
+  console.log('someone connected!');
+});
+```
+
+### `once(eventName, listener)`
+
+Adds a **one-time** `listener` function for the named event. The next time `eventName` is triggered, this listener is removed and then invoked.
+
+```javascript
+server.once('connection', (stream) => {
+  console.log('Ah, we have our first user!');
+});
+```
+
+### `emit(eventName, ...args)`
+
+Synchronously calls each of the listeners registered for the named event, in the order they were registered, passing the supplied arguments to each.
+
+Returns `true` if the event had listeners, `false` otherwise.
+
+```javascript
+const myEmitter = new EventEmitter();
+myEmitter.on('event', function(a, b) {
+  console.log(a, b, this, this === myEmitter);
+  // Prints:
+  //   a b MyEmitter {
+  //     domain: null,
+  //     _events: { event: [Function] },
+  //     _eventsCount: 1,
+  //     _maxListeners: undefined } true
+});
+myEmitter.emit('event', 'a', 'b');
+```
+
+### `off(eventName, listener)` / `removeListener(eventName, listener)`
+
+Removes the specified `listener` from the listener array for the named event.
+
+```javascript
+const callback = (stream) => {
+  console.log('someone connected!');
+};
+server.on('connection', callback);
+// ...
+server.removeListener('connection', callback);
+```
+
+### `removeAllListeners([eventName])`
+
+Removes all listeners, or those of the specified `eventName`.
+
+## Error Handling
+
+When an error occurs within an `EventEmitter` instance, the typical action is for an `'error'` event to be emitted. These are treated as special cases within Node.js.
+
+If an `EventEmitter` does not have at least one listener registered for the `'error'` event, and an `'error'` event is emitted, the error is thrown, a stack trace is printed, and the Node.js process exits.
+
+```javascript
+const myEmitter = new EventEmitter();
+myEmitter.on('error', (err) => {
+  console.error('whoops! there was an error');
+});
+myEmitter.emit('error', new Error('whoops!'));
+```
+
+## Asynchronous vs Synchronous
+
+The `EventEmitter` calls all listeners synchronously in the order in which they were registered. This ensures the proper sequencing of events and helps avoid race conditions and logic errors. When appropriate, listener functions can switch to an asynchronous mode of operation using the `setImmediate()` or `process.nextTick()` methods:
+
+```javascript
+const myEmitter = new EventEmitter();
+myEmitter.on('event', (a, b) => {
+  setImmediate(() => {
+    console.log('this happens asynchronously');
+  });
+});
+myEmitter.emit('event', 'a', 'b');
+```
+
+## Max Listeners
+
+By default, EventEmitters will print a warning if more than `10` listeners are added for a particular event. This is a useful default that helps finding memory leaks.
+The `emitter.setMaxListeners(n)` method allows the limit to be modified for this specific `EventEmitter` instance.
+
