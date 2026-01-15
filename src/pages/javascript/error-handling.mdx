@@ -1,0 +1,148 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/javascript">← Javascript</a> <br /> <br />
+
+# Error Handling - The Basics
+
+## Table of Contents
+1. [Engineering Concepts](#engineering-concepts)
+2. [Fail Safe](#fail-safe)
+3. [Fail Fast](#fail-fast)
+4. [Error Handling in Promises](#error-handling-in-promises)
+
+## Engineering Concepts
+
+Understanding two fundamental concepts in software engineering is crucial for effective error handling: **Fail Safe** and **Fail Fast**.
+
+### Fail Safe
+**Fail Safe** implies that the system fails but does not stop the entire process. Instead, it notifies (logs, warns) about the failure and attempts to continue with the remaining operations or a fallback state.
+
+### Fail Fast
+**Fail Fast** implies that when a failure occurs, the process is immediately interrupted. The flow is terminated to prevent further errors or inconsistent states.
+
+---
+
+## Fail Safe
+
+### Implementation
+To implement a Fail Safe strategy, you typically wrap the risky code in a `try...catch` block. Crucially, you **do not propagate** the error. Instead, you handle it within the `catch` block (e.g., by logging a warning) and allow the function to return potentially a default value or just complete gracefully.
+
+```javascript
+function failSafeOperation() {
+  try {
+    // Risky operation
+    throw new Error("Something went wrong");
+  } catch (error) {
+    // Handle error locally, log it, but don't stop the flow
+    console.warn("Operation failed, but continuing:", error.message);
+  }
+}
+
+failSafeOperation();
+console.log("Process continued...");
+```
+
+---
+
+## Fail Fast
+
+### Implementation
+To implement a Fail Fast strategy, you allow the function to "break" or throw the error. You do not catch it locally (or if you do, you rethrow it).
+
+At the **last layer** of your system (e.g., a Controller or Main handler), you place a Middleware or a wrapper with a `try...catch`. This global handler uses a Strategy to identify the origin of the error and treats it adequately at the end of the flow.
+
+```javascript
+function failFastOperation() {
+  // Risky operation that throws immediately
+  throw new Error("Critical failure");
+}
+
+function middleware() {
+  try {
+    failFastOperation();
+  } catch (error) {
+    // Centralized error handling
+    if (error.message.includes("Critical")) {
+      console.error("System stopped due to critical error:", error.message);
+      // In a real app, this might return a 500 or exit
+    } else {
+      console.error("Unhandled error:", error);
+    }
+  }
+}
+
+middleware();
+```
+
+---
+
+## Error Handling in Promises
+
+Handling errors in asynchronous operations (Promises) requires different approaches depending on whether you want a Fail Safe or Fail Fast behavior, and whether the promises are sequential or simultaneous.
+
+### Sequential Promises
+
+#### Fail Safe
+To achieve Fail Safe behavior in a loop of sequential promises, place the `try...catch` **inside** the loop. This ensures that if one iteration fails, the loop continues to the next.
+
+```javascript
+async function sequentialFailSafe(items) {
+  for (const item of items) {
+    try {
+      await processItem(item);
+    } catch (error) {
+      console.warn(`Failed to process item ${item}, continuing...`);
+    }
+  }
+}
+```
+
+#### Fail Fast
+To achieve Fail Fast behavior, place the `try...catch` **outside** the loop (or omit it if handling globally). If an error occurs, the loop breaks immediately.
+
+```javascript
+async function sequentialFailFast(items) {
+  try {
+    for (const item of items) {
+      await processItem(item);
+    }
+  } catch (error) {
+    console.error("Process aborted at item:", error.message);
+    throw error; // Propagate up
+  }
+}
+```
+
+### Simultaneous Promises
+
+#### Fail Safe: `Promise.allSettled`
+When running multiple promises concurrently, use `Promise.allSettled` to wait for all of them to finish, regardless of whether they succeeded or failed. This is the Fail Safe approach.
+
+```javascript
+async function simultaneousFailSafe(promises) {
+  const results = await Promise.allSettled(promises);
+  
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      console.log("Success:", result.value);
+    } else {
+      console.log("Failed:", result.reason);
+    }
+  });
+}
+```
+
+#### Fail Fast: `Promise.all`
+Use `Promise.all` if you want the operation to reject immediately as soon as **one** of the promises fails. This is the Fail Fast approach.
+
+```javascript
+async function simultaneousFailFast(promises) {
+  try {
+    const results = await Promise.all(promises);
+    console.log("All succeeded:", results);
+  } catch (error) {
+    console.error("One failed, aborting all:", error);
+  }
+}
+```
