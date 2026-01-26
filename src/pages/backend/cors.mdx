@@ -1,0 +1,98 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/backend">← Backend</a> <br /> <br />
+
+# CORS (Cross-Origin Resource Sharing)
+
+CORS is a security mechanism implemented by web browsers to restrict how a web page from one origin can interact with resources from another origin. It is a critical concept for any backend developer to understand, especially when building APIs that will be consumed by frontend applications hosted on different domains.
+
+## 1. What is an Origin?
+
+An origin is defined by the combination of:
+- **Protocol** (e.g., `http`, `https`)
+- **Domain** (e.g., `example.com`, `api.example.com`)
+- **Port** (e.g., `:80`, `:443`, `:3000`)
+
+Two URLs have the same origin only if all three parts are identical.
+
+---
+
+## 2. How CORS Works
+
+By default, browsers follow the **Same-Origin Policy**, which prevents a script on `https://myapp.com` from making a request to `https://api.otherservice.com`.
+
+CORS allows servers to "opt-in" to cross-origin requests by sending specific HTTP headers in the response.
+
+### Simple Requests
+Some requests (like GET or POST with simple content types) don't trigger a preflight. The browser sends the request and checks the response headers to see if the origin is allowed.
+
+### Preflight Requests (OPTIONS)
+For "complex" requests (e.g., using `PUT`, `DELETE`, or custom headers like `Authorization`), the browser first sends an **OPTIONS** request to the server. This is called a **preflight request**.
+- The browser asks: "Is it okay if I send this actual request?"
+- The server responds: "Yes, I allow these methods and these headers from your origin."
+- If the server approves, the browser sends the actual request.
+
+---
+
+## 3. Important CORS Headers
+
+### Response Headers (Server to Browser)
+- `Access-Control-Allow-Origin`: Specifies which origins are allowed (e.g., `https://example.com` or `*` for all).
+- `Access-Control-Allow-Methods`: List of allowed HTTP methods (e.g., `GET, POST, PUT, DELETE`).
+- `Access-Control-Allow-Headers`: List of allowed custom headers (e.g., `Content-Type, Authorization`).
+- `Access-Control-Allow-Credentials`: Indicates if the browser should include cookies/credentials in the request.
+- `Access-Control-Max-Age`: How long the results of a preflight request can be cached.
+
+### Request Headers (Browser to Server)
+- `Origin`: The origin of the requesting script.
+- `Access-Control-Request-Method`: (In preflight) The method intended for the actual request.
+- `Access-Control-Request-Headers`: (In preflight) The headers intended for the actual request.
+
+---
+
+## 4. Common Implementation (Node.js/Express)
+
+The most popular way to handle CORS in Express is using the `cors` middleware.
+
+```javascript
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+// Basic Usage: Allow all origins (NOT recommended for production)
+// app.use(cors());
+
+// Recommended: Specific Configuration
+const corsOptions = {
+  origin: 'https://your-frontend-domain.com',
+  methods: 'GET,POST,PUT,DELETE',
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200 // compatible with some legacy browsers
+};
+
+app.use(cors(corsOptions));
+
+app.get('/api/data', (req, res) => {
+  res.json({ message: 'This is CORS-enabled for a specific domain!' });
+});
+```
+
+---
+
+## 5. Troubleshooting CORS Issues
+
+If you see a "CORS error" in your browser console, check the following:
+
+1. **Origin Mismatch**: Ensure `Access-Control-Allow-Origin` exactly matches the `Origin` header from the browser (including protocol and port).
+2. **Missing Methods/Headers**: Ensure the server allows the specific HTTP method or custom header being sent.
+3. **Credentials**: If you are sending cookies, `Access-Control-Allow-Credentials` must be `true` on the server, and the origin cannot be `*`.
+4. **Middleware Order**: In Express, ensure the `cors()` middleware is defined **before** your routes.
+5. **HTTPS/HTTP**: Browsers treats `http` and `https` as different origins. Ensure your environments match.
+
+---
+
+## 6. Security Warning
+
+**Never use `*` (wildcard) in production** for `Access-Control-Allow-Origin` unless your API is truly public (like a public CDN or font service). Always whitelist specific domains to prevent CSS (Cross-Site Scripting) or other origin-based attacks.
