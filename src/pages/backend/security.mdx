@@ -1,0 +1,78 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/backend">← Backend</a> <br /> <br />
+
+# REST API Security Best Practices
+
+Securing a REST API is a multi-layered process. It's not just about authentication, but also about protecting the data, the infrastructure, and the users. Below are the core pillars of API security.
+
+---
+
+## 1. Authentication & Authorization
+
+### Authentication (Who are you?)
+- **JWT (JSON Web Tokens)**: Most common for stateless APIs. Ensure tokens are signed with a strong secret and have a short expiration time.
+- **OAuth2 / OpenID Connect**: The industry standard for delegated authorization. Use this if you need to allow third-party access to user data.
+- **API Keys**: Useful for machine-to-machine communication but should be treated as sensitive as passwords. Rotate them frequently.
+
+### Authorization (What can you do?)
+- **RBAC (Role-Based Access Control)**: Assign permissions to roles (e.g., "admin", "editor", "viewer").
+- **ABAC (Attribute-Based Access Control)**: More granular, based on attributes of the user, resource, or environment.
+- **Principle of Least Privilege**: Users and services should only have the minimum permissions necessary to perform their tasks.
+
+---
+
+## 2. Transport Layer Security (HTTPS)
+
+Always use **TLS (Transport Layer Security)** to encrypt data in transit. This prevents Man-in-the-Middle (MITM) attacks.
+- **HTTP/2 or HTTP/3**: Modern protocols that provide better performance and security.
+- **HSTS (HTTP Strict Transport Security)**: A header that tells the browser to only interact with your site using HTTPS.
+
+---
+
+## 3. Input Validation & Sanitization
+
+Never trust client-side data. Malicious users can bypass front-end validation easily.
+- **Validation**: Ensure data matches the expected format, type, and length. Use libraries like `Joi`, `Zod`, or `Validator.js`.
+- **Sanitization**: Clean data to prevent Injection attacks (SQL Injection, NoSQL Injection, XSS).
+- **Parameterized Queries**: Always use prepared statements or ORMs (like Prisma, TypeORM) to prevent SQLi.
+
+---
+
+## 4. Security Headers
+
+Implementing standard security headers can block many common attack vectors.
+- **Content-Security-Policy (CSP)**: Controls which resources the browser is allowed to load.
+- **X-Content-Type-Options: nosniff**: Prevents the browser from trying to guess the MIME type.
+- **X-Frame-Options**: Prevents clickjacking by controlling whether the site can be embedded in an iframe.
+- **Referrer-Policy**: Controls how much referrer information is sent with requests.
+
+---
+
+## 5. Rate Limiting & Throttling
+
+Prevent DOS (Denial of Service) and brute-force attacks by limiting the number of requests a client can make in a given timeframe.
+*(See the [Rate Limiting](./rate-limiting) section for more details).*
+
+---
+
+## 6. Error Handling & Information Leakage
+
+Avoid returning detailed stack traces or internal server error messages to the client. These can reveal technologies, versions, and paths that an attacker can exploit.
+- **Universal Error Messages**: "An internal error occurred" instead of "Database connection failed at 192.168.1.5".
+- **Log Detailed Errors Internally**: Keep the details in your server logs where only authorized developers can see them.
+
+---
+
+## 7. Sensitive Data Protection
+
+- **Encryption at Rest**: Encrypt sensitive data in your database (e.g., using AES-256).
+- **Hashing Passwords**: Never store passwords in plain text. Use strong, slow hashing algorithms like **Argon2** or **bcrypt**.
+- **PII (Personally Identifiable Information)**: Handle user data with extreme care, following regulations like GDPR or LGPD.
+
+---
+
+## 8. API Documentation Security
+
+Ensure your API documentation (like Swagger/OpenAPI) doesn't expose sensitive endpoints or details about your internal infrastructure to unauthorized users. Apply authentication to the docs themselves if necessary.
