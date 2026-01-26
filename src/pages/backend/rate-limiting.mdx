@@ -1,0 +1,111 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/backend">← Backend</a> <br /> <br />
+
+# Rate Limiting
+
+Rate limiting is a critical strategy for protecting your backend services from abuse, ensuring fair usage, and maintaining system stability. By controlling the frequency of requests a client can make within a specific timeframe, you can prevent Denial of Service (DoS) attacks, brute-force attempts, and resource exhaustion.
+
+## 1. Why Rate Limiting?
+
+- **Prevent Abuse**: Protects your API from malicious users or scripts that might try to overwhelm your server.
+- **Cost Control**: If you're using pay-per-use services (like cloud functions or third-party APIs), rate limiting helps control your expenses.
+- **Fair Usage**: Ensures that one client doesn't consume all system resources, degrading the experience for others.
+- **Service Stability**: Keeps the server responsive during traffic spikes by shedding excess load.
+
+---
+
+## 2. Common Rate Limiting Algorithms
+
+### Fixed Window Counter
+The simplest algorithm. It divides time into fixed windows (e.g., 1 minute). Each window has a counter. If the counter exceeds the limit, requests are rejected until the next window starts.
+- **Pros**: Easy to implement, low memory usage.
+- **Cons**: Can allow a burst of traffic at the edges of windows (e.g., double the limit if requests happen at the end of window A and start of window B).
+
+### Sliding Window Log
+Tracks the timestamp of every request. When a new request comes in, it removes timestamps older than the window size and checks the count of remaining timestamps.
+- **Pros**: Very accurate, prevents the "edge burst" problem.
+- **Cons**: High memory usage as it stores every request timestamp.
+
+### Sliding Window Counter
+A hybrid approach that combines Fixed Window and Sliding Window. It uses the current window's count and a weighted portion of the previous window's count to estimate the current rate.
+- **Pros**: Performance of Fixed Window with the accuracy of Sliding Window.
+
+### Token Bucket
+A "bucket" holds a certain number of tokens. Each request consumes a token. Tokens are added back to the bucket at a fixed rate. If the bucket is empty, requests are rejected.
+- **Pros**: Allows for short bursts of traffic while maintaining a steady average rate.
+
+### Leaky Bucket
+Requests enter a bucket and are processed at a constant rate. If the bucket overflows, new requests are discarded.
+- **Pros**: Ensures a smooth, constant output rate regardless of input bursts.
+
+---
+
+## 3. Implementation Strategies
+
+### 1. Middleware Level
+The most common approach for Node.js/Express applications. Middleware checks the client's IP or API key and decides whether to allow the request.
+
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply the rate limiting middleware to all requests
+app.use(limiter);
+```
+
+### 2. API Gateway / Reverse Proxy
+Moving rate limiting to a higher level in your infrastructure (like Nginx, Kong, or AWS API Gateway) offloads the work from your application servers.
+- **Benefit**: Rejects unwanted traffic before it even reaches your application code.
+
+### 3. Distributed Rate Limiting (Redis)
+In a multi-server environment, local memory rate limiting won't work correctly because each server has its own counter. Using a central store like Redis allows all servers to share the same rate limit state.
+
+---
+
+## 4. Best Practices
+
+- **Use Descriptive Headers**: Inform clients about their status using standard headers like `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset`.
+- **Return Correct Status Code**: Always use `429 Too Many Requests` when a limit is exceeded.
+- **Tiered Limits**: Apply different limits based on user roles (e.g., free users vs. premium users).
+- **Identify Clients Uniquely**: Use a combination of IP address, API keys, or User IDs to identify clients.
+- **Whitelist Trusted IPs**: Ensure internal services or trusted partners aren't accidentally throttled.
+- **Graceful Failure**: If your rate-limiting service (like Redis) goes down, decide whether to "fail open" (allow all requests) or "fail closed" (block all requests). Usually, "fail open" is preferred for user experience.
+
+---
+
+## 5. Rate Limit Headers Example
+
+When a client makes a request, the server responds with:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+RateLimit-Limit: 100
+RateLimit-Remaining: 98
+RateLimit-Reset: 1674745800
+
+{
+  "data": "..."
+}
+```
+
+If the limit is exceeded:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 3600
+
+{
+  "error": "Rate limit exceeded. Please try again later."
+}
+```
