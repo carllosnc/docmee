@@ -1,0 +1,286 @@
+---
+layout: ../../layout/main-layout.astro
+---
+<a href="/backend">← Backend</a> <br /> <br />
+
+# REST vs GraphQL
+
+When building APIs, developers often have to choose between REST (Representational State Transfer) and GraphQL (Graph Query Language). Both are powerful, but they solve problems in different ways.
+
+## 1. Introduction
+
+### What is REST?
+
+**REST** (Representational State Transfer) is an architectural style for networked applications. It treats data (users, posts, products) as **resources** that are accessed via standard HTTP methods (GET, POST, PUT, DELETE) at strictly defined endpoints (URLs).
+
+**Example:**
+- `GET /users/1` -> Returns user with ID 1
+- `GET /users/1/posts` -> Returns posts for user 1
+
+### What is GraphQL?
+
+**GraphQL** is a query language for APIs and a runtime for fulfilling those queries with your existing data. Instead of multiple endpoints, there is usually a **single endpoint** (e.g., `/graphql`), and the client sends a query describing exactly the data it needs.
+
+**Example:**
+```graphql
+query {
+  user(id: 1) {
+    name
+    posts {
+      title
+    }
+  }
+}
+```
+
+---
+
+## 2. Key Differences
+
+### Data Fetching (Over-fetching vs Under-fetching)
+
+- **REST**:
+  - Often leads to **over-fetching** (getting more data than needed) because endpoints return a fixed structure.
+  - Can lead to **under-fetching** (not getting enough data), requiring multiple requests (N+1 problem) to different endpoints to stitch data together.
+
+- **GraphQL**:
+  - **Exact fetching**: The client specifies exactly what fields it wants. No more, no less.
+  - **Single Request**: You can fetch related data (e.g., user + posts + comments) in a single round-trip.
+
+### Endpoints
+
+- **REST**:
+  - Multiple endpoints for different resources (`/users`, `/posts`, `/comments`).
+  - As the application grows, the number of endpoints can become unmanageable.
+
+- **GraphQL**:
+  - Single endpoint (usually `/graphql`).
+  - Resources are defined in a schema, and relationships are traversed in the query.
+
+### Versioning
+
+- **REST**:
+  - Typically versioned via URL (e.g., `/api/v1/users` vs `/api/v2/users`) or headers.
+  - Breaking changes often require a new version.
+
+- **GraphQL**:
+  - **Evolution** instead of versioning.
+  - You can deprecate fields (`@deprecated`) without breaking existing clients.
+  - New fields can be added without affecting legacy clients.
+
+### Caching
+
+- **REST**:
+  - Leverages built-in HTTP caching mechanisms (ETags, Cache-Control headers) very effectively because of unique URLs for resources.
+
+- **GraphQL**:
+  - Caching is harder because all requests use the same URL (often POST).
+  - Requires client-side libraries (like Apollo Client or Relay) or specialized server-side caching (Persistent Queries) to handle caching effectively.
+
+---
+
+## 3. Comparison Table
+
+| Feature | REST | GraphQL |
+| :--- | :--- | :--- |
+| **Architecture** | Architectural Style | Query Language & Runtime |
+| **Data Fetching** | Fixed structure (Over/Under-fetching common) | Client-specified (Exact fetching) |
+| **Endpoints** | Multiple (`/users`, `/posts`) | Single (`/graphql`) |
+| **Protocol** | Heavily relies on HTTP (Methods, Status Codes) | Protocol agnotistic (often uses HTTP POST) |
+| **Versioning** | Explicit Versioning (`v1`, `v2`) | Schema Evolution (Deprecation) |
+| **Error Handling** | HTTP Status Codes (404, 500, etc.) | `200 OK` with `errors` array in JSON body |
+| **Tooling/Docs** | Swagger / OpenAPI | GraphiQL / GraphQL Playground (Introspection) |
+| **Learning Curve** | Lower (Standard HTTP concepts) | Higher (New query language, schemas, resolvers) |
+
+---
+
+## 4. Pros and Cons
+
+### REST
+
+**✅ Pros:**
+- Simple and easy to understand.
+- Uses standard HTTP methods and feature (caching, authentication).
+- Decouples client and server typically well.
+- Great for simple applications or microservices communicating with each other.
+
+**❌ Cons:**
+- Over-fetching and under-fetching.
+- Multiple round-trips for complex data requirements.
+- Rigid structure mandated by the server.
+
+### GraphQL
+
+**✅ Pros:**
+- Efficient data fetching (no over/under-fetching).
+- Single request for multiple resources.
+- Strongly typed schema (auto-generating documentation).
+- Great developer experience with tools like GraphiQL.
+- Frontend developers have more freedom to change data requirements without asking backend to change endpoints.
+
+**❌ Cons:**
+- **Complexity**: Harder to set up and maintain (resolvers, schema definition).
+- **Performance**: Deeply nested queries can kill performance (need complexity analysis/limiting).
+- **Caching**: HTTP caching is not available out-of-the-box.
+- **File Uploading**: Not part of the standard spec (requires workarounds or specific libraries).
+
+---
+
+## 5. When to Use Which?
+
+### Choose REST if:
+- You are building a **simple application** or a **microservice** architecture where services speak to each other.
+- You need effective **HTTP caching** without extra libraries.
+- Your data requirements are simple and unlikely to change frequently.
+- You want to stick to widely adopted standards without added complexity.
+
+### Choose GraphQL if:
+- You have a **complex frontend** (like a mobile app or dashboard) with rapidly changing data requirements.
+- You need to aggregate data from **multiple sources** (e.g., specific microservices, 3rd party APIs) into one interface.
+- Bandwidth is a concern (e.g., mobile devices), and you want to minimize data transfer.
+- You want strong type safety and auto-generated documentation for your API consumers.
+
+---
+
+## 6. Detailed Implementation Example
+
+Let's imagine we need to build a profile page that shows a **User's details** and their **latest 3 posts**.
+
+### REST Approach
+
+In a typical REST architecture, you might have to make two separate requests or build a specific endpoint.
+
+**Option A: Multiple Requests**
+1. `GET /api/users/1`
+   ```json
+   { "id": 1, "name": "Alice", "email": "alice@example.com" }
+   ```
+2. `GET /api/users/1/posts?limit=3`
+   ```json
+   [
+     { "id": 101, "title": "Hello World", "content": "..." },
+     { "id": 102, "title": "GraphQL is cool", "content": "..." },
+     { "id": 103, "title": "REST is reliable", "content": "..." }
+   ]
+   ```
+
+**Client-Side Code (JavaScript):**
+```javascript
+const user = await fetch('/api/users/1').then(res => res.json());
+const posts = await fetch(`/api/users/${user.id}/posts?limit=3`).then(res => res.json());
+// Render UI...
+```
+*Problem:* We have to wait for the first request to finish before starting the second (Waterfall effect), or fire them in parallel if we know the ID ahead of time.
+
+### GraphQL Approach
+
+With GraphQL, you define a schema and send a single query.
+
+**Schema Definition (Server):**
+```graphql
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  posts(limit: Int): [Post]
+}
+
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+}
+
+type Query {
+  user(id: ID!): User
+}
+```
+
+**Client Query:**
+```graphql
+query {
+  user(id: 1) {
+    name
+    posts(limit: 3) {
+      title
+    }
+  }
+}
+```
+*Note:* We didn't ask for `email` or `content` in the posts, so the server won't send them. This saves bandwidth.
+
+**Response:**
+```json
+{
+  "data": {
+    "user": {
+      "name": "Alice",
+      "posts": [
+        { "title": "Hello World" },
+        { "title": "GraphQL is cool" },
+        { "title": "REST is reliable" }
+      ]
+    }
+  }
+}
+```
+
+---
+
+## 7. The N+1 Problem
+
+The **N+1 problem** is a notorious performance issue that occurs when the application makes 1 database query to fetch a list of items (the "1"), and then N additional queries to fetch related data for each item.
+
+### The Scenario
+You want to list **10 authors** and **their best-selling book**.
+
+### REST Implementation
+1. **Fetch Authors**: `GET /authors` (Returns 10 authors).
+2. **Loop and Fetch**: For each author, call `GET /authors/:id/best-selling-book`.
+   - That is **10 extra HTTP requests**.
+   - Total requests: 1 + 10 = 11.
+   - This is terrible for performance over a mobile network.
+
+### GraphQL Implementation
+In GraphQL, the **client** only sends 1 request:
+```graphql
+query {
+  authors {
+    name
+    bestSellingBook {
+      title
+    }
+  }
+}
+```
+**network-wise**, this solves the N+1 problem immediately. However, **on the backend**, the resolver might still trigger N+1 database queries if not written carefully.
+
+**The Solution: DataLoader**
+To fix the backend database N+1 issue in GraphQL, we use a concept called **DataLoader**. It batches requests.
+- Instead of running 10 SQL queries `SELECT * FROM books WHERE author_id = ?`...
+- DataLoader waits for the tick, collects all IDs, and runs 1 query: `SELECT * FROM books WHERE author_id IN (1, 2, 3, ... 10)`.
+
+---
+
+## 8. Ecosystem & Tooling
+
+Each technology has a rich set of tools to help developers.
+
+### REST Tools
+- **Testing/Documentation**: [Postman](https://www.postman.com/), [Swagger UI](https://swagger.io/tools/swagger-ui/) (OpenAPI).
+- **Client Libraries**: `axios`, `fetch`, `react-query` (TanStack Query), `SWR`.
+- **Backend**: Express, Django REST Framework, Spring Boot, FastAPI.
+
+### GraphQL Tools
+- **Explorers**: [GraphiQL](https://github.com/graphql/graphiql), [Apollo Studio Explorer](https://studio.apollographql.com/).
+- **Client Libraries**:
+  - **Apollo Client**: The industry standard. Heavy, but feature-rich (caching, state management).
+  - **URQL**: Lightweight, extensible alternative.
+  - **Relay**: Facebook's framework for high-performance React apps.
+- **Backend**: Apollo Server, GraphQL Yoga, Nexus, TypeGraphQL.
+
+---
+
+## Summary
+
+There is no "better" option universally. **REST** is robust, standard, and great for many use cases, especially server-to-server communication. **GraphQL** offers flexibility and efficiency for client-server communication in complex, data-driven applications. Often, companies use a mix of both (e.g., GraphQL for the frontend BFF - Backend for Frontend, and REST for internal microservices).
