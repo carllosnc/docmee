@@ -1,0 +1,171 @@
+---
+layout: ../../layout/main-layout.astro
+title: Command Pattern + Result Sealed Classes
+---
+
+# Command Pattern + Result Sealed Classes
+
+Combining the **Command Pattern** with **Sealed Classes** (Result Pattern) is a robust strategy for managing state changes and business logic execution in Flutter applications. This approach promotes separation of concerns, decouples UI references from business logic, and leverages Dart 3's type safety.
+
+## The Result Pattern (Sealed Classes)
+
+First, we define a generic `Result` type using `sealed` classes. This acts as the foundation, ensuring that any result returned from our domain layer is explicitly handled as either a `Success` or a `Failure`.
+
+```dart
+/// A generic Result type that is either Success or Failure.
+sealed class Result<T> {
+  const Result();
+}
+
+final class Success<T> extends Result<T> {
+  final T value;
+  const Success(this.value);
+}
+
+final class Failure<T> extends Result<T> {
+  final Exception exception;
+  const Failure(this.exception);
+}
+```
+
+## The Command Pattern
+
+The Command pattern encapsulates an action as an object. In this architecture, a Command is responsible for executing a Use Case and mapping the `Result` to the appropriate state changes (loading, data, error).
+
+```dart
+/// Abstract Command class defining the contract.
+abstract class Command {
+  /// Executes the command action.
+  Future<void> execute();
+}
+```
+
+## Real-World Implementation
+
+Let's implement a scenario specifically for fetching a list of products.
+
+### 1. The Domain Layer (Use Case)
+
+The Use Case is responsible for the actual business logic or data retrieval. It returns a `Result`.
+
+```dart
+class Product {
+  final String name;
+  Product(this.name);
+}
+
+class GetProductsUseCase {
+  Future<Result<List<Product>>> execute() async {
+    // Simulate network delay
+    await Future.delayed(const Duration(seconds: 1));
+    
+    // Simulate randomness for demonstration
+    bool isSuccess = DateTime.now().second % 2 == 0;
+
+    if (isSuccess) {
+      return Success([Product('Laptop'), Product('Smartphone')]);
+    } else {
+      return Failure(Exception('Failed to load products'));
+    }
+  }
+}
+```
+
+### 2. The Concrete Command
+
+The `LoadProductsCommand` binds the Use Case to the State. It doesn't know *which* state management library is being used (Provider, Riverpod, Bloc, etc.), it simply calls the provided callbacks.
+
+```dart
+class LoadProductsCommand implements Command {
+  final GetProductsUseCase _useCase;
+  
+  // Callbacks to update the UI state.
+  // This makes the command framework-agnostic.
+  final Function(bool) setLoading;
+  final Function(List<Product>) setData;
+  final Function(String?) setError;
+
+  LoadProductsCommand({
+    required GetProductsUseCase useCase,
+    required this.setLoading,
+    required this.setData,
+    required this.setError,
+  }) : _useCase = useCase;
+
+  @override
+  Future<void> execute() async {
+    // 1. Start Loading
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 2. Execute Business Logic
+      final result = await _useCase.execute();
+
+      // 3. Handle Result (Dart 3 Pattern Matching)
+      switch (result) {
+        case Success(value: final products):
+          setData(products);
+        case Failure(exception: final e):
+          setError(e.toString());
+      }
+    } catch (e) {
+      // Catch unexpected synchronous errors
+      setError('Unexpected error: $e');
+    } finally {
+      // 4. Stop Loading
+      setLoading(false);
+    }
+  }
+}
+```
+
+### 3. Integration with ViewModel (ChangeNotifier)
+
+Finally, here is how you consume this pattern within a Flutter `ChangeNotifier`.
+
+```dart
+import 'package:flutter/foundation.dart';
+
+class ProductsViewModel extends ChangeNotifier {
+  final GetProductsUseCase _useCase;
+
+  // State
+  bool isLoading = false;
+  String? errorMessage;
+  List<Product> products = [];
+
+  late final LoadProductsCommand _loadCommand;
+
+  ProductsViewModel(this._useCase) {
+    // Initialize the command with callbacks that mutate this ViewModel's state
+    _loadCommand = LoadProductsCommand(
+      useCase: _useCase,
+      setLoading: (loading) {
+        isLoading = loading;
+        notifyListeners();
+      },
+      setData: (data) {
+        products = data;
+        notifyListeners();
+      },
+      setError: (error) {
+        errorMessage = error;
+        notifyListeners();
+      },
+    );
+  }
+
+  // Exposed method for the UI to trigger
+  void fetchProducts() {
+    _loadCommand.execute();
+  }
+}
+```
+
+## Why use this approach?
+
+1.  **Exhaustiveness Checking**: With `sealed class Result`, Dart ensures you handle both `Success` and `Failure` cases in your switch statement. You cannot accidentally ignore errors.
+2.  **State Logic Isolation**: The complex logic of "if loading, then wait, then if success do X, else do Y" is moved out of the UI and out of the general ViewModel methods into a dedicated Command class.
+3.  **Testability**: You can unit test `LoadProductsCommand` deeply without creating a `ChangeNotifier` or a Widget. You simply verify that the correct callbacks (setLoading, etc.) are called in the correct order.
+4.  **Consistency**: If every action in your app is a `Command`, your codebase becomes very predictable and easy for new developers to navigate.
