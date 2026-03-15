@@ -1,0 +1,30 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/microfrontends">← Back </a> <br /> <br />
+
+# Module Federation
+
+Module Federation is an advanced feature originally introduced in Webpack 5 that allows a JavaScript application to dynamically load code from another application at runtime. It is a very popular architecture choice for building microfrontends.
+
+### Key Concepts
+
+- **Host (or Shell):** The main application that loads one or more remote modules. It provides the initial layout and basic structure.
+- **Remote:** An application that exposes parts of its code (components, functions, styles) for other applications to use. An application can be both a host and a remote simultaneously.
+- **Exposed Modules:** Specific files or components that a remote actively signals that other applications can consume.
+- **Shared Dependencies:** Module Federation allows sharing common third-party libraries (like React, ReactDOM, Lodash) between the host and remotes to prevent users from downloading the same code multiple times.
+
+### How it Works
+
+Unlike traditional microfrontend setups that rely on iframes, independent page reloads, or build-time NPM packages, Module Federation performs its magic at runtime:
+
+1. The remote application builds its exposed modules into separate chunks and generates a `remoteEntry.js` file (a manifest of what's available).
+2. The host application fetches the remote's `remoteEntry.js` file.
+3. The host dynamic imports the specified remote components efficiently over the network when they are needed.
+
+### Benefits
+
+- **True Independent Deployments:** No need to redeploy the host application when a remote is updated. The host will simply fetch the latest version on the next interaction.
+- **Code Sharing:** Solves the issue of redundant dependencies by efficiently sharing vendor chunks across microfrontends.
+- **Seamless User Experience:** Everything feels like a single cohesive Single Page Application (SPA) because components mount natively within the same DOM.

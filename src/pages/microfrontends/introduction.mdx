@@ -1,0 +1,30 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/microfrontends">← Back </a> <br /> <br />
+
+# Introduction to Microfrontends
+
+Microfrontends are an architectural style where independently deliverable frontend applications are composed into a greater whole. This approach extends the concepts of microservices to the frontend.
+
+### Core Benefits
+
+- **Independent Deployments:** Each microfrontend can be built and deployed independently without affecting the rest of the application.
+- **Team Autonomy:** Teams can choose their own tech stack, workflow, and release schedules.
+- **Scalability:** Large frontend applications can be broken down into smaller, more manageable pieces.
+- **Resilience:** A failure or bug in one microfrontend is isolated and doesn't crash the entire user interface.
+
+### Common Approaches
+
+1. **Build-time integration:** Publishing microfrontends as NPM packages.
+2. **Run-time integration via iframes:** The simplest approach, though often avoided due to performance and communication limitations.
+3. **Run-time integration via JavaScript:** Using tools like Module Federation (Webpack/Vite) to load modules dynamically over the network.
+4. **Run-time integration via Web Components:** Wrapping microfrontends in custom HTML elements.
+
+### Recommended Resources
+
+- [Micro Frontends (Martin Fowler)](https://martinfowler.com/articles/micro-frontends.html) - A comprehensive guide by Cam Jackson on Martin Fowler's blog, detailing the core concepts and patterns.
+- [Webpack Module Federation](https://webpack.js.org/concepts/module-federation/) - Official documentation for Webpack's Module Federation, a popular tool for building microfrontends.
+- [single-spa](https://single-spa.js.org/) - A JavaScript router for building front-end microservices.
+- [Microfrontends.info](https://micro-frontends.org/) - A dedicated resource site covering techniques, strategies, and recipes for extending the microservice approach to front-end development.
