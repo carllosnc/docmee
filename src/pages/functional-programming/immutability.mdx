@@ -1,0 +1,140 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/functional-programming">← Back </a> <br /> <br />
+
+# Immutability
+
+Immutability means an object, state, or variable cannot be modified after it is created. In functional programming, instead of changing data, you return a new copy of the data with the modified values. This reduces side effects and makes applications more predictable and easier to debug.
+
+## Examples in TypeScript
+
+### Objects
+
+**Mutable Approach (Avoid in FP):**
+```typescript
+const user = { name: "Alice", age: 25 };
+user.age = 26; // Mutates the original object
+```
+
+**Immutable Approach (Preferred in FP):**
+Using the spread operator (`...`) to create a new object.
+```typescript
+const user = { name: "Alice", age: 25 };
+const updatedUser = { ...user, age: 26 }; // Creates a new object
+
+console.log(user.age); // 25
+console.log(updatedUser.age); // 26
+```
+
+### Arrays
+
+**Mutable Approach (Avoid in FP):**
+```typescript
+const numbers = [1, 2, 3];
+numbers.push(4); // Mutates the original array
+```
+
+**Immutable Approach (Preferred in FP):**
+Using the spread operator (`...`) or array methods that return new arrays.
+```typescript
+const numbers = [1, 2, 3];
+const newNumbers = [...numbers, 4]; // Creates a new array with the added element
+
+console.log(numbers); // [1, 2, 3]
+console.log(newNumbers); // [1, 2, 3, 4]
+
+// Removing an element immutably (e.g., remove number 2)
+const filteredNumbers = numbers.filter(num => num !== 2); // [1, 3]
+
+// Updating an element immutably (e.g., multiply all by 2)
+const doubledNumbers = numbers.map(num => num * 2); // [2, 4, 6]
+```
+
+### Advanced Object Manipulation
+
+**Removing a property immutably:**
+Using rest destructuring to omit a property.
+```typescript
+const user = { id: 1, name: "Alice", password: "secret_password" };
+const { password, ...userWithoutPassword } = user;
+
+console.log(userWithoutPassword); // { id: 1, name: "Alice" }
+```
+
+**Updating nested objects immutably:**
+When dealing with nested objects, you need to spread each level to maintain immutability without mutating nested references.
+```typescript
+const userSettings = {
+  theme: "dark",
+  notifications: { email: true, push: false }
+};
+
+const updatedSettings = {
+  ...userSettings,
+  notifications: {
+    ...userSettings.notifications,
+    push: true // update only the nested property
+  }
+};
+```
+
+### Advanced Array Manipulation
+
+**Inserting an element at a specific index immutably:**
+```typescript
+const array = [1, 2, 4, 5];
+const insertIndex = 2; // Insert '3' at index 2
+const newArray = [
+  ...array.slice(0, insertIndex),
+  3,
+  ...array.slice(insertIndex)
+]; // [1, 2, 3, 4, 5]
+```
+
+**Updating an item within an array of objects:**
+Use `map` to find and update the desired object while leaving others intact.
+```typescript
+const todos = [
+  { id: 1, text: "Learn FP", done: false },
+  { id: 2, text: "Learn TypeScript", done: false }
+];
+
+const toggledTodos = todos.map(todo => 
+  todo.id === 1 ? { ...todo, done: true } : todo
+);
+```
+
+### TypeScript Compile-Time Immutability (`readonly`)
+TypeScript provides features to enforce immutability at compile time.
+
+```typescript
+// Readonly arrays
+const readOnlyNumbers: ReadonlyArray<number> = [1, 2, 3];
+// or
+const readOnlyNumbers2: readonly number[] = [1, 2, 3];
+// readOnlyNumbers.push(4); // Error: Property 'push' does not exist on type 'readonly number[]'.
+
+// Readonly objects
+interface User {
+  readonly id: number;
+  readonly name: string;
+}
+
+const user: User = { id: 1, name: "Alice" };
+// user.id = 2; // Error: Cannot assign to 'id' because it is a read-only property.
+
+// Readonly utility type
+type MutableUser = { id: number; name: string };
+const readonlyUser: Readonly<MutableUser> = { id: 1, name: "Alice" };
+```
+
+### Deep Immutability and Freezing Objects
+If you want to enforce immutability dynamically at runtime, you can use `Object.freeze()`. However, keep in mind that JavaScript's `Object.freeze` is shallow.
+```typescript
+const config = Object.freeze({ temp: 100, unit: "C" });
+// config.temp = 200; // Will throw an error in strict mode
+```
+
+For large-scale state management with deep immutability, libraries like `Immer` or `Immutable.js` are often used within TypeScript projects.

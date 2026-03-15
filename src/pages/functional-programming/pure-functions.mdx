@@ -1,0 +1,145 @@
+---
+layout: ../../layout/main-layout.astro
+---
+
+<a href="/functional-programming">← Back </a> <br /> <br />
+
+# Pure Functions
+
+A core concept in functional programming is the **pure function**. A pure function is a deterministic function that meets two critical criteria:
+
+1.  **Deterministic Output:** Given the same input, it will always return the exact same output. It does not depend on any hidden state or external variables that could change during execution.
+2.  **No Side Effects:** Executing the function does not cause any observable side effects outside of the function itself (e.g., modifying a global variable, making network requests, logging to the console, or mutating its input arguments).
+
+## Examples in TypeScript
+
+### Impure vs Pure Functions
+
+#### Impure Function Example
+This function is impure because it relies on an external variable `multiplier` that could change, causing the function to have an unpredictable output for the same input.
+
+```typescript
+let multiplier = 2;
+
+function impureMultiply(value: number): number {
+  return value * multiplier; // Output depends on external state
+}
+
+console.log(impureMultiply(5)); // 10
+multiplier = 3;
+console.log(impureMultiply(5)); // 15
+```
+
+#### Pure Function Example
+We can make the previous function pure by passing *all* necessary information directly as arguments.
+
+```typescript
+function pureMultiply(value: number, multiplier: number): number {
+  return value * multiplier; 
+}
+
+console.log(pureMultiply(5, 2)); // Always 10
+console.log(pureMultiply(5, 3)); // Always 15
+```
+
+### Side Effects
+
+#### Impure Function (Modifies Input / Side Effect)
+Here, the function alters the original array object being passed to it. This mutates variables unexpectedly somewhere else in your application.
+
+```typescript
+function addItemImpure(cart: string[], item: string): string[] {
+  cart.push(item); // Modifies the existing array
+  return cart;
+}
+
+const myCart = ["apple", "banana"];
+addItemImpure(myCart, "orange");
+console.log(myCart); // ["apple", "banana", "orange"] - Unexpectedly modified
+```
+
+#### Pure Function (Returns New Instance/ No Side Effect)
+This version is pure because it generates, returns, and leaves the original untouched structure behind perfectly intact.
+
+```typescript
+function addItemPure(cart: readonly string[], item: string): string[] {
+  return [...cart, item]; // Returns a brand new array
+}
+
+const myPureCart: readonly string[] = ["apple", "banana"];
+const newCart = addItemPure(myPureCart, "orange");
+
+console.log(myPureCart); // ["apple", "banana"] - Original remains untouched
+console.log(newCart);    // ["apple", "banana", "orange"] - Brand new result
+```
+
+### Hidden Inputs (Non-Deterministic)
+
+Functions that rely on things like creating dates or generating random numbers inside them are technically impure because their return values change without their inputs changing.
+
+#### Impure (Relies on internal time/randomness)
+```typescript
+function rollDiceImpure(): number {
+  // We can't predict what this will return.
+  return Math.floor(Math.random() * 6) + 1; 
+}
+
+function createTimestampedLogImpure(message: string): string {
+  // The Date.now() value changes for every single execution.
+  return `[${Date.now()}] ${message}`; 
+}
+```
+
+#### Pure (Takes randomness/time as explicit arguments)
+To make them pure, we shift the responsibility of generating the unstable value to the caller.
+```typescript
+function rollDicePure(randomFloat: number): number {
+  // predictable: given 0.5, it will *always* return 4
+  return Math.floor(randomFloat * 6) + 1; 
+}
+
+function createTimestampedLogPure(dateNumber: number, message: string): string {
+  // completely deterministic output
+  return `[${dateNumber}] ${message}`; 
+}
+```
+
+### Async Operations / I/O Side Effects
+
+Any function that performs an HTTP request, writes to a database, or even `console.log` produces side effects and is therefore impure. 
+
+#### Impure (Performs side-effect internally)
+```typescript
+async function fetchAndCalculateImpure(userId: number): Promise<number> {
+  // Makes an HTTP request (Side effect!)
+  const response = await fetch(`https://api.example.com/users/${userId}/stats`);
+  const data = await response.json();
+  
+  // Computes the calculation
+  return data.score * 1.5; 
+}
+```
+
+#### Pure (Separates calculation from side-effects)
+Instead of embedding the external call inside the calculation function, we split them. We keep the side-effect as a separate action, pulling the pure calculation into its own easily testable function.
+
+```typescript
+// Pure function: deterministic, no side effects
+function calculateScorePure(score: number): number {
+  return score * 1.5;
+}
+
+// Impure orchestration function (handles the side effects but delegates logic to pure function)
+async function fetchAndCalculateHandler(userId: number): Promise<number> {
+  const response = await fetch(`https://api.example.com/users/${userId}/stats`);
+  const data = await response.json();
+  
+  // Handing the data to our pure function
+  return calculateScorePure(data.score);
+}
+```
+
+## Why Pure Functions?
+1.  **Testability:** Because pure functions are strictly tied to inputs generating reliable outputs, writing test cases for them is vastly simpler. We do not need mocking mechanisms for external state dependencies.
+2.  **Predictability and Reliability:** It is significantly easier to interpret code with fewer side-effects. Bug diagnosis drops down significantly.
+3.  **Memoization and Caching:** Because outputs map 1-to-1 consistently with inputs, pure functions allow you to easily safely cache previously computed values (memoization) and optimize performances.
