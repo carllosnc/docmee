@@ -1,0 +1,988 @@
+---
+layout: ../../layout/main-layout.astro
+title: Integration Tests in Flutter
+---
+
+<a href="/flutter">← Flutter</a> <br /> <br />
+
+# Integration Tests in Flutter
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Integration Tests vs Other Test Types](#integration-tests-vs-other-test-types)
+3. [Setup & Dependencies](#setup--dependencies)
+4. [Project Structure](#project-structure)
+5. [Writing Your First Integration Test](#writing-your-first-integration-test)
+6. [The `IntegrationTestWidgetsFlutterBinding`](#the-integrationtestwidgetsflutterbinding)
+7. [Finding Widgets](#finding-widgets)
+8. [Interacting with Widgets](#interacting-with-widgets)
+9. [Assertions & Expectations](#assertions--expectations)
+10. [Working with `patrol` (Advanced)](#working-with-patrol-advanced)
+11. [Running Tests](#running-tests)
+12. [Running on Real Devices & Emulators](#running-on-real-devices--emulators)
+13. [CI/CD Integration](#cicd-integration)
+14. [Firebase Test Lab](#firebase-test-lab)
+15. [Screenshots & Screen Recording](#screenshots--screen-recording)
+16. [Handling Async Operations](#handling-async-operations)
+17. [Mocking & Dependency Injection in Integration Tests](#mocking--dependency-injection-in-integration-tests)
+18. [Testing Navigation](#testing-navigation)
+19. [Testing Platform Channels & Plugins](#testing-platform-channels--plugins)
+20. [Performance Testing](#performance-testing)
+21. [Best Practices](#best-practices)
+22. [Common Pitfalls](#common-pitfalls)
+23. [Troubleshooting](#troubleshooting)
+24. [Quick Cheatsheet](#quick-cheatsheet)
+
+---
+
+## Overview
+
+Integration tests in Flutter test the complete app as a whole — running on a real device or emulator, exercising the actual UI, navigation, platform plugins, and backend interactions. They sit at the top of the testing pyramid, providing the highest confidence that your app works end-to-end.
+
+Flutter's official integration test solution is the [`integration_test`](https://pub.dev/packages/integration_test) package, which is part of the Flutter SDK.
+
+**Key characteristics:**
+- Run on a real device or emulator (not a host machine)
+- Can test native integrations (camera, GPS, biometrics, etc.)
+- Slower than unit/widget tests but cover full user flows
+- Can generate screenshots and performance traces
+
+---
+
+## Integration Tests vs Other Test Types
+
+| Feature | Unit Test | Widget Test | Integration Test |
+|---|---|---|---|
+| Speed | Very fast | Fast | Slow |
+| Scope | Single function/class | Single widget tree | Full app |
+| Real device needed | No | No | Yes |
+| Platform plugins | No | No | Yes |
+| Network calls | Mocked | Mocked | Real or mocked |
+| Confidence level | Low | Medium | High |
+| Package | `flutter_test` | `flutter_test` | `integration_test` |
+
+---
+
+## Setup & Dependencies
+
+### 1. Add the dependency to `pubspec.yaml`
+
+```yaml
+dev_dependencies:
+  integration_test:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+```
+
+Run:
+
+```bash
+flutter pub get
+```
+
+### 2. Android setup
+
+No special setup required. Tests run via `flutter test` or `flutter drive`.
+
+### 3. iOS setup
+
+No special setup required for simulator/device. For TestFlight distribution, a special `RunnerUITests` target is needed (see Apple-specific section below).
+
+### 4. Web setup (experimental)
+
+```bash
+# Requires chromedriver
+chromedriver --port=4444 &
+flutter drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/app_test.dart \
+  -d web-server
+```
+
+---
+
+## Project Structure
+
+The recommended project layout:
+
+```
+my_app/
+├── lib/
+│   └── main.dart
+├── test/                        # Unit & widget tests
+│   └── widget_test.dart
+├── integration_test/            # Integration tests (preferred location)
+│   ├── app_test.dart
+│   └── login_flow_test.dart
+└── test_driver/                 # Only needed for `flutter drive`
+    └── integration_test.dart
+```
+
+### `test_driver/integration_test.dart`
+
+This file is only needed if you use `flutter drive` (legacy approach). Its content is always the same:
+
+```dart
+import 'package:integration_test/integration_test_driver.dart';
+
+Future<void> main() => integrationDriver();
+```
+
+---
+
+## Writing Your First Integration Test
+
+```dart
+// integration_test/app_test.dart
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+
+import 'package:my_app/main.dart' as app;
+
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  group('App smoke test', () {
+    testWidgets('App launches and shows home screen', (WidgetTester tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Welcome'), findsOneWidget);
+    });
+  });
+}
+```
+
+Run it with:
+
+```bash
+flutter test integration_test/app_test.dart
+```
+
+---
+
+## The `IntegrationTestWidgetsFlutterBinding`
+
+This binding is the core of Flutter integration tests. It replaces the default test binding and enables running tests on a real device.
+
+```dart
+IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+```
+
+**Always call this at the very beginning of `main()`, before any test code.**
+
+It provides:
+- `traceAction()` — records performance traces
+- `takeScreenshot()` — captures screenshots
+- `reportData` — map for passing data back to the host
+
+```dart
+final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+testWidgets('performance test', (tester) async {
+  await binding.traceAction(() async {
+    app.main();
+    await tester.pumpAndSettle();
+  }, reportKey: 'scrolling_performance');
+});
+```
+
+---
+
+## Finding Widgets
+
+Flutter uses `Finder` objects to locate widgets in the tree. All finders come from the `find` object.
+
+### By key
+
+```dart
+// In your widget:
+ElevatedButton(key: const Key('login_button'), ...)
+
+// In your test:
+find.byKey(const Key('login_button'))
+```
+
+### By text
+
+```dart
+find.text('Login')
+find.textContaining('Log')  // Partial match
+```
+
+### By type
+
+```dart
+find.byType(ElevatedButton)
+find.byType(TextField)
+```
+
+### By icon
+
+```dart
+find.byIcon(Icons.add)
+```
+
+### By tooltip
+
+```dart
+find.byTooltip('Add item')
+```
+
+### By widget instance
+
+```dart
+final myWidget = MyWidget();
+find.byWidget(myWidget)
+```
+
+### By semantics label
+
+```dart
+find.bySemanticsLabel('Submit form')
+```
+
+### Combining finders
+
+```dart
+// Find a Text inside a specific container
+find.descendant(
+  of: find.byType(AppBar),
+  matching: find.byType(Text),
+)
+
+find.ancestor(
+  of: find.byKey(const Key('submit')),
+  matching: find.byType(Form),
+)
+```
+
+---
+
+## Interacting with Widgets
+
+### Tap
+
+```dart
+await tester.tap(find.byKey(const Key('login_button')));
+await tester.pumpAndSettle();
+```
+
+### Long press
+
+```dart
+await tester.longPress(find.byType(ListTile).first);
+await tester.pumpAndSettle();
+```
+
+### Enter text
+
+```dart
+await tester.enterText(find.byType(TextField), 'user@example.com');
+await tester.pumpAndSettle();
+```
+
+### Clear text
+
+```dart
+await tester.enterText(find.byType(TextField), '');
+```
+
+### Drag & scroll
+
+```dart
+// Scroll a list by offset
+await tester.drag(find.byType(ListView), const Offset(0, -300));
+await tester.pumpAndSettle();
+
+// Scroll until a widget is visible
+await tester.scrollUntilVisible(
+  find.text('Item 50'),
+  500.0,
+  scrollable: find.byType(Scrollable).first,
+);
+```
+
+### Fling (fast scroll)
+
+```dart
+await tester.fling(find.byType(ListView), const Offset(0, -200), 800);
+await tester.pumpAndSettle();
+```
+
+### Pump frame
+
+```dart
+await tester.pump();                  // Single frame
+await tester.pump(Duration(seconds: 1)); // Advance by duration
+await tester.pumpAndSettle();         // Pump until no animations
+await tester.pumpAndSettle(Duration(seconds: 5)); // With timeout
+```
+
+---
+
+## Assertions & Expectations
+
+### Widget presence
+
+```dart
+expect(find.text('Welcome'), findsOneWidget);
+expect(find.byType(CircularProgressIndicator), findsNothing);
+expect(find.byType(ListTile), findsNWidgets(3));
+expect(find.text('Error'), findsAny);  // At least one
+```
+
+### Widget properties
+
+```dart
+// Get widget and inspect
+final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+expect(button.enabled, isTrue);
+
+// Text widget content
+final text = tester.widget<Text>(find.byKey(const Key('status')));
+expect(text.data, equals('Connected'));
+```
+
+### Semantic assertions
+
+```dart
+expect(
+  tester.getSemantics(find.byKey(const Key('toggle'))),
+  matchesSemantics(isToggled: true),
+);
+```
+
+### Size & position
+
+```dart
+final size = tester.getSize(find.byKey(const Key('avatar')));
+expect(size.width, equals(48.0));
+
+final rect = tester.getRect(find.byKey(const Key('card')));
+expect(rect.top, lessThan(200.0));
+```
+
+---
+
+## Working with `patrol` (Advanced)
+
+[Patrol](https://pub.dev/packages/patrol) is a powerful third-party package that extends integration tests with native UI interactions (system dialogs, notifications, permissions).
+
+### Install
+
+```yaml
+dev_dependencies:
+  patrol: ^3.0.0
+
+patrol:
+  app_name: My App
+  android:
+    package_name: com.example.my_app
+  ios:
+    bundle_id: com.example.myApp
+```
+
+### Native interactions
+
+```dart
+import 'package:patrol/patrol.dart';
+
+void main() {
+  patrolTest('handles location permission', ($) async {
+    await $.pumpWidgetAndSettle(const MyApp());
+
+    await $(#requestLocationButton).tap();
+
+    // Handle the native permission dialog
+    await $.native.grantPermissionWhenInUse();
+
+    await $('Location granted').waitUntilVisible();
+  });
+}
+```
+
+### Patrol CLI
+
+```bash
+patrol test --target integration_test/app_test.dart
+```
+
+---
+
+## Running Tests
+
+### Modern approach (recommended)
+
+```bash
+# Run all integration tests
+flutter test integration_test/
+
+# Run a specific file
+flutter test integration_test/login_test.dart
+
+# Run on a specific device
+flutter test integration_test/ -d emulator-5554
+
+# Run with verbose output
+flutter test integration_test/ --reporter expanded
+```
+
+### Legacy approach (`flutter drive`)
+
+```bash
+flutter drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/app_test.dart \
+  -d <device_id>
+```
+
+### Run in headless mode (Android emulator)
+
+```bash
+# Start emulator headlessly
+emulator -avd Pixel_6_API_33 -no-window -no-audio &
+
+# Run tests
+flutter test integration_test/
+```
+
+---
+
+## Running on Real Devices & Emulators
+
+### List available devices
+
+```bash
+flutter devices
+```
+
+### Target a specific device
+
+```bash
+flutter test integration_test/ -d "Pixel 7"
+flutter test integration_test/ -d "iPhone 15 Pro"
+flutter test integration_test/ -d all  # Run on all connected devices
+```
+
+### iOS physical device
+
+Requires a valid provisioning profile and Apple Developer account. Sign the Runner target in Xcode, then:
+
+```bash
+flutter test integration_test/ -d <device_udid>
+```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions — Android
+
+```yaml
+name: Integration Tests
+
+on: [push, pull_request]
+
+jobs:
+  integration-test:
+    runs-on: macos-latest   # macOS required for Android emulator with hardware acceleration
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Start Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          script: flutter test integration_test/
+```
+
+### GitHub Actions — iOS (Simulator)
+
+```yaml
+jobs:
+  ios-integration-test:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run iOS integration tests
+        run: |
+          xcrun simctl boot "iPhone 15" || true
+          flutter test integration_test/ -d "iPhone 15"
+```
+
+---
+
+## Firebase Test Lab
+
+Firebase Test Lab lets you run integration tests on hundreds of real devices in Google's data center.
+
+### 1. Build the test APK
+
+```bash
+# Build the app APK
+flutter build apk --debug
+
+# Build the instrumentation test APK
+pushd android
+./gradlew app:assembleAndroidTest
+./gradlew app:assembleDebug -Ptarget=integration_test/app_test.dart
+popd
+```
+
+### 2. Upload and run on Test Lab
+
+```bash
+gcloud firebase test android run \
+  --type instrumentation \
+  --app build/app/outputs/flutter-apk/app-debug.apk \
+  --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+  --timeout 5m \
+  --results-bucket=your-bucket \
+  --device model=Pixel6,version=31,locale=en,orientation=portrait
+```
+
+### iOS on Firebase Test Lab
+
+```bash
+# Build XCTest bundle
+pushd ios
+xcodebuild build-for-testing \
+  -workspace Runner.xcworkspace \
+  -scheme Runner \
+  -xcconfig Flutter/Release.xcconfig \
+  -configuration Release \
+  -sdk iphoneos \
+  -derivedDataPath ../build/ios_integ
+popd
+
+# Zip and upload
+cd build/ios_integ/Build/Products
+zip -r "ios_tests.zip" "Release-iphoneos" "Runner_iphoneos17.0-arm64.xctestrun"
+
+gcloud firebase test ios run \
+  --test "ios_tests.zip" \
+  --device model=iphone14pro,version=16.6,locale=en_US,orientation=portrait
+```
+
+---
+
+## Screenshots & Screen Recording
+
+### Taking screenshots
+
+```dart
+final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+testWidgets('screenshot example', (tester) async {
+  app.main();
+  await tester.pumpAndSettle();
+
+  await binding.takeScreenshot('home_screen');
+
+  await tester.tap(find.byKey(const Key('settings_icon')));
+  await tester.pumpAndSettle();
+
+  await binding.takeScreenshot('settings_screen');
+});
+```
+
+### Retrieving screenshots
+
+Screenshots are saved differently per platform:
+- **Android**: `/sdcard/Pictures/`
+- **iOS**: Available via Xcode's device manager
+- **Firebase Test Lab**: Available in the Test Lab console bucket
+
+### Fastlane screenshot integration
+
+Use [fastlane screengrab](https://docs.fastlane.tools/actions/screengrab/) (Android) or [fastlane snapshot](https://docs.fastlane.tools/actions/snapshot/) (iOS) to automate screenshot capture across locales/devices.
+
+---
+
+## Handling Async Operations
+
+### Wait for animations
+
+```dart
+await tester.pumpAndSettle();
+```
+
+### Wait for a condition (polling)
+
+```dart
+// Custom wait helper
+Future<void> waitFor(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 10),
+}) async {
+  final end = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(end)) {
+    if (finder.evaluate().isNotEmpty) return;
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  throw TimeoutException('Widget not found: $finder');
+}
+```
+
+### Handling network delays
+
+If your app makes real network calls:
+
+```dart
+// Give time for network + animation
+await tester.pump(const Duration(seconds: 3));
+await tester.pumpAndSettle();
+```
+
+### Faking time
+
+```dart
+await tester.pump(); // Single frame — useful with fake async
+```
+
+---
+
+## Mocking & Dependency Injection in Integration Tests
+
+Integration tests run the real app. To mock specific services, override them before calling `app.main()`.
+
+### Using `get_it` or `riverpod` overrides
+
+```dart
+// With get_it
+testWidgets('mocked login', (tester) async {
+  GetIt.instance.allowReassignment = true;
+  GetIt.instance.registerSingleton<AuthService>(MockAuthService());
+
+  app.main();
+  await tester.pumpAndSettle();
+  // ...
+});
+```
+
+### Using environment variables / compile-time flags
+
+```dart
+// In main.dart
+const isTesting = bool.fromEnvironment('IS_TESTING');
+
+void main() {
+  if (isTesting) {
+    runApp(MyApp(apiClient: MockApiClient()));
+  } else {
+    runApp(MyApp(apiClient: RealApiClient()));
+  }
+}
+
+// Run with:
+// flutter test --dart-define=IS_TESTING=true integration_test/
+```
+
+### Using a test-specific `main`
+
+A common pattern is having a `main_test.dart` that wires up mocks:
+
+```dart
+// lib/main_test.dart
+import 'package:my_app/main.dart' as app;
+import 'mocks/mock_services.dart';
+
+void main() {
+  setupMocks();
+  app.main();
+}
+
+// integration_test/login_test.dart
+import 'package:my_app/main_test.dart' as app;
+```
+
+---
+
+## Testing Navigation
+
+```dart
+testWidgets('navigates to profile screen', (tester) async {
+  app.main();
+  await tester.pumpAndSettle();
+
+  // Tap a navigation item
+  await tester.tap(find.byIcon(Icons.person));
+  await tester.pumpAndSettle();
+
+  // Assert new screen is shown
+  expect(find.text('My Profile'), findsOneWidget);
+  expect(find.byType(ProfileScreen), findsOneWidget);
+});
+```
+
+### Back navigation
+
+```dart
+await tester.pageBack();  // Simulates the back button
+await tester.pumpAndSettle();
+```
+
+### Deep links (programmatic)
+
+```dart
+testWidgets('handles deep link', (tester) async {
+  app.main();
+  await tester.pumpAndSettle();
+
+  // Navigate programmatically via Navigator
+  final NavigatorState navigator = tester.state(find.byType(Navigator));
+  navigator.pushNamed('/product/42');
+  await tester.pumpAndSettle();
+
+  expect(find.text('Product #42'), findsOneWidget);
+});
+```
+
+---
+
+## Testing Platform Channels & Plugins
+
+Integration tests can test real platform plugins. For tests that need to avoid real hardware:
+
+### Mocking a platform channel
+
+```dart
+testWidgets('camera unavailable fallback', (tester) async {
+  // Override the camera plugin's method channel
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+    const MethodChannel('plugins.flutter.io/camera'),
+    (MethodCall call) async {
+      if (call.method == 'availableCameras') return [];
+      return null;
+    },
+  );
+
+  app.main();
+  await tester.pumpAndSettle();
+
+  expect(find.text('No camera available'), findsOneWidget);
+});
+```
+
+---
+
+## Performance Testing
+
+### Timeline tracing
+
+```dart
+testWidgets('smooth scrolling performance', (tester) async {
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  app.main();
+  await tester.pumpAndSettle();
+
+  final timeline = await binding.traceAction(() async {
+    await tester.fling(
+      find.byType(ListView),
+      const Offset(0, -500),
+      10000,
+    );
+    await tester.pumpAndSettle();
+  });
+
+  final summary = TimelineSummary.summarize(timeline);
+  print('Average frame build time: ${summary.computeAverageFrameBuildTimeMillis()} ms');
+  print('Missed frames: ${summary.countSummary}');
+
+  expect(summary.computeAverageFrameBuildTimeMillis(), lessThan(16.0));
+});
+```
+
+### Saving timeline to file
+
+```dart
+await summary.writeTimelineToFile('scrolling_timeline', pretty: true);
+```
+
+Run with:
+
+```bash
+flutter drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/performance_test.dart \
+  --profile  # Important: profile mode for accurate measurements
+```
+
+---
+
+## Best Practices
+
+### Use semantic keys on interactive widgets
+
+```dart
+// Always add keys to widgets you'll target in tests
+ElevatedButton(
+  key: const Key('submit_button'),
+  onPressed: _submit,
+  child: const Text('Submit'),
+)
+```
+
+### Group related tests
+
+```dart
+group('Authentication flow', () {
+  testWidgets('user can log in', ...);
+  testWidgets('user can log out', ...);
+  testWidgets('invalid credentials show error', ...);
+});
+```
+
+### Keep integration tests focused on user flows
+
+Integration tests are expensive. Test the critical happy paths and a few edge cases. Leave edge-case logic to unit/widget tests.
+
+### Use `setUp` and `tearDown`
+
+```dart
+setUp(() async {
+  // Clear app state, reset DB, etc.
+  await resetDatabase();
+});
+
+tearDown(() async {
+  await cleanUpTestData();
+});
+```
+
+### Avoid `sleep` — use `pumpAndSettle`
+
+```dart
+// ❌ Bad
+await Future.delayed(const Duration(seconds: 3));
+
+// ✅ Good
+await tester.pumpAndSettle(const Duration(seconds: 5));
+```
+
+### Test on multiple screen sizes
+
+Use different emulators/simulators to cover phone, tablet, and foldable form factors.
+
+---
+
+## Common Pitfalls
+
+| Problem | Cause | Fix |
+|---|---|---|
+| `pumpAndSettle` times out | Ongoing animation or timer | Use `pump(Duration)` or fix the infinite animation |
+| Widget not found | Key/text changed | Use `find.byKey` for stable references |
+| Tests flaky on CI | Timing issues | Add retries or increase pump settle timeout |
+| Tests pass locally, fail on device | Different screen size | Use `scrollUntilVisible` instead of direct taps |
+| Plugin not initialized | Async `main()` setup incomplete | `await` all initializations before `runApp` |
+| State leaks between tests | Shared global state | Use `setUp`/`tearDown` to reset state |
+
+---
+
+## Troubleshooting
+
+### `Unable to load asset` errors
+
+Make sure your `flutter test` command includes `--dart-define` and `--flavor` flags if your app uses flavors.
+
+### Tests hang forever
+
+```bash
+# Add a timeout
+flutter test integration_test/ --timeout 120s
+```
+
+Or in the test:
+
+```dart
+testWidgets('my test', (tester) async {
+  // ...
+}, timeout: const Timeout(Duration(minutes: 3)));
+```
+
+### `SocketException` or network errors on emulator
+
+- Make sure the emulator has network access
+- Use a mock server (`mockito`, `http_mock_adapter`, or `WireMock`)
+
+### `MissingPluginException`
+
+Plugin is not registered in the test environment. For integration tests on a real device, plugins should work. For widget tests, you need to mock the channel.
+
+### Android Gradle build fails
+
+```bash
+cd android && ./gradlew clean
+flutter clean && flutter pub get
+```
+
+---
+
+## Quick Cheatsheet
+
+```dart
+// Setup
+IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+// Find widgets
+find.byKey(const Key('id'))
+find.text('Hello')
+find.byType(MyWidget)
+find.byIcon(Icons.add)
+find.descendant(of: ..., matching: ...)
+
+// Interact
+await tester.tap(finder);
+await tester.longPress(finder);
+await tester.enterText(finder, 'text');
+await tester.drag(finder, Offset(0, -300));
+await tester.scrollUntilVisible(finder, 500.0);
+await tester.pageBack();
+
+// Wait
+await tester.pump();
+await tester.pump(Duration(seconds: 2));
+await tester.pumpAndSettle();
+
+// Assert
+expect(finder, findsOneWidget);
+expect(finder, findsNothing);
+expect(finder, findsNWidgets(3));
+expect(finder, findsAny);
+
+// Screenshot
+await binding.takeScreenshot('screen_name');
+
+// Performance
+await binding.traceAction(() async { ... });
+```
+
+---
+
+*Generated reference for Flutter integration testing — covers `integration_test` package, `patrol`, Firebase Test Lab, CI/CD, and performance testing.*

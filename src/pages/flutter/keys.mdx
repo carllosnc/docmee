@@ -1,0 +1,53 @@
+---
+layout: ../../layout/main-layout.astro
+title: Keys in Flutter
+---
+
+<a href="/flutter">← Flutter</a> <br /> <br />
+
+# Keys in Flutter
+
+Keys are crucial for maintaining the state of widgets when the widget tree is rearranged. They are used to preserve state and to ensure that widgets are matched correctly when the tree is rebuilt.
+
+## When to Use Keys?
+
+- **Preserving State**: When you have a list of widgets and reorder them, the state of each widget (like data in a TextField) might be lost if you don't use keys.
+- **Matching Widgets**: Keys help Flutter's reconciliation algorithm to find the correct widget model even if the order has changed.
+
+## Common Types of Keys
+
+### 1. `ValueKey<T>`
+Used for simple values like Strings or Integers. Useful when you have a list of distinct items where each item has a unique ID.
+```dart
+ListView(
+  children: items.map((item) => ItemWidget(key: ValueKey(item.id), item: item)).toList(),
+)
+```
+
+### 2. `ObjectKey`
+Similar to `ValueKey`, but uses the whole object for comparison. Useful when multiple fields in an object determine identity.
+
+### 3. `UniqueKey`
+Each time it's created, it's a unique key. Used when you want to force a widget to rebuild its state (e.g., when a unique ID isn't available).
+
+### 4. `GlobalKey`
+Allows you to access a widget from anywhere in the app. Useful for accessing a `FormState` or for performing animations.
+- **Rule**: Use sparingly! Over-reliance on GlobalKeys can lead to complex and hard-to-maintain code.
+
+```dart
+final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+```
+
+## Summary Recommendation
+
+| Goal | Type to Use |
+| :--- | :--- |
+| Simple ID identification | `ValueKey` |
+| Identity based on object state | `ObjectKey` |
+| Force a specific rebuild | `UniqueKey` |
+| Form validation / Cross-tree access | `GlobalKey` |
+
+---
+
+> [!NOTE]
+> Most of the time, you don't need a key. Only use them when you are working with stateful widgets that change their position in the tree.

@@ -1,0 +1,39 @@
+---
+layout: ../../layout/main-layout.astro
+title: State Management Overview
+---
+
+<a href="/flutter">← Flutter</a> <br /> <br />
+
+# State Management in Flutter
+
+In Flutter, managing state is about deciding how and when the UI updates when data changes. The choice of state management depends on the size and complexity of your application.
+
+## 1. Ephemeral State (Local State)
+State that only lives within a single widget (e.g., current page in a PageView, a form field's value).
+- **Tool**: `setState()`.
+- **Pros**: Simple, built-in, efficient for local UI changes.
+
+## 2. App State (Global State)
+State that needs to be shared across many widgets and screens.
+- **Tools**: Provider, Riverpod, Bloc, MobX, etc.
+
+## 3. Comparison Matrix
+
+| Library | Paradigm | Learning Curve | Boilerplate | Recommended for |
+| :--- | :--- | :--- | :--- | :--- |
+| **Provider** | InheritedWidget | Easy | Low | Small-Medium apps |
+| **Riverpod** | Functional / Signals | Medium | Low | Large apps, unit testing |
+| **Bloc** | Streams / Events | Medium | High | Large enterprise, DDD |
+| **Signals** | Observer Pattern | Easy | Very Low | High-performance, reactive |
+
+## 4. Best Practices
+
+- **Avoid Global Variables**: Use a repository or state provider to manage lifecycle.
+- **Don't use `setState()` for Async Logic**: Use a `FutureBuilder` or a ViewModel (ChangeNotifier) to decouple logic from the UI.
+- **Isolate State from UI**: Ensure that business logic can be tested without needing `BuildContext` or Widgets.
+
+---
+
+> [!TIP]
+> For a more advanced architecture combining different state management tools with patterns like Command and Result, see [Command Pattern + Result Sealed Classes](./flutter/command-pattern-result-sealed-classes.mdx).

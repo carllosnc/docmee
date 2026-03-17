@@ -1,0 +1,64 @@
+---
+layout: ../../layout/main-layout.astro
+title: Widget Lifecycle in Flutter
+---
+
+<a href="/flutter">← Flutter</a> <br /> <br />
+
+# Widget Lifecycle (StatefulWidget)
+
+Understanding the lifecycle of a `StatefulWidget` is crucial for managing resources, starting animations, and handling state transitions effectively in Flutter.
+
+## Lifecycle Stages
+
+When Flutter creates a `StatefulWidget`, it goes through a specific sequence of methods.
+
+### 1. `createState()`
+This is the very first method called when a `StatefulWidget` is inserted into the tree. It returns the `State` object associated with that widget.
+
+### 2. `initState()`
+Called once when the state object is created.
+- Used for: Initializng properties, subscribing to Streams/ChangeNotifiers.
+- **Rule**: Always call `super.initState()`.
+
+```dart
+@override
+void initState() {
+  super.initState();
+  _controller = AnimationController(vsync: this);
+}
+```
+
+### 3. `didChangeDependencies()`
+Called immediately after `initState()` and whenever an `InheritedWidget` (like `Theme` or `MediaQuery`) that this widget depends on changes.
+
+### 4. `build()`
+The most important method. It is called multiple times during the widget's life (whenever `setState()` is called or dependencies change). It must return a widget tree.
+
+### 5. `didUpdateWidget()`
+Called when the parent widget changes its configuration and needs to rebuild this widget, but with the same `RuntimeType` and `Key`.
+
+### 6. `deactivate()`
+Called when the state is removed from the tree, but might be reinserted before the current frame is finished.
+
+### 7. `dispose()`
+Called when the state object is removed from the tree permanently.
+- Used for: Canceling subscriptions, disposing controllers.
+- **Rule**: Always call `super.dispose()`.
+
+```dart
+@override
+void dispose() {
+  _controller.dispose();
+  super.dispose();
+}
+```
+
+## Summary Table
+
+| Method | Frequency | Use Case |
+| :--- | :--- | :--- |
+| `initState` | Once | Sync initialization |
+| `didChangeDependencies` | Multiple | Loading data from context |
+| `build` | Multiple | UI Rendering |
+| `dispose` | Once | Cleanup |
