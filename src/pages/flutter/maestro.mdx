@@ -1,0 +1,1368 @@
+---
+layout: ../../layout/main-layout.astro
+title: Maestro Testing in Flutter
+---
+
+<a href="/flutter">← Flutter</a> <br /> <br />
+
+# Maestro Testing Guide
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [How Maestro Works](#how-maestro-works)
+3. [Installation](#installation)
+4. [Project Structure](#project-structure)
+5. [Flow File Basics](#flow-file-basics)
+6. [App Lifecycle Commands](#app-lifecycle-commands)
+7. [Finding & Interacting with Elements](#finding--interacting-with-elements)
+8. [Text Input](#text-input)
+9. [Scrolling & Swiping](#scrolling--swiping)
+10. [Assertions](#assertions)
+11. [Waiting & Timeouts](#waiting--timeouts)
+12. [Conditional Logic](#conditional-logic)
+13. [Loops](#loops)
+14. [Variables & Environment](#variables--environment)
+15. [JavaScript Evaluation](#javascript-evaluation)
+16. [Subflows & Reusability](#subflows--reusability)
+17. [Tags & Test Filtering](#tags--test-filtering)
+18. [Config Block](#config-block)
+19. [Platform-Specific Behavior](#platform-specific-behavior)
+20. [Working with WebViews](#working-with-webviews)
+21. [Maestro Studio](#maestro-studio)
+22. [Running Tests](#running-tests)
+23. [Maestro Cloud](#maestro-cloud)
+24. [CI/CD Integration](#cicd-integration)
+25. [Maestro with Flutter](#maestro-with-flutter)
+26. [Debugging & Troubleshooting](#debugging--troubleshooting)
+27. [Best Practices](#best-practices)
+28. [Quick Cheatsheet](#quick-cheatsheet)
+
+---
+
+## Overview
+
+[Maestro](https://maestro.mobile.dev) is an open-source, declarative UI testing framework for mobile apps. Tests are written in **YAML** and run directly against a connected device or emulator — no code changes to the app required.
+
+**Supports:**
+- Android (native, React Native, Flutter, Ionic, Cordova)
+- iOS (native, React Native, Flutter, Ionic, Cordova)
+- Web (experimental, via browser)
+
+**Key strengths:**
+- Zero setup inside your app
+- Human-readable YAML syntax
+- Built-in tolerance for flakiness (auto-retry, smart waiting)
+- Live interactive exploration via Maestro Studio
+- Cloud execution via Maestro Cloud
+
+---
+
+## How Maestro Works
+
+Maestro communicates with apps using platform accessibility APIs:
+
+- **Android**: UIAutomator2 under the hood
+- **iOS**: XCUITest framework under the hood
+
+It locates elements through the accessibility tree — the same tree used by screen readers — so no instrumentation, no SDK, and no source code access is required.
+
+---
+
+## Installation
+
+### macOS / Linux
+
+```bash
+curl -Ls "https://get.maestro.mobile.dev" | bash
+```
+
+Add to your shell profile:
+
+```bash
+export PATH="$PATH:$HOME/.maestro/bin"
+```
+
+### Windows
+
+```powershell
+iwr get.maestro.mobile.dev/win -useb | iex
+```
+
+### Check version
+
+```bash
+maestro --version
+```
+
+### Update Maestro
+
+```bash
+maestro upgrade
+```
+
+### Prerequisites
+
+| Platform | Requirement |
+|---|---|
+| Android | ADB installed, device connected or emulator running |
+| iOS Simulator | Xcode installed (macOS only) |
+| iOS Physical Device | macOS + Xcode + device paired |
+
+---
+
+## Project Structure
+
+A typical Maestro test project:
+
+```
+my_app/
+└── .maestro/                    # Convention (not required)
+    ├── flows/
+    │   ├── login.yaml
+    │   ├── checkout.yaml
+    │   └── onboarding.yaml
+    ├── subflows/
+    │   ├── login_helper.yaml
+    │   └── setup.yaml
+    └── config.yaml              # Optional global config
+```
+
+Flows are standalone YAML files. There is no mandatory folder structure — just point `maestro test` at the file or directory.
+
+---
+
+## Flow File Basics
+
+Every flow is a YAML file with an optional `---` header block and a list of commands.
+
+```yaml
+# Basic flow structure
+appId: com.example.myapp
+---
+- launchApp
+- tapOn: "Login"
+- assertVisible: "Welcome"
+```
+
+### Minimum viable flow
+
+```yaml
+appId: com.example.myapp
+---
+- launchApp
+- tapOn: "Get Started"
+```
+
+### Header fields
+
+```yaml
+appId: com.example.myapp          # Required: bundle ID / package name
+name: "Login Flow"                # Optional: human-readable name
+tags:                             # Optional: for filtering
+  - smoke
+  - auth
+env:                              # Optional: inline env vars
+  BASE_URL: "https://staging.example.com"
+onFlowStart:                      # Optional: run before flow
+  - clearKeychain
+onFlowComplete:                   # Optional: run after flow
+  - stopApp
+```
+
+---
+
+## App Lifecycle Commands
+
+### Launch app
+
+```yaml
+- launchApp                             # Launch with default settings
+
+- launchApp:
+    appId: com.example.myapp            # Override appId
+    clearState: true                    # Clear app data before launch (Android)
+    clearKeychain: true                 # Clear iOS keychain
+    stopApp: false                      # Don't stop app before launching
+    arguments:                          # Pass launch arguments
+      env1: value1
+```
+
+### Stop app
+
+```yaml
+- stopApp
+
+- stopApp:
+    appId: com.example.otherapp        # Stop a specific app
+```
+
+### Clear app state
+
+```yaml
+- clearState                            # Clears app data (equivalent to fresh install)
+- clearState:
+    appId: com.example.myapp
+```
+
+### Clear keychain (iOS)
+
+```yaml
+- clearKeychain
+```
+
+### Open URL / deep link
+
+```yaml
+- openLink: "myapp://product/42"
+
+- openLink:
+    link: "https://example.com/promo"
+    browser: false                      # false = open in app (default), true = open in browser
+```
+
+---
+
+## Finding & Interacting with Elements
+
+Maestro identifies elements using **selectors**. Most commands accept a selector either as a plain string (text match) or as a map with explicit selector fields.
+
+### Selector types
+
+| Selector | Description |
+|---|---|
+| `text` | Exact text match |
+| `textRegex` | Regex text match |
+| `id` | Accessibility ID / resource-id |
+| `index` | Position among matched elements (0-based) |
+| `label` | Accessibility label (iOS) |
+| `point` | Absolute coordinate e.g. `"50%, 30%"` |
+| `below`, `above`, `leftOf`, `rightOf` | Relative position selector |
+| `containsChild` | Element that contains a child matching the sub-selector |
+
+### `tapOn`
+
+```yaml
+- tapOn: "Login"                        # Tap by text
+
+- tapOn:
+    text: "Submit"
+
+- tapOn:
+    id: "submit_button"                 # By accessibility ID
+
+- tapOn:
+    textRegex: ".*Continue.*"           # By regex
+
+- tapOn:
+    index: 2                            # Third element matching the selector
+
+- tapOn:
+    point: "50%, 80%"                   # By screen percentage
+
+- tapOn:
+    below: "Username"                   # Element below the "Username" label
+```
+
+### `longPressOn`
+
+```yaml
+- longPressOn: "Delete item"
+
+- longPressOn:
+    id: "list_item_3"
+    duration: 2000                      # Milliseconds (default: 1500)
+```
+
+### `doubleTapOn`
+
+```yaml
+- doubleTapOn: "Image"
+
+- doubleTapOn:
+    id: "zoomable_image"
+```
+
+### `tapOn` with multiple matchers
+
+```yaml
+- tapOn:
+    text: "Add"
+    below: "Product Name"               # Disambiguate when multiple "Add" buttons exist
+```
+
+### `pressKey`
+
+```yaml
+- pressKey: Enter
+- pressKey: Backspace
+- pressKey: Back                        # Android back button
+- pressKey: Home
+- pressKey: Lock
+- pressKey: VolumeUp
+- pressKey: VolumeDown
+```
+
+---
+
+## Text Input
+
+### `inputText`
+
+```yaml
+- tapOn: "Email"
+- inputText: "user@example.com"
+
+- tapOn: "Password"
+- inputText: "secret123"
+```
+
+### `inputRandomEmail`
+
+```yaml
+- tapOn: "Email field"
+- inputRandomEmail                      # Generates a random valid email
+```
+
+### `inputRandomText`
+
+```yaml
+- tapOn: "Name"
+- inputRandomText                       # Random alphanumeric string
+
+- inputRandomText:
+    length: 8                           # Specify length
+```
+
+### `inputRandomNumber`
+
+```yaml
+- inputRandomNumber
+
+- inputRandomNumber:
+    length: 6
+```
+
+### `inputRandomPersonName`
+
+```yaml
+- inputRandomPersonName
+```
+
+### `clearTextField`
+
+```yaml
+- clearTextField                        # Clears the currently focused field
+
+- clearTextField: "Search"             # Clears field with matching text/id
+```
+
+### `copyTextFrom`
+
+```yaml
+- copyTextFrom: "Order number"          # Copies text to clipboard
+```
+
+### `pasteText`
+
+```yaml
+- pasteText                             # Pastes clipboard content into focused field
+```
+
+---
+
+## Scrolling & Swiping
+
+### `scroll`
+
+```yaml
+- scroll                                # Scroll down (default)
+
+- scroll:
+    direction: UP                       # UP, DOWN, LEFT, RIGHT
+    duration: 3000                      # Milliseconds
+    speed: 40                           # 1 (slow) – 100 (fast), default 40
+```
+
+### `scrollUntilVisible`
+
+```yaml
+- scrollUntilVisible:
+    element:
+      text: "Terms of Service"
+    direction: DOWN
+    timeout: 30000                      # Max wait in ms
+    speed: 30
+
+- scrollUntilVisible:
+    element:
+      id: "checkout_button"
+    direction: UP
+```
+
+### `swipe`
+
+```yaml
+# Swipe by direction
+- swipe:
+    direction: LEFT
+
+# Swipe from point to point (percentages or pixels)
+- swipe:
+    start: "10%, 50%"
+    end: "90%, 50%"
+    duration: 600                       # Milliseconds
+```
+
+### `swipeLeft` / `swipeRight` (shorthand)
+
+```yaml
+- swipe:
+    direction: LEFT
+    element:
+      text: "Swipeable card"            # Swipe on a specific element
+```
+
+---
+
+## Assertions
+
+### `assertVisible`
+
+```yaml
+- assertVisible: "Welcome back!"
+
+- assertVisible:
+    text: "Order confirmed"
+
+- assertVisible:
+    id: "success_icon"
+
+- assertVisible:
+    textRegex: "Hello, .*!"             # Regex match
+
+- assertVisible:
+    text: "Price"
+    below: "Product Title"
+```
+
+### `assertNotVisible`
+
+```yaml
+- assertNotVisible: "Error message"
+
+- assertNotVisible:
+    id: "loading_spinner"
+```
+
+### `assertChecked` / `assertNotChecked`
+
+```yaml
+- assertChecked: "Remember me"
+- assertNotChecked: "Subscribe to newsletter"
+```
+
+### `assertEnabled` / `assertDisabled`
+
+```yaml
+- assertEnabled: "Submit"
+- assertDisabled:
+    id: "submit_button"
+```
+
+### `assertTrue`
+
+```yaml
+- assertTrue:
+    condition: "${MY_VAR == 'expected'}"
+```
+
+---
+
+## Waiting & Timeouts
+
+Maestro auto-waits for elements by default before performing actions. You can override globally or per command.
+
+### Global wait timeout
+
+In `maestro test`:
+
+```bash
+maestro test --timeout 60000 flow.yaml
+```
+
+### Per-command timeout
+
+```yaml
+- tapOn:
+    text: "Slow element"
+    waitUntilVisible:
+      timeout: 15000                    # ms — wait up to 15s for element to appear
+```
+
+### `waitForAnimationToEnd`
+
+```yaml
+- waitForAnimationToEnd
+
+- waitForAnimationToEnd:
+    timeout: 5000
+```
+
+### `wait` (explicit pause)
+
+```yaml
+- wait: 2000                            # Wait 2 seconds unconditionally
+```
+
+> Use `wait` sparingly. Prefer `waitForAnimationToEnd` or rely on Maestro's built-in auto-waiting.
+
+---
+
+## Conditional Logic
+
+### `runFlow` conditionally
+
+```yaml
+- runFlow:
+    when:
+      visible: "Allow notifications"
+    file: subflows/dismiss_notification_prompt.yaml
+```
+
+### `tapOn` with optional flag
+
+```yaml
+- tapOn:
+    text: "Maybe Later"
+    optional: true                      # Skip if element not found (don't fail)
+```
+
+### `assertVisible` in a condition
+
+```yaml
+- runFlow:
+    when:
+      visible:
+        text: "Rate our app"
+    commands:
+      - tapOn: "Not Now"
+```
+
+### Inline conditional with `commands`
+
+```yaml
+- runFlow:
+    when:
+      visible: "Cookie consent"
+    commands:
+      - tapOn: "Accept All"
+      - waitForAnimationToEnd
+```
+
+---
+
+## Loops
+
+### `repeat`
+
+```yaml
+- repeat:
+    times: 5
+    commands:
+      - tapOn: "+"
+      - wait: 300
+
+- repeat:
+    while:
+      visible: "Load more"
+    commands:
+      - tapOn: "Load more"
+      - waitForAnimationToEnd
+    maxRepeat: 20                       # Safety limit
+```
+
+### Looping over a list with `forEach`
+
+```yaml
+- forEach:
+    items:
+      - "Apple"
+      - "Banana"
+      - "Cherry"
+    commands:
+      - tapOn: "${item}"               # ${item} is the current element
+      - assertVisible: "${item} added"
+      - tapOn: "Back"
+```
+
+---
+
+## Variables & Environment
+
+### Define in header
+
+```yaml
+env:
+  USERNAME: "testuser@example.com"
+  PASSWORD: "Test1234!"
+---
+- tapOn: "Email"
+- inputText: "${USERNAME}"
+- tapOn: "Password"
+- inputText: "${PASSWORD}"
+```
+
+### Pass via CLI
+
+```bash
+maestro test flow.yaml \
+  -e USERNAME="user@example.com" \
+  -e PASSWORD="secret"
+```
+
+### Read from `.env` file
+
+```bash
+maestro test flow.yaml --env .env
+```
+
+`.env` file format:
+
+```
+USERNAME=testuser@example.com
+PASSWORD=secret123
+```
+
+### Built-in variables
+
+| Variable | Value |
+|---|---|
+| `${item}` | Current item in a `forEach` loop |
+| `${index}` | Current index in a `forEach` loop |
+| `${maestro.copiedText}` | Text copied via `copyTextFrom` |
+| `${platform}` | `android` or `ios` |
+| `${OS}` | OS name string |
+
+---
+
+## JavaScript Evaluation
+
+Maestro supports inline JavaScript via the `evalScript` command. Use it for dynamic values, string manipulation, or complex logic.
+
+### `evalScript`
+
+```dart
+- evalScript: ${new Date().toISOString()}
+```
+
+### Store result in a variable
+
+```yaml
+- evalScript:
+    script: |
+      var ts = Date.now();
+      output.timestamp = ts;
+      output.email = "user+" + ts + "@example.com";
+```
+
+Then use `${timestamp}` and `${email}` in subsequent steps.
+
+### Full JavaScript block
+
+```yaml
+- evalScript:
+    script: |
+      var items = ['a', 'b', 'c'];
+      output.count = items.length;
+      output.joined = items.join(', ');
+
+- inputText: "${joined}"
+```
+
+### Access clipboard in JS
+
+```yaml
+- copyTextFrom: "OTP code"
+- evalScript:
+    script: |
+      output.otp = maestro.copiedText;
+```
+
+---
+
+## Subflows & Reusability
+
+### `runFlow` — external file
+
+```yaml
+- runFlow: subflows/login.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${USERNAME}"
+      PASSWORD: "${PASSWORD}"
+```
+
+### `runFlow` — inline commands
+
+```yaml
+- runFlow:
+    commands:
+      - tapOn: "Dismiss"
+      - waitForAnimationToEnd
+```
+
+### Composing full suites
+
+Create a parent flow that calls child flows in sequence:
+
+```yaml
+# suite.yaml
+appId: com.example.myapp
+---
+- runFlow: flows/onboarding.yaml
+- runFlow: flows/login.yaml
+- runFlow: flows/purchase.yaml
+- runFlow: flows/logout.yaml
+```
+
+---
+
+## Tags & Test Filtering
+
+### Add tags to a flow
+
+```yaml
+appId: com.example.myapp
+tags:
+  - smoke
+  - regression
+  - auth
+---
+- launchApp
+```
+
+### Run only flows with specific tags
+
+```bash
+maestro test --include-tags smoke .maestro/
+```
+
+### Exclude tags
+
+```bash
+maestro test --exclude-tags slow .maestro/
+```
+
+### Combine
+
+```bash
+maestro test --include-tags smoke --exclude-tags wip .maestro/
+```
+
+---
+
+## Config Block
+
+The optional `config` section at the top of a flow (or in a separate config file) controls global test behavior.
+
+```yaml
+appId: com.example.myapp
+---
+- launchApp
+
+# Global configuration (can also be in a separate config.yaml)
+```
+
+### Per-flow configuration
+
+```yaml
+appId: com.example.myapp
+name: "Checkout Flow"
+tags:
+  - smoke
+onFlowStart:
+  - launchApp:
+      clearState: true
+onFlowComplete:
+  - stopApp
+---
+- tapOn: "Add to Cart"
+```
+
+### Global config file (`config.yaml`)
+
+```yaml
+# .maestro/config.yaml
+flows:
+  - flows/                              # Directories to include
+  - "!flows/wip/"                       # Exclude a subfolder
+```
+
+---
+
+## Platform-Specific Behavior
+
+### Conditional commands by platform
+
+```yaml
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: Back
+
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          direction: RIGHT              # iOS back gesture
+```
+
+### `platform` in env
+
+```yaml
+- evalScript:
+    script: |
+      if (maestro.platform === 'android') {
+        output.buttonText = 'OK';
+      } else {
+        output.buttonText = 'Allow';
+      }
+- tapOn: "${buttonText}"
+```
+
+### Android-specific commands
+
+```yaml
+- pressKey: Back                        # Hardware back button
+- pressKey: Home
+- pressKey: Lock
+- pressKey: VolumeUp / VolumeDown
+```
+
+### iOS-specific
+
+```yaml
+- pressKey: Enter                       # Keyboard return
+- swipe:
+    direction: DOWN                     # Pull-to-refresh
+    element:
+      id: "main_scroll_view"
+```
+
+---
+
+## Working with WebViews
+
+Maestro can interact with elements inside WebViews using the same selectors.
+
+```yaml
+- tapOn: "Open WebView"
+- assertVisible:
+    text: "Page Title"                  # Text inside the WebView
+- tapOn: "Link inside WebView"
+```
+
+For hybrid apps, Maestro automatically inspects both native and web layers. No special configuration is required.
+
+> Note: JavaScript-rendered content may need a `waitForAnimationToEnd` or `wait` before assertions.
+
+---
+
+## Maestro Studio
+
+Maestro Studio is a browser-based interactive explorer that lets you inspect your app's hierarchy and build commands visually.
+
+### Launch Studio
+
+```bash
+maestro studio
+```
+
+This opens a browser window (default: `http://localhost:9999`) with:
+- Live screenshot of the connected device
+- Accessibility element tree
+- Command picker
+- Test recorder
+
+### Use cases
+
+- Explore element IDs and text before writing YAML
+- Debug why a selector isn't matching
+- Record basic flows to use as a starting template
+
+---
+
+## Running Tests
+
+### Run a single flow
+
+```bash
+maestro test flow.yaml
+```
+
+### Run all flows in a directory
+
+```bash
+maestro test .maestro/flows/
+```
+
+### Run with environment variables
+
+```bash
+maestro test flow.yaml -e USERNAME=test@example.com -e PASSWORD=secret
+```
+
+### Run on a specific device
+
+```bash
+# List devices
+maestro device
+
+# Target by device ID
+maestro --device emulator-5554 test flow.yaml
+```
+
+### Continuous mode (re-run on file change)
+
+```bash
+maestro test --continuous flow.yaml
+```
+
+### Output formats
+
+```bash
+maestro test --format junit flow.yaml  # JUnit XML report
+maestro test --output report.xml flow.yaml
+```
+
+### Retry on failure
+
+```bash
+maestro test --retry 3 flow.yaml       # Retry up to 3 times on failure
+```
+
+---
+
+## Maestro Cloud
+
+[Maestro Cloud](https://cloud.mobile.dev) runs your flows on real devices in the cloud.
+
+### Install the Maestro Cloud CLI
+
+```bash
+# Already included with maestro install
+maestro cloud --help
+```
+
+### Upload and run
+
+```bash
+maestro cloud \
+  --apiKey $MAESTRO_CLOUD_API_KEY \
+  --app build/app-debug.apk \          # or .ipa for iOS
+  .maestro/flows/
+```
+
+### iOS upload
+
+```bash
+maestro cloud \
+  --apiKey $MAESTRO_CLOUD_API_KEY \
+  --app Runner.app \
+  .maestro/flows/
+```
+
+### Options
+
+```bash
+maestro cloud \
+  --apiKey $KEY \
+  --app app.apk \
+  --device-locale en_US \
+  --include-tags smoke \
+  --exclude-tags wip \
+  --timeout 300 \
+  .maestro/
+```
+
+### Environment variables in Cloud
+
+```bash
+maestro cloud \
+  --apiKey $KEY \
+  --app app.apk \
+  --env USERNAME=test@example.com \
+  .maestro/
+```
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions — Android
+
+```yaml
+name: Maestro Tests
+
+on: [push, pull_request]
+
+jobs:
+  maestro:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter (if Flutter app)
+        uses: subosito/flutter-action@v2
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Install Maestro
+        run: curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - name: Add Maestro to PATH
+        run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Start Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          script: |
+            maestro test \
+              --format junit \
+              --output test-results.xml \
+              .maestro/flows/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-results
+          path: test-results.xml
+```
+
+### GitHub Actions — Maestro Cloud
+
+```yaml
+      - name: Run on Maestro Cloud
+        run: |
+          maestro cloud \
+            --apiKey ${{ secrets.MAESTRO_CLOUD_API_KEY }} \
+            --app build/app-debug.apk \
+            .maestro/flows/
+```
+
+### Bitrise
+
+Add a `Script` step:
+
+```bash
+curl -Ls "https://get.maestro.mobile.dev" | bash
+export PATH="$PATH:$HOME/.maestro/bin"
+maestro test .maestro/flows/
+```
+
+### CircleCI
+
+```yaml
+- run:
+    name: Install Maestro
+    command: curl -Ls "https://get.maestro.mobile.dev" | bash
+
+- run:
+    name: Run Maestro tests
+    command: |
+      export PATH="$PATH:$HOME/.maestro/bin"
+      maestro test .maestro/flows/
+```
+
+---
+
+## Maestro with Flutter
+
+Maestro works with Flutter apps out of the box — no SDK or code changes required. It uses Flutter's accessibility semantics layer.
+
+### Ensure semantics are exposed
+
+Flutter widgets use `Semantics` widgets to expose labels. Many Material widgets do this automatically. For custom widgets:
+
+```dart
+Semantics(
+  label: 'add_to_cart_button',
+  button: true,
+  child: GestureDetector(
+    onTap: _addToCart,
+    child: Container(...),
+  ),
+)
+```
+
+### Using `Key` as selector
+
+```dart
+ElevatedButton(
+  key: const Key('login_button'),
+  ...
+)
+```
+
+```yaml
+- tapOn:
+    id: "login_button"                  # Matches the Key value
+```
+
+### Flutter-specific tips
+
+- Use `waitForAnimationToEnd` after route transitions (Flutter's page animations can be slow)
+- If using `flutter_test` golden keys, add explicit `Semantics` labels for Maestro
+- For bottom sheets and dialogs, wait for them to fully animate in before tapping
+
+```yaml
+- tapOn: "Show Dialog"
+- waitForAnimationToEnd
+- tapOn: "Confirm"
+```
+
+---
+
+## Debugging & Troubleshooting
+
+### Verbose output
+
+```bash
+maestro test --debug flow.yaml
+```
+
+### Inspect the hierarchy
+
+```bash
+maestro hierarchy                       # Prints the full accessibility tree
+```
+
+### Record a video of the test run
+
+```bash
+maestro test --screen-record flow.yaml
+```
+
+### Common issues and fixes
+
+| Problem | Likely Cause | Fix |
+|---|---|---|
+| Element not found | Text changed, ID missing | Use `maestro hierarchy` to inspect. Use `textRegex` for partial match |
+| Test flaky on CI | Animations/network slower | Add `waitForAnimationToEnd` or increase timeout |
+| `tapOn` hits wrong element | Multiple elements match | Add `index`, `below`, `above`, or other disambiguators |
+| App doesn't launch | Wrong `appId` | Double-check package name / bundle ID with `adb shell pm list packages` |
+| iOS simulator not detected | Xcode version issue | Run `xcrun simctl list` and ensure simulator is booted |
+| WebView elements not found | Content not loaded | Add `wait: 2000` or `waitForAnimationToEnd` before assertion |
+| `clearState` not working on iOS | Not supported on iOS physical devices | Use `launchApp: clearKeychain: true` and reset via app settings |
+
+### Check device connection
+
+```bash
+adb devices                             # Android
+xcrun simctl list devices               # iOS simulators
+maestro device                          # Both
+```
+
+### Re-run failed tests only
+
+Maestro Cloud automatically identifies and re-runs failed flows. Locally, you can filter:
+
+```bash
+maestro test flows/failing_flow.yaml --retry 2
+```
+
+---
+
+## Best Practices
+
+### Always use stable selectors
+
+Prefer `id` (accessibility ID) over `text` for elements that change content (e.g., counters, usernames). Text is fine for static labels.
+
+```yaml
+# ✅ Stable
+- tapOn:
+    id: "nav_home_tab"
+
+# ⚠️ Fragile if content changes
+- tapOn: "42 unread messages"
+```
+
+### Handle optional prompts defensively
+
+System dialogs (notifications, permissions, ratings) appear unpredictably. Wrap dismissals with `optional: true` or `when: visible`.
+
+```yaml
+- tapOn:
+    text: "Allow"
+    optional: true
+
+- runFlow:
+    when:
+      visible: "Allow Notifications"
+    commands:
+      - tapOn: "Allow"
+```
+
+### Avoid hard waits
+
+```yaml
+# ❌ Fragile
+- wait: 5000
+
+# ✅ Better
+- waitForAnimationToEnd
+- assertVisible: "Home"
+```
+
+### One flow per user story
+
+Keep flows focused. A `login.yaml` should only cover login. Compose larger scenarios via `runFlow`.
+
+### Use `clearState: true` for clean test runs
+
+```yaml
+- launchApp:
+    clearState: true
+```
+
+### Store flows close to the app code
+
+Keep `.maestro/` in your repository root so flows are versioned alongside the app.
+
+### Parameterize environment-specific values
+
+```yaml
+env:
+  API_URL: "https://staging.example.com"
+```
+
+Never hardcode environment-specific URLs or credentials inside flows.
+
+---
+
+## Quick Cheatsheet
+
+```yaml
+# Header
+appId: com.example.app
+name: "My Flow"
+tags: [smoke]
+env:
+  VAR: value
+
+# App lifecycle
+- launchApp
+- launchApp:
+    clearState: true
+- stopApp
+- clearState
+- openLink: "myapp://path"
+
+# Tap
+- tapOn: "Button Text"
+- tapOn:
+    id: "button_id"
+    index: 0
+    below: "Label"
+    optional: true
+
+# Input
+- inputText: "Hello"
+- inputRandomEmail
+- clearTextField: "Search"
+- copyTextFrom: "Code"
+- pasteText
+
+# Scroll & Swipe
+- scroll
+- scroll:
+    direction: UP
+- scrollUntilVisible:
+    element:
+      text: "Footer"
+    direction: DOWN
+- swipe:
+    direction: LEFT
+- swipe:
+    start: "10%, 50%"
+    end: "90%, 50%"
+
+# Assertions
+- assertVisible: "Success"
+- assertNotVisible: "Error"
+- assertChecked: "Checkbox"
+- assertEnabled: "Submit"
+- assertTrue:
+    condition: "${myVar == 'ok'}"
+
+# Wait
+- waitForAnimationToEnd
+- wait: 1000
+
+# Keys
+- pressKey: Back
+- pressKey: Enter
+
+# Variables & JS
+- evalScript:
+    script: |
+      output.email = "user+" + Date.now() + "@test.com";
+
+# Subflows
+- runFlow: subflows/helper.yaml
+- runFlow:
+    when:
+      visible: "Prompt"
+    commands:
+      - tapOn: "Dismiss"
+
+# Loops
+- repeat:
+    times: 3
+    commands:
+      - tapOn: "+"
+- forEach:
+    items: ["A", "B"]
+    commands:
+      - tapOn: "${item}"
+
+# Platform conditional
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          direction: RIGHT
+```
+
+### CLI reference
+
+```bash
+maestro test flow.yaml                  # Run a flow
+maestro test .maestro/                  # Run all flows in directory
+maestro test -e KEY=val flow.yaml       # Pass env var
+maestro test --include-tags smoke .     # Filter by tag
+maestro test --format junit .           # JUnit output
+maestro test --retry 3 flow.yaml        # Retry on failure
+maestro test --continuous flow.yaml     # Watch mode
+maestro studio                          # Launch interactive studio
+maestro hierarchy                       # Print element tree
+maestro device                          # List connected devices
+maestro cloud --apiKey $KEY --app a.apk . # Run on cloud
+maestro upgrade                         # Update Maestro
+```
+
+---
+
+*Maestro version this reference targets: **1.x (stable)**. Check [maestro.mobile.dev](https://maestro.mobile.dev) for the latest commands and options.*
